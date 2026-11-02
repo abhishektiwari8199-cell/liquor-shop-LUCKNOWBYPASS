@@ -1,1 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liquor Shop Dashboard - Lucknow Bypass</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+    <div class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-indigo-900 text-white shadow-md py-4 px-6 flex justify-between items-center">
+            <h1 class="text-xl font-bold">🍷 Liquor Shop Reporting | Lucknow Bypass</h1>
+            <span class="text-sm bg-indigo-700 px-3 py-1 rounded-full">Live Status: Active</span>
+        </header>
 
+        <!-- Main Content -->
+        <main class="flex-grow container mx-auto px-4 py-8">
+            <!-- Metrics Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-lg shadow border-l-4 border-green-500">
+                    <p class="text-gray-500 text-sm font-semibold">Today's Sales</p>
+                    <h2 class="text-2xl font-bold text-gray-800">₹ 48,500</h2>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow border-l-4 border-blue-500">
+                    <p class="text-gray-500 text-sm font-semibold">Stock Remaining</p>
+                    <h2 class="text-2xl font-bold text-gray-800">1,240 Bottles</h2>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow border-l-4 border-red-500">
+                    <p class="text-gray-500 text-sm font-semibold">Today's Expenses</p>
+                    <h2 class="text-2xl font-bold text-gray-800">₹ 3,200</h2>
+                </div>
+            </div>
+
+            <!-- Recent Reports Table -->
+            <div class="bg-white rounded-lg shadow overflow-hidden">
+                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-700">Recent Daily Logs</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-100 text-gray-600 text-sm uppercase">
+                                <th class="py-3 px-6">Date</th>
+                                <th class="py-3 px-6">Total Sales</th>
+                                <th class="py-3 px-6">Cash in Drawer</th>
+                                <th class="py-3 px-6">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-gray-600 divide-y divide-gray-200">
+                            <tr>
+                                <td class="py-3 px-6">02 Nov 2026</td>
+                                <td class="py-3 px-6 font-semibold text-green-600">₹ 48,500</td>
+                                <td class="py-3 px-6">₹ 45,300</td>
+                                <td class="py-3 px-6"><span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">Verified</span></td>
+                            </tr>
+                            <tr>
+                                <td class="py-3 px-6">01 Nov 2026</td>
+                                <td class="py-3 px-6 font-semibold text-green-600">₹ 52,000</td>
+                                <td class="py-3 px-6">₹ 52,000</td>
+                                <td class="py-3 px-6"><span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">Verified</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-gray-800 text-white text-center py-4 text-sm">
+            Abhishek Composite Liqure Shop &copy; 2026 | Lucknow Bypass Unit
+        </footer>
+    </div>
+</body>
+</html>
