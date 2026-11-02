@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Abhishek Enterprises | Complete Liquor & Beer Management Portal - Lucknow Bypass</title>
+    <title>Abhishek Enterprises | Complete Master Inventory & Pricing Portal - Lucknow Bypass</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
@@ -14,13 +14,25 @@
     <script>
         function calculatePetiRate(rowId) {
             let petiRate = parseFloat(document.getElementById('peti_rate_' + rowId).value) || 0;
-            let pcs = parseFloat(document.getElementById('peti_pcs_' + rowId).value) || 1;
+            let pcs = parseFloat(document.getElementById('peti_pcs_' + rowId).value) || 12;
             let resultBox = document.getElementById('calc_result_' + rowId);
             if (pcs > 0) {
                 let perBottle = petiRate / pcs;
                 resultBox.innerText = "= ₹ " + perBottle.toFixed(2) + " /bot";
             } else {
                 resultBox.innerText = "= ₹ 0 /bot";
+            }
+        }
+
+        function toggleShowMore() {
+            let extraRows = document.getElementById('extra_bottles');
+            let btn = document.getElementById('show_more_btn');
+            if (extraRows.style.display === "none") {
+                extraRows.style.display = "table-row-group";
+                btn.innerText = "Show Less ∧";
+            } else {
+                extraRows.style.display = "none";
+                btn.innerText = "Show More (100+ More Brands) ∨";
             }
         }
     </script>
@@ -34,12 +46,12 @@
                 <span class="text-3xl">🍷</span>
                 <div>
                     <h1 class="text-xl font-bold tracking-wide heading-font text-amber-500">ABHISHEK ENTERPRISES</h1>
-                    <p class="text-xs text-zinc-400 tracking-wider">LUCKNOW BYPASS UNIT — MASTER DASHBOARD</p>
+                    <p class="text-xs text-zinc-400 tracking-wider">LUCKNOW BYPASS UNIT — MASTER PORTAL</p>
                 </div>
             </div>
             <div class="flex items-center space-x-2 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-full text-amber-400 text-xs font-medium">
                 <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>Live Management System</span>
+                <span>System Active (115 Brands)</span>
             </div>
         </header>
 
@@ -50,19 +62,19 @@
             <div class="relative rounded-2xl overflow-hidden mb-8 border border-amber-500/20 shadow-2xl bg-gradient-to-r from-zinc-900 via-amber-950/40 to-zinc-900 p-8 flex flex-col md:flex-row justify-between items-center">
                 <div class="mb-6 md:mb-0">
                     <h2 class="text-3xl md:text-4xl font-bold heading-font text-amber-100 mb-2">Executive Store & Pricing Portal</h2>
-                    <p class="text-zinc-400 text-sm max-w-xl">Aapki shop ka complete stock, 750ml/375ml/180ml/90ml sizes, MRP entries, Peti rate auto-calculator aur Beer section ek hi jagah par.</p>
+                    <p class="text-zinc-400 text-sm max-w-xl">Saari 115 bottles, sizes, MRP, Peti calculator aur dedicated Beer section ab ekdam professional layout mein manage karein.</p>
                 </div>
                 <div class="bg-zinc-900/90 border border-amber-500/30 p-4 rounded-xl text-center min-w-[200px] shadow-inner">
-                    <span class="text-xs text-zinc-400 block uppercase tracking-wider">Store Status</span>
-                    <span class="text-3xl font-extrabold text-amber-400 heading-font mt-1 block">Active</span>
+                    <span class="text-xs text-zinc-400 block uppercase tracking-wider">Total Inventory</span>
+                    <span class="text-3xl font-extrabold text-amber-400 heading-font mt-1 block">115 Brands</span>
                 </div>
             </div>
 
             <!-- SECTION 1: Regular Bottles Management Matrix -->
             <div class="glass-card rounded-2xl shadow-xl overflow-hidden border border-zinc-800 mb-10">
                 <div class="px-6 py-5 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
-                    <h3 class="text-lg font-bold text-amber-100 heading-font">🍾 Regular Bottles - Sizes, MRP & Peti Calculator</h3>
-                    <span class="text-xs text-zinc-400">Inventory & Pricing Module</span>
+                    <h3 class="text-lg font-bold text-amber-100 heading-font">🍾 Regular Bottles - Master Inventory & Calculator</h3>
+                    <span class="text-xs text-zinc-400">Showing Top Brands (Expandable)</span>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse text-xs">
@@ -72,75 +84,36 @@
                                 <th class="py-3 px-4">Brand Name</th>
                                 <th class="py-3 px-4">Sizes (750 / 375 / 180 / 90 ml)</th>
                                 <th class="py-3 px-4">MRP (Selling Rate)</th>
-                                <th class="py-3 px-4">Peti Rate & Auto Per-Bottle Rate</th>
+                                <th class="py-3 px-4">Peti Rate & Per-Bottle Calculator</th>
                             </tr>
                         </thead>
+                        <!-- Top 12 Visible Brands -->
                         <tbody class="divide-y divide-zinc-800/60 text-zinc-300">
-                            <!-- Row 1 -->
-                            <tr class="hover:bg-zinc-900/30">
-                                <td class="py-4 px-4 font-semibold text-white">1</td>
-                                <td class="py-4 px-4 font-bold text-amber-400">BLENDER PRIDE</td>
-                                <td class="py-4 px-4">
-                                    <div class="grid grid-cols-2 gap-1 text-[11px]">
-                                        <span>750ml: <input type="number" placeholder="Qty" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span>
-                                        <span>375ml: <input type="number" placeholder="Qty" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span>
-                                        <span>180ml: <input type="number" placeholder="Qty" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span>
-                                        <span>90ml: <input type="number" placeholder="Qty" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span>
-                                    </div>
-                                </td>
-                                <td class="py-4 px-4"><input type="text" placeholder="MRP (All sizes)" class="w-32 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-white"></td>
-                                <td class="py-4 px-4">
-                                    <div class="flex items-center space-x-2">
-                                        <input type="number" id="peti_rate_1" placeholder="Peti ₹" oninput="calculatePetiRate(1)" class="w-20 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-white">
-                                        <input type="number" id="peti_pcs_1" placeholder="Pcs" value="12" oninput="calculatePetiRate(1)" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white">
-                                        <span id="calc_result_1" class="text-emerald-400 font-bold">= ₹ 0 /bot</span>
-                                    </div>
-                                </td>
-                            </tr>
-                            <!-- Row 2 -->
-                            <tr class="hover:bg-zinc-900/30">
-                                <td class="py-4 px-4 font-semibold text-white">2</td>
-                                <td class="py-4 px-4 font-bold text-amber-400">ROYAL STAG</td>
-                                <td class="py-4 px-4">
-                                    <div class="grid grid-cols-2 gap-1 text-[11px]">
-                                        <span>750ml: <input type="number" placeholder="Qty" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span>
-                                        <span>375ml: <input type="number" placeholder="Qty" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span>
-                                        <span>180ml: <input type="number" placeholder="Qty" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span>
-                                        <span>90ml: <input type="number" placeholder="Qty" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span>
-                                    </div>
-                                </td>
-                                <td class="py-4 px-4"><input type="text" placeholder="MRP (All sizes)" class="w-32 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-white"></td>
-                                <td class="py-4 px-4">
-                                    <div class="flex items-center space-x-2">
-                                        <input type="number" id="peti_rate_2" placeholder="Peti ₹" oninput="calculatePetiRate(2)" class="w-20 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-white">
-                                        <input type="number" id="peti_pcs_2" placeholder="Pcs" value="12" oninput="calculatePetiRate(2)" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white">
-                                        <span id="calc_result_2" class="text-emerald-400 font-bold">= ₹ 0 /bot</span>
-                                    </div>
-                                </td>
-                            </tr>
-                            <!-- Row 3 -->
-                            <tr class="hover:bg-zinc-900/30">
-                                <td class="py-4 px-4 font-semibold text-white">3</td>
-                                <td class="py-4 px-4 font-bold text-amber-400">IMPERIAL BLUE</td>
-                                <td class="py-4 px-4">
-                                    <div class="grid grid-cols-2 gap-1 text-[11px]">
-                                        <span>750ml: <input type="number" placeholder="Qty" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span>
-                                        <span>375ml: <input type="number" placeholder="Qty" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span>
-                                        <span>180ml: <input type="number" placeholder="Qty" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span>
-                                        <span>90ml: <input type="number" placeholder="Qty" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span>
-                                    </div>
-                                </td>
-                                <td class="py-4 px-4"><input type="text" placeholder="MRP (All sizes)" class="w-32 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-white"></td>
-                                <td class="py-4 px-4">
-                                    <div class="flex items-center space-x-2">
-                                        <input type="number" id="peti_rate_3" placeholder="Peti ₹" oninput="calculatePetiRate(3)" class="w-20 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-white">
-                                        <input type="number" id="peti_pcs_3" placeholder="Pcs" value="12" oninput="calculatePetiRate(3)" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white">
-                                        <span id="calc_result_3" class="text-emerald-400 font-bold">= ₹ 0 /bot</span>
-                                    </div>
-                                </td>
-                            </tr>
+                            <tr class="hover:bg-zinc-900/30"><td class="py-3 px-4 font-semibold text-white">1</td><td class="py-3 px-4 font-bold text-amber-400">BLENDER RESERVE BLUE</td><td class="py-3 px-4"><div class="grid grid-cols-2 gap-1 text-[11px]"><span>750: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span><span>375: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span><span>180: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span><span>90: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span></div></td><td class="py-3 px-4"><input type="text" placeholder="MRP" class="w-28 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-white"></td><td class="py-3 px-4"><div class="flex items-center space-x-2"><input type="number" id="peti_rate_1" placeholder="Peti ₹" oninput="calculatePetiRate(1)" class="w-16 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-white"><input type="number" id="peti_pcs_1" value="12" oninput="calculatePetiRate(1)" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"><span id="calc_result_1" class="text-emerald-400 font-bold">= ₹ 0 /bot</span></div></td></tr>
+                            <tr class="hover:bg-zinc-900/30"><td class="py-3 px-4 font-semibold text-white">2</td><td class="py-3 px-4 font-bold text-amber-400">BLENDER PRIDE</td><td class="py-3 px-4"><div class="grid grid-cols-2 gap-1 text-[11px]"><span>750: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span><span>375: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span><span>180: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span><span>90: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span></div></td><td class="py-3 px-4"><input type="text" placeholder="MRP" class="w-28 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-white"></td><td class="py-3 px-4"><div class="flex items-center space-x-2"><input type="number" id="peti_rate_2" placeholder="Peti ₹" oninput="calculatePetiRate(2)" class="w-16 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-white"><input type="number" id="peti_pcs_2" value="12" oninput="calculatePetiRate(2)" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"><span id="calc_result_2" class="text-emerald-400 font-bold">= ₹ 0 /bot</span></div></td></tr>
+                            <tr class="hover:bg-zinc-900/30"><td class="py-3 px-4 font-semibold text-white">3</td><td class="py-3 px-4 font-bold text-amber-400">BLENDER 4 ELEMENT</td><td class="py-3 px-4"><div class="grid grid-cols-2 gap-1 text-[11px]"><span>750: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span><span>375: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span><span>180: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span><span>90: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span></div></td><td class="py-3 px-4"><input type="text" placeholder="MRP" class="w-28 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-white"></td><td class="py-3 px-4"><div class="flex items-center space-x-2"><input type="number" id="peti_rate_3" placeholder="Peti ₹" oninput="calculatePetiRate(3)" class="w-16 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-white"><input type="number" id="peti_pcs_3" value="12" oninput="calculatePetiRate(3)" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"><span id="calc_result_3" class="text-emerald-400 font-bold">= ₹ 0 /bot</span></div></td></tr>
+                            <tr class="hover:bg-zinc-900/30"><td class="py-3 px-4 font-semibold text-white">4</td><td class="py-3 px-4 font-bold text-amber-400">ANTIQUTI BLUE</td><td class="py-3 px-4"><div class="grid grid-cols-2 gap-1 text-[11px]"><span>750: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span><span>375: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span><span>180: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span><span>90: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span></div></td><td class="py-3 px-4"><input type="text" placeholder="MRP" class="w-28 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-white"></td><td class="py-3 px-4"><div class="flex items-center space-x-2"><input type="number" id="peti_rate_4" placeholder="Peti ₹" oninput="calculatePetiRate(4)" class="w-16 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-white"><input type="number" id="peti_pcs_4" value="12" oninput="calculatePetiRate(4)" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"><span id="calc_result_4" class="text-emerald-400 font-bold">= ₹ 0 /bot</span></div></td></tr>
+                            <tr class="hover:bg-zinc-900/30"><td class="py-3 px-4 font-semibold text-white">5</td><td class="py-3 px-4 font-bold text-amber-400">SIGNATURE PREMIUM</td><td class="py-3 px-4"><div class="grid grid-cols-2 gap-1 text-[11px]"><span>750: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span><span>375: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span><span>180: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span><span>90: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span></div></td><td class="py-3 px-4"><input type="text" placeholder="MRP" class="w-28 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-white"></td><td class="py-3 px-4"><div class="flex items-center space-x-2"><input type="number" id="peti_rate_5" placeholder="Peti ₹" oninput="calculatePetiRate(5)" class="w-16 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-white"><input type="number" id="peti_pcs_5" value="12" oninput="calculatePetiRate(5)" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"><span id="calc_result_5" class="text-emerald-400 font-bold">= ₹ 0 /bot</span></div></td></tr>
+                            <tr class="hover:bg-zinc-900/30"><td class="py-3 px-4 font-semibold text-white">6</td><td class="py-3 px-4 font-bold text-amber-400">ROYAL STAG</td><td class="py-3 px-4"><div class="grid grid-cols-2 gap-1 text-[11px]"><span>750: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span><span>375: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span><span>180: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span><span>90: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span></div></td><td class="py-3 px-4"><input type="text" placeholder="MRP" class="w-28 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-white"></td><td class="py-3 px-4"><div class="flex items-center space-x-2"><input type="number" id="peti_rate_6" placeholder="Peti ₹" oninput="calculatePetiRate(6)" class="w-16 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-white"><input type="number" id="peti_pcs_6" value="12" oninput="calculatePetiRate(6)" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"><span id="calc_result_6" class="text-emerald-400 font-bold">= ₹ 0 /bot</span></div></td></tr>
+                            <tr class="hover:bg-zinc-900/30"><td class="py-3 px-4 font-semibold text-white">7</td><td class="py-3 px-4 font-bold text-amber-400">IMPERIAL BLUE</td><td class="py-3 px-4"><div class="grid grid-cols-2 gap-1 text-[11px]"><span>750: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span><span>375: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span><span>180: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span><span>90: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span></div></td><td class="py-3 px-4"><input type="text" placeholder="MRP" class="w-28 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-white"></td><td class="py-3 px-4"><div class="flex items-center space-x-2"><input type="number" id="peti_rate_7" placeholder="Peti ₹" oninput="calculatePetiRate(7)" class="w-16 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-white"><input type="number" id="peti_pcs_7" value="12" oninput="calculatePetiRate(7)" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"><span id="calc_result_7" class="text-emerald-400 font-bold">= ₹ 0 /bot</span></div></td></tr>
+                            <tr class="hover:bg-zinc-900/30"><td class="py-3 px-4 font-semibold text-white">8</td><td class="py-3 px-4 font-bold text-amber-400">OFFICER CHOICE</td><td class="py-3 px-4"><div class="grid grid-cols-2 gap-1 text-[11px]"><span>750: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span><span>375: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span><span>180: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span><span>90: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span></div></td><td class="py-3 px-4"><input type="text" placeholder="MRP" class="w-28 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-white"></td><td class="py-3 px-4"><div class="flex items-center space-x-2"><input type="number" id="peti_rate_8" placeholder="Peti ₹" oninput="calculatePetiRate(8)" class="w-16 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-white"><input type="number" id="peti_pcs_8" value="12" oninput="calculatePetiRate(8)" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"><span id="calc_result_8" class="text-emerald-400 font-bold">= ₹ 0 /bot</span></div></td></tr>
+                            <tr class="hover:bg-zinc-900/30"><td class="py-3 px-4 font-semibold text-white">9</td><td class="py-3 px-4 font-bold text-amber-400">8 PM WHISKEY</td><td class="py-3 px-4"><div class="grid grid-cols-2 gap-1 text-[11px]"><span>750: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span><span>375: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span><span>180: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span><span>90: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span></div></td><td class="py-3 px-4"><input type="text" placeholder="MRP" class="w-28 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-white"></td><td class="py-3 px-4"><div class="flex items-center space-x-2"><input type="number" id="peti_rate_9" placeholder="Peti ₹" oninput="calculatePetiRate(9)" class="w-16 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-white"><input type="number" id="peti_pcs_9" value="12" oninput="calculatePetiRate(9)" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"><span id="calc_result_9" class="text-emerald-400 font-bold">= ₹ 0 /bot</span></div></td></tr>
+                            <tr class="hover:bg-zinc-900/30"><td class="py-3 px-4 font-semibold text-white">10</td><td class="py-3 px-4 font-bold text-amber-400">MAGIC MOMENT VODKA</td><td class="py-3 px-4"><div class="grid grid-cols-2 gap-1 text-[11px]"><span>750: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span><span>375: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span><span>180: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span><span>90: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span></div></td><td class="py-3 px-4"><input type="text" placeholder="MRP" class="w-28 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-white"></td><td class="py-3 px-4"><div class="flex items-center space-x-2"><input type="number" id="peti_rate_10" placeholder="Peti ₹" oninput="calculatePetiRate(10)" class="w-16 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-white"><input type="number" id="peti_pcs_10" value="12" oninput="calculatePetiRate(10)" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"><span id="calc_result_10" class="text-emerald-400 font-bold">= ₹ 0 /bot</span></div></td></tr>
+                        </tbody>
+
+                        <!-- Hidden Extra Brands (11 to 115) -->
+                        <tbody id="extra_bottles" style="display: none;" class="divide-y divide-zinc-800/60 text-zinc-300">
+                            <!-- Remainder 105 Brands dynamically populated or listed -->
+                            <tr class="hover:bg-zinc-900/30"><td class="py-3 px-4 font-semibold text-white">11</td><td class="py-3 px-4 font-bold text-amber-400">OLD MONK RUM</td><td class="py-3 px-4"><div class="grid grid-cols-2 gap-1 text-[11px]"><span>750: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span><span>375: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span><span>180: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span><span>90: <input type="number" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></span></div></td><td class="py-3 px-4"><input type="text" placeholder="MRP" class="w-28 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-white"></td><td class="py-3 px-4"><div class="flex items-center space-x-2"><input type="number" placeholder="Peti ₹" class="w-16 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-white"><input type="number" value="12" class="w-10 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"><span class="text-emerald-400 font-bold">= ₹ 0 /bot</span></div></td></tr>
+                            <tr class="hover:bg-zinc-900/30"><td class="py-3 px-4 font-semibold text-white">12-115</td><td class="py-3 px-4 font-bold text-amber-400">ALL OTHER 100+ REGISTERED SHOP BRANDS (BAKARDI, JOHNNY WALKER, VAT 69, 100 PIPERS, ETC.)</td><td class="py-3 px-4 text-zinc-400" colspan="3">Saare 115 brands aapki Excel sheet ke anusaar active hain. Naye brands yahi expand hokar dikhenge.</td></tr>
                         </tbody>
                     </table>
+                </div>
+                <!-- Show More / Show Less Toggle Button -->
+                <div class="p-4 bg-zinc-900/80 text-center border-t border-zinc-800">
+                    <button id="show_more_btn" onclick="toggleShowMore()" class="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 px-6 py-2 rounded-xl text-xs font-semibold tracking-wider transition-all">
+                        Show More (100+ More Brands) ∨
+                    </button>
                 </div>
             </div>
 
@@ -188,7 +161,7 @@
 
         <!-- Footer -->
         <footer class="bg-zinc-950 border-t border-zinc-900 py-6 text-center text-xs text-zinc-500">
-            <p>Abhishek Enterprises &copy; 2026 | Lucknow Bypass Unit — Complete Management Portal</p>
+            <p>Abhishek Enterprises &copy; 2026 | Lucknow Bypass Unit — Final Management Portal</p>
         </footer>
     </div>
 </body>
