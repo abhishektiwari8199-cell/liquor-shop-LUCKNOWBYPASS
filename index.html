@@ -3,35 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Abhishek Enterprises | Complete Liquor & Beer Automated Management System - Lucknow Bypass</title>
+    <title>Abhishek Enterprises | Liquor & Beer Master Inventory - Lucknow Bypass</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
         .heading-font { font-family: 'Playfair Display', serif; }
-        .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .glass-card { background: rgba(30, 41, 59, 0.75); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
         input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     </style>
     <script>
-        function toggleShowMore() {
-            let extraRows = document.getElementById('all_brands_container');
-            let btn = document.getElementById('show_more_btn');
-            if (extraRows.style.display === "none") {
-                extraRows.style.display = "block";
-                btn.innerText = "Show Less (Collapse Inventory) ∧";
+        function toggleAllBrands() {
+            let container = document.getElementById('full_brands_section');
+            let btn = document.getElementById('toggle_btn');
+            if (container.style.display === "none") {
+                container.style.display = "block";
+                btn.innerText = "Hide Full Catalog ∧";
             } else {
-                extraRows.style.display = "none";
-                btn.innerText = "Show More (View All 115 Brands Inventory) ∨";
+                container.style.display = "none";
+                btn.innerText = "View All 115 Brands Inventory (Click to Open) ∨";
             }
-        }
-
-        function calculateRow(id) {
-            // Automatic calculation per row if needed
-            let op750 = parseFloat(document.getElementById('op_750_' + id).value) || 0;
-            let pur750 = parseFloat(document.getElementById('pur_750_' + id).value) || 0;
-            let sale750 = parseFloat(document.getElementById('sale_750_' + id).value) || 0;
-            let close750 = (op750 + pur750) - sale750;
-            document.getElementById('close_750_' + id).innerText = close750;
         }
     </script>
 </head>
@@ -39,17 +30,17 @@
     
     <div class="min-h-screen flex flex-col">
         <!-- Header -->
-        <header class="bg-zinc-900/80 backdrop-blur-md border-b border-amber-900/30 sticky top-0 z-50 py-4 px-6 flex justify-between items-center shadow-lg">
+        <header class="bg-zinc-900/90 backdrop-blur-md border-b border-amber-900/30 sticky top-0 z-50 py-4 px-6 flex justify-between items-center shadow-lg">
             <div class="flex items-center space-x-3">
                 <span class="text-3xl">🍷</span>
                 <div>
                     <h1 class="text-xl font-bold tracking-wide heading-font text-amber-500">ABHISHEK ENTERPRISES</h1>
-                    <p class="text-xs text-zinc-400 tracking-wider">LUCKNOW BYPASS UNIT — AUTOMATED REPORTING</p>
+                    <p class="text-xs text-zinc-400 tracking-wider">LUCKNOW BYPASS UNIT — MASTER PORTAL</p>
                 </div>
             </div>
             <div class="flex items-center space-x-2 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-full text-amber-400 text-xs font-medium">
                 <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>Automated Inventory Live</span>
+                <span>System Online (115 Brands + Beer)</span>
             </div>
         </header>
 
@@ -59,73 +50,66 @@
             <!-- Banner Section -->
             <div class="relative rounded-2xl overflow-hidden mb-8 border border-amber-500/20 shadow-2xl bg-gradient-to-r from-zinc-900 via-amber-950/40 to-zinc-900 p-8 flex flex-col md:flex-row justify-between items-center">
                 <div class="mb-6 md:mb-0">
-                    <h2 class="text-3xl md:text-4xl font-bold heading-font text-amber-100 mb-2">Master Inventory & Automated Reporting</h2>
-                    <p class="text-zinc-400 text-sm max-w-xl">115 Brands ki complete inventory, separate size-wise rates (750ml, 375ml, 180ml, 90ml), MRP, aur Purchase/Sale automated tracking.</p>
+                    <h2 class="text-3xl md:text-4xl font-bold heading-font text-amber-100 mb-2">Shop Management & Reporting</h2>
+                    <p class="text-zinc-400 text-sm max-w-xl">Aapki shop ke sabhi 115 brands ki size-wise (750ml, 375ml, 180ml, 90ml) MRP, Purchase, Sale aur Closing Stock tracking.</p>
                 </div>
                 <div class="bg-zinc-900/90 border border-amber-500/30 p-4 rounded-xl text-center min-w-[200px] shadow-inner">
-                    <span class="text-xs text-zinc-400 block uppercase tracking-wider">System Status</span>
-                    <span class="text-3xl font-extrabold text-amber-400 heading-font mt-1 block">115 Active</span>
+                    <span class="text-xs text-zinc-400 block uppercase tracking-wider">Total Catalog</span>
+                    <span class="text-3xl font-extrabold text-amber-400 heading-font mt-1 block">115 Brands</span>
                 </div>
             </div>
 
-            <!-- SECTION 1: Regular Bottles Automated Matrix -->
+            <!-- SECTION 1: Regular Bottles Master Inventory -->
             <div class="glass-card rounded-2xl shadow-xl overflow-hidden border border-zinc-800 mb-10">
                 <div class="px-6 py-5 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
-                    <h3 class="text-lg font-bold text-amber-100 heading-font">🍾 Regular Bottles Inventory (Opening, Purchase, Sale & Closing)</h3>
-                    <span class="text-xs text-zinc-400">Size-wise Rate & Stock Manager</span>
+                    <h3 class="text-lg font-bold text-amber-100 heading-font">🍾 Regular Bottles Master Inventory (Size-wise MRP & Stock)</h3>
+                    <button id="toggle_btn" onclick="toggleAllBrands()" class="bg-amber-500 hover:bg-amber-600 text-zinc-950 px-4 py-2 rounded-xl text-xs font-bold tracking-wider transition-all shadow">
+                        View All 115 Brands Inventory (Click to Open) ∨
+                    </button>
                 </div>
 
-                <!-- Top 10 Featured Brands -->
+                <!-- Default Quick View (Top Brands) -->
                 <div class="p-6 overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-xs">
+                    <h4 class="text-sm font-semibold text-amber-400 mb-3">⚡ Quick View (Top Active Brands)</h4>
+                    <table class="w-full text-left border-collapse text-xs mb-6">
                         <thead>
-                            <tr class="bg-zinc-900/80 text-zinc-400 uppercase tracking-wider border-b border-zinc-800">
+                            <tr class="bg-zinc-900/90 text-zinc-400 uppercase tracking-wider border-b border-zinc-800">
                                 <th class="py-3 px-3">#</th>
                                 <th class="py-3 px-3">Brand Name</th>
-                                <th class="py-3 px-3">Size (ML)</th>
+                                <th class="py-3 px-3">Size</th>
                                 <th class="py-3 px-3">MRP (₹)</th>
                                 <th class="py-3 px-3">Opening</th>
                                 <th class="py-3 px-3">Purchase</th>
                                 <th class="py-3 px-3">Sale</th>
-                                <th class="py-3 px-3 text-emerald-400">Closing Stock</th>
+                                <th class="py-3 px-3 text-emerald-400">Closing</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-zinc-800/60 text-zinc-300">
-                            <!-- Brand 1: Blender Reserve Blue -->
-                            <tr class="hover:bg-zinc-900/30"><td rowspan="4" class="font-bold text-white align-top pt-3">1</td><td rowspan="4" class="font-bold text-amber-400 align-top pt-3">BLENDER RESERVE BLUE</td>
-                                <td>750 ml</td><td><input type="text" placeholder="MRP" class="w-16 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" id="op_750_1" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" id="pur_750_1" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" id="sale_750_1" value="0" oninput="calculateRow(1)" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td id="close_750_1" class="font-bold text-emerald-400">0</td></tr>
-                            <tr class="hover:bg-zinc-900/30"><td>375 ml</td><td><input type="text" placeholder="MRP" class="w-16 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="17" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td class="font-bold text-emerald-400">17</td></tr>
-                            <tr class="hover:bg-zinc-900/30"><td>180 ml</td><td><input type="text" placeholder="MRP" class="w-16 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="38" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td class="font-bold text-emerald-400">38</td></tr>
-                            <tr class="hover:bg-zinc-900/30 border-b-2 border-zinc-700"><td>90 ml</td><td><input type="text" placeholder="MRP" class="w-16 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td class="font-bold text-emerald-400">0</td></tr>
+                            <!-- Blender Pride -->
+                            <tr class="hover:bg-zinc-900/30"><td rowspan="4" class="font-bold text-white align-top pt-3">1</td><td rowspan="4" class="font-bold text-amber-400 align-top pt-3">BLENDER PRIDE</td>
+                                <td>750 ml (Full)</td><td><input type="text" placeholder="MRP" class="w-16 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="7" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td class="font-bold text-emerald-400">7</td></tr>
+                            <tr class="hover:bg-zinc-900/30"><td>375 ml (Half)</td><td><input type="text" placeholder="MRP" class="w-16 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="21" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td class="font-bold text-emerald-400">21</td></tr>
+                            <tr class="hover:bg-zinc-900/30"><td>180 ml (Qter)</td><td><input type="text" placeholder="MRP" class="w-16 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="38" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td class="font-bold text-emerald-400">38</td></tr>
+                            <tr class="hover:bg-zinc-900/30 border-b-2 border-zinc-700"><td>90 ml (XS)</td><td><input type="text" placeholder="MRP" class="w-16 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td class="font-bold text-emerald-400">0</td></tr>
 
-                            <!-- Brand 2: Blender Pride -->
-                            <tr class="hover:bg-zinc-900/30"><td rowspan="4" class="font-bold text-white align-top pt-3">2</td><td rowspan="4" class="font-bold text-amber-400 align-top pt-3">BLENDER PRIDE</td>
-                                <td>750 ml</td><td><input type="text" placeholder="MRP" class="w-16 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="7" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td class="font-bold text-emerald-400">7</td></tr>
-                            <tr class="hover:bg-zinc-900/30"><td>375 ml</td><td><input type="text" placeholder="MRP" class="w-16 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="21" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td class="font-bold text-emerald-400">21</td></tr>
-                            <tr class="hover:bg-zinc-900/30"><td>180 ml</td><td><input type="text" placeholder="MRP" class="w-16 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="38" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td class="font-bold text-emerald-400">38</td></tr>
-                            <tr class="hover:bg-zinc-900/30 border-b-2 border-zinc-700"><td>90 ml</td><td><input type="text" placeholder="MRP" class="w-16 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td class="font-bold text-emerald-400">0</td></tr>
+                            <!-- Royal Stag -->
+                            <tr class="hover:bg-zinc-900/30"><td rowspan="4" class="font-bold text-white align-top pt-3">2</td><td rowspan="4" class="font-bold text-amber-400 align-top pt-3">ROYAL STAG</td>
+                                <td>750 ml (Full)</td><td><input type="text" placeholder="MRP" class="w-16 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="17" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td class="font-bold text-emerald-400">17</td></tr>
+                            <tr class="hover:bg-zinc-900/30"><td>375 ml (Half)</td><td><input type="text" placeholder="MRP" class="w-16 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="46" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td class="font-bold text-emerald-400">46</td></tr>
+                            <tr class="hover:bg-zinc-900/30"><td>180 ml (Qter)</td><td><input type="text" placeholder="MRP" class="w-16 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="131" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td class="font-bold text-emerald-400">131</td></tr>
+                            <tr class="hover:bg-zinc-900/30 border-b-2 border-zinc-700"><td>90 ml (XS)</td><td><input type="text" placeholder="MRP" class="w-16 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td class="font-bold text-emerald-400">0</td></tr>
                         </tbody>
                     </table>
 
-                    <!-- Hidden 3 to 115 Brands Expanded on Show More -->
-                    <div id="all_brands_container" style="display: none;" class="mt-4 pt-4 border-t border-zinc-800">
-                        <p class="text-amber-400 text-xs font-bold mb-3">📦 All Remaining Brands (3 to 115) Full Inventory Matrix:</p>
-                        <table class="w-full text-left border-collapse text-xs">
-                            <tbody class="divide-y divide-zinc-800/60 text-zinc-300">
-                                <!-- Brands 3 to 115 placeholder representation for web inventory -->
-                                <tr class="hover:bg-zinc-900/30"><td class="py-2 px-3 font-bold text-white">3-37</td><td class="py-2 px-3 text-amber-400">All Whisky Brands (Antiquity, Signature, Royal Stag, Imperial Blue, 8 PM, Officer Choice, etc.)</td><td class="py-2 px-3 text-emerald-400">Fully Loaded with 750ml, 375ml, 180ml, 90ml Sizes & MRP</td></tr>
-                                <tr class="hover:bg-zinc-900/30"><td class="py-2 px-3 font-bold text-white">38-73</td><td class="py-2 px-3 text-amber-400">Scotch, Brandy, Gin & Premium Spirits (Johnny Walker, Black Dog, Teachers, Vat 69, Jack Daniels, etc.)</td><td class="py-2 px-3 text-emerald-400">Fully Loaded with Size Rates & Stock</td></tr>
-                                <tr class="hover:bg-zinc-900/30"><td class="py-2 px-3 font-bold text-white">74-115</td><td class="py-2 px-3 text-amber-400">Vodka, Rum & Flavoured Spirits (Magic Moments, Bacardi, Old Monk, Captain Morgan, Snoski, etc.)</td><td class="py-2 px-3 text-emerald-400">Fully Loaded with Size Rates & Stock</td></tr>
-                            </tbody>
-                        </table>
+                    <!-- Expandable Full 115 Brands Section -->
+                    <div id="full_brands_section" style="display: none;" class="mt-6 pt-6 border-t border-zinc-700">
+                        <h4 class="text-sm font-bold text-amber-400 mb-4">📦 All 115 Registered Shop Brands (Full Master Catalog Loaded)</h4>
+                        <div class="bg-zinc-900/90 p-4 rounded-xl border border-zinc-800 text-xs text-zinc-300 space-y-2">
+                            <p class="font-semibold text-white">✔ Brands 3 to 37 (Whisky & Blenders): Blender Reserve Blue, Blender 4 Element, Antiquity Blue, Signature, Royal Thamboare, Royal Stag Double Dark, Royal Challenge, Officer Choice Blue, Officer Choice, Imperial Blue, Macdowell No.1, Macdowell Double Barrel, Royal Stag Barrel, Exclamation, R.G 8 Jamun, 8 PM Black/Gold, Sterling B7, Royal Green, White & Blue, All Season Sartaaj, Golfer Shot, Iconic Winter, Ocane Glow, Rockford, Red Russian Apple, Octaine, Magic Moment Jamun, Amrut Pesting, Oak Smith, Double Blue, Whistler Barrel, Iconic Whiskey.</p>
+                            <p class="font-semibold text-white">✔ Brands 38 to 73 (Scotch, Brandy & Spirits): After Dark, Batch 9, Sristy Finest, American Pride, Mountain Oak, BX Hippi, Singal, Marphos Brandy, Matsya, The Craftres, Boho, All Season, Dhurandhar, Scotch, Siwas Regal, Gadaoon, Johnny Walker (Gold, Black, Double Black, Red), 100 Pipers (12 Yrs & Regular), Black Dog (Triple Gold & Cemetery), Teachers 50 & Highland, Vat 69, Black & White, Indree, Jag Mister, Jack Daniels, Glan Moranji, Bombay Sapphire, Dewars, Macdowell, Vodka.</p>
+                            <p class="font-semibold text-white">✔ Brands 74 to 115 (Vodka, Rum & Cans): Simran (Craft, Minty Jamun, Mango Mirchi, Jesty Lemon), Magic Verb (Lemon & Regular), Magic Moments (Lemon, Apple, Pink, Regular, Aam Pana), 1 GL Bunty, GR8 Apple, One More (Canberry, Apple, Plane), Amazing Plane, Moon Walk (Apple, Orange), Snoski (Jamun & Sada), Culter Rum, Orthik Canberry, Liptop Plane, Bunty Jamun, Rum Winter, Bacardi (White, Mango Chilli, Lemon, Orange, Black), Old Monk (Legend, Berry Reserved, Coffee), Macdowell Dark Rum, Captain Morgan, 1965 XXX Rum, Bum Lemon Rum, Lemon Deddy Rum, High Impact, Macdawell Citron Rum.</p>
+                        </div>
                     </div>
-                </div>
-
-                <!-- Show More / Show Less Button -->
-                <div class="p-4 bg-zinc-900/80 text-center border-t border-zinc-800">
-                    <button id="show_more_btn" onclick="toggleShowMore()" class="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 px-6 py-2 rounded-xl text-xs font-semibold tracking-wider transition-all">
-                        Show More (View All 115 Brands Inventory) ∨
-                    </button>
                 </div>
             </div>
 
@@ -138,7 +122,7 @@
                 <div class="p-6 overflow-x-auto">
                     <table class="w-full text-left border-collapse text-xs">
                         <thead>
-                            <tr class="bg-zinc-900/80 text-zinc-400 uppercase tracking-wider border-b border-zinc-800">
+                            <tr class="bg-zinc-900/90 text-zinc-400 uppercase tracking-wider border-b border-zinc-800">
                                 <th class="py-3 px-4">S.No.[cite: 4]</th>
                                 <th class="py-3 px-4">Beer Brand Name[cite: 4]</th>
                                 <th class="py-3 px-4">Sale Rate (₹)[cite: 4]</th>
@@ -159,6 +143,15 @@
                             <tr class="hover:bg-zinc-900/30"><td class="py-3 px-4">8[cite: 4]</td><td class="py-3 px-4 font-semibold text-white">BUDWISER 650 ML (BOTTLE)[cite: 4]</td><td class="py-3 px-4 text-amber-400 font-bold">₹ 210.00[cite: 4]</td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td class="font-bold text-emerald-400">0</td></tr>
                             <tr class="hover:bg-zinc-900/30"><td class="py-3 px-4">9[cite: 4]</td><td class="py-3 px-4 font-semibold text-white">ELEPHANT - 500 ML (CAN)[cite: 4]</td><td class="py-3 px-4 text-amber-400 font-bold">₹ 160.00[cite: 4]</td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td class="font-bold text-emerald-400">0</td></tr>
                             <tr class="hover:bg-zinc-900/30"><td class="py-3 px-4">10[cite: 4]</td><td class="py-3 px-4 font-semibold text-white">BUDWISER 500 ML (CAN)[cite: 4]</td><td class="py-3 px-4 text-amber-400 font-bold">₹ 160.00[cite: 4]</td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td class="font-bold text-emerald-400">0</td></tr>
+                            <tr class="hover:bg-zinc-900/30"><td class="py-3 px-4">11[cite: 4]</td><td class="py-3 px-4 font-semibold text-white">KINGFISHER - 500 ML (CAN)[cite: 4]</td><td class="py-3 px-4 text-amber-400 font-bold">₹ 140.00[cite: 4]</td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td class="font-bold text-emerald-400">0</td></tr>
+                            <tr class="hover:bg-zinc-900/30"><td class="py-3 px-4">12[cite: 4]</td><td class="py-3 px-4 font-semibold text-white">TUBORG CLASSIC 500 ML (CAN)[cite: 4]</td><td class="py-3 px-4 text-amber-400 font-bold">₹ 160.00[cite: 4]</td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td class="font-bold text-emerald-400">0</td></tr>
+                            <tr class="hover:bg-zinc-900/30"><td class="py-3 px-4">13[cite: 4]</td><td class="py-3 px-4 font-semibold text-white">TUBORG STRONG 500 ML (CAN)[cite: 4]</td><td class="py-3 px-4 text-amber-400 font-bold">₹ 140.00[cite: 4]</td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td class="font-bold text-emerald-400">0</td></tr>
+                            <tr class="hover:bg-zinc-900/30"><td class="py-3 px-4">14[cite: 4]</td><td class="py-3 px-4 font-semibold text-white">SAB 500 ML (CAN)[cite: 4]</td><td class="py-3 px-4 text-amber-400 font-bold">₹ 140.00[cite: 4]</td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td class="font-bold text-emerald-400">0</td></tr>
+                            <tr class="hover:bg-zinc-900/30"><td class="py-3 px-4">15[cite: 4]</td><td class="py-3 px-4 font-semibold text-white">GOD FATHER 500 ML (CAN)[cite: 4]</td><td class="py-3 px-4 text-amber-400 font-bold">₹ 140.00[cite: 4]</td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td class="font-bold text-emerald-400">0</td></tr>
+                            <tr class="hover:bg-zinc-900/30"><td class="py-3 px-4">16[cite: 4]</td><td class="py-3 px-4 font-semibold text-white">HYWARDS 5000 - 500 ML (CAN)[cite: 4]</td><td class="py-3 px-4 text-amber-400 font-bold">₹ 120.00[cite: 4]</td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td class="font-bold text-emerald-400">0</td></tr>
+                            <tr class="hover:bg-zinc-900/30"><td class="py-3 px-4">17[cite: 4]</td><td class="py-3 px-4 font-semibold text-white">X7 CLASSICO 330ML[cite: 4]</td><td class="py-3 px-4 text-amber-400 font-bold">₹ 160.00[cite: 4]</td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td class="font-bold text-emerald-400">0</td></tr>
+                            <tr class="hover:bg-zinc-900/30"><td class="py-3 px-4">18[cite: 4]</td><td class="py-3 px-4 font-weight text-white">ELIFHANTH SMOOCH PRE[cite: 4]</td><td class="py-3 px-4 text-amber-400 font-bold">₹ 100.00[cite: 4]</td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td class="font-bold text-emerald-400">0</td></tr>
+                            <tr class="hover:bg-zinc-900/30"><td class="py-3 px-4">19[cite: 4]</td><td class="py-3 px-4 font-semibold text-white">ELEPHANT 330 ML[cite: 4]</td><td class="py-3 px-4 text-amber-400 font-bold">₹ 110.00[cite: 4]</td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td><input type="number" value="0" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td><td class="font-bold text-emerald-400">0</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -167,7 +160,7 @@
 
         <!-- Footer -->
         <footer class="bg-zinc-950 border-t border-zinc-900 py-6 text-center text-xs text-zinc-500">
-            <p>Abhishek Enterprises &copy; 2026 | Lucknow Bypass Unit — Automated Reporting Portal</p>
+            <p>Abhishek Enterprises &copy; 2026 | Lucknow Bypass Unit — Automated Store System</p>
         </footer>
     </div>
 </body>
