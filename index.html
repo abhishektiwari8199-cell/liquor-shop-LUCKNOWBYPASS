@@ -3,73 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Liquor Shop Dashboard - Lucknow Bypass</title>
+    <title>Abhishek Enterprises | Premium Liquor Reporting - Lucknow Bypass</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .heading-font { font-family: 'Playfair Display', serif; }
+        .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+    </style>
 </head>
-<body class="bg-gray-100 font-sans">
+<body class="bg-gradient-to-br from-gray-950 via-zinc-900 to-stone-950 text-gray-100 min-h-screen">
+    
     <div class="min-h-screen flex flex-col">
         <!-- Header -->
-        <header class="bg-indigo-900 text-white shadow-md py-4 px-6 flex justify-between items-center">
-            <h1 class="text-xl font-bold">🍷 Liquor Shop Reporting | Lucknow Bypass</h1>
-            <span class="text-sm bg-indigo-700 px-3 py-1 rounded-full">Live Status: Active</span>
+        <header class="bg-zinc-900/80 backdrop-blur-md border-b border-amber-900/30 sticky top-0 z-50 py-4 px-6 flex justify-between items-center shadow-lg">
+            <div class="flex items-center space-x-3">
+                <span class="text-3xl">🍷</span>
+                <div>
+                    <h1 class="text-xl font-bold tracking-wide heading-font text-amber-500">ABHISHEK ENTERPRISES</h1>
+                    <p class="text-xs text-zinc-400 tracking-wider">LUCKNOW BYPASS UNIT</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-full text-amber-400 text-xs font-medium">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Live Secure Feed</span>
+            </div>
         </header>
 
         <!-- Main Content -->
-        <main class="flex-grow container mx-auto px-4 py-8">
-            <!-- Metrics Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div class="bg-white p-6 rounded-lg shadow border-l-4 border-green-500">
-                    <p class="text-gray-500 text-sm font-semibold">Today's Sales</p>
-                    <h2 class="text-2xl font-bold text-gray-800">₹ 48,500</h2>
-                </div>
-                <div class="bg-white p-6 rounded-lg shadow border-l-4 border-blue-500">
-                    <p class="text-gray-500 text-sm font-semibold">Stock Remaining</p>
-                    <h2 class="text-2xl font-bold text-gray-800">1,240 Bottles</h2>
-                </div>
-                <div class="bg-white p-6 rounded-lg shadow border-l-4 border-red-500">
-                    <p class="text-gray-500 text-sm font-semibold">Today's Expenses</p>
-                    <h2 class="text-2xl font-bold text-gray-800">₹ 3,200</h2>
-                </div>
-            </div>
-
-            <!-- Recent Reports Table -->
-            <div class="bg-white rounded-lg shadow overflow-hidden">
-                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                    <h3 class="text-lg font-semibold text-gray-700">Recent Daily Logs</h3>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-gray-100 text-gray-600 text-sm uppercase">
-                                <th class="py-3 px-6">Date</th>
-                                <th class="py-3 px-6">Total Sales</th>
-                                <th class="py-3 px-6">Cash in Drawer</th>
-                                <th class="py-3 px-6">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody class="text-gray-600 divide-y divide-gray-200">
-                            <tr>
-                                <td class="py-3 px-6">02 Nov 2026</td>
-                                <td class="py-3 px-6 font-semibold text-green-600">₹ 48,500</td>
-                                <td class="py-3 px-6">₹ 45,300</td>
-                                <td class="py-3 px-6"><span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">Verified</span></td>
-                            </tr>
-                            <tr>
-                                <td class="py-3 px-6">01 Nov 2026</td>
-                                <td class="py-3 px-6 font-semibold text-green-600">₹ 52,000</td>
-                                <td class="py-3 px-6">₹ 52,000</td>
-                                <td class="py-3 px-6"><span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">Verified</span></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </main>
-
-        <!-- Footer -->
-        <footer class="bg-gray-800 text-white text-center py-4 text-sm">
-            Abhishek Composite Liqure Shop &copy; 2026 | Lucknow Bypass Unit
-        </footer>
-    </div>
-</body>
-</html>
+        <main class="flex-grow container mx-auto px-4 py-8 max-w-7xl">
+            
+            <!-- Banner / Hero Section -->
+            <div class="relative rounded-2xl overflow-hidden mb-8 border border-amber-500/20 shadow-2xl bg-gradient-to-r from-zinc-900 via
