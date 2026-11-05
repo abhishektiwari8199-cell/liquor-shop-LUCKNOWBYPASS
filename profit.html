@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estimated Profit Register | Abhishek Composite (Beer / Liquor)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .heading-font { font-family: 'Playfair Display', serif; }
+        .glass-card { background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    </style>
+    <script>
+        function calculateProfitRow(id) {
+            let saleQty = parseFloat(document.getElementById('sale_qty_' + id).value) || 0;
+            let mrp = parseFloat(document.getElementById('mrp_' + id).value) || 0;
+            let wsRate = parseFloat(document.getElementById('ws_' + id).value) || 0;
+
+            let totalRevenue = saleQty * mrp;
+            let totalCost = saleQty * wsRate;
+            let netProfit = totalRevenue - totalCost;
+
+            document.getElementById('rev_' + id).innerText = '₹ ' + totalRevenue.toFixed(2);
+            document.getElementById('prof_' + id).innerText = '₹ ' + netProfit.toFixed(2);
+
+            updateGrandTotalProfit();
+        }
+
+        function updateGrandTotalProfit() {
+            let grandProfit = 0;
+            for (let i = 1; i <= 3; i++) {
+                let textVal = document.getElementById('prof_' + i).innerText.replace('₹ ', '');
+                grandProfit += parseFloat(textVal) || 0;
+            }
+            document.getElementById('display_grand_profit').innerText = '₹ ' + grandProfit.toFixed(2);
+        }
+
+        function filterTable() {
+            let input = document.getElementById('search_box').value.toLowerCase();
+            let table = document.getElementById('profit_table');
+            let tr = table.getElementsByTagName("tr");
+            for (let i = 1; i < tr.length; i++) {
+                let td = tr[i].getElementsByTagName("td")[1];
+                if (td) {
+                    let txtValue = td.textContent || td.innerText;
+                    tr[i].style.display = txtValue.toLowerCase().indexOf(input) > -1 ? "" : "none";
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gradient-to-br from-gray-950 via-zinc-900 to-stone-950 text-gray-100 min-h-screen flex flex-col justify-between">
+    
+    <!-- Header -->
+    <header class="bg-zinc-900/90 backdrop-blur-md border-b border-amber-900/30 py-3 px-4 flex justify-between items-center shadow-lg sticky top-0 z-50">
+        <div class="flex items-center space-x-2">
+            <a href="index.html" class="text-amber-400 text-sm font-bold bg-zinc-800 px-3 py-1.5 rounded-lg hover:bg-zinc-700">← Back</a>
+            <h1 class="text-sm font-bold tracking-wide heading-font text-yellow-400">ESTIMATED PROFIT REGISTER</h1>
+        </div>
+        <span class="text-[10px] text-zinc-400">Abhishek Composite (Beer / Liquor)</span>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-3 py-6 max-w-5xl flex-grow space-y-6">
+        
+        <!-- Summary Card -->
+        <div class="glass-card p-6 rounded-2xl border-l-4 border-yellow-500 shadow-xl text-center">
+            <p class="text-xs uppercase tracking-wider text-zinc-400 font-semibold">Total Estimated Net Profit</p>
+            <h2 id="display_grand_profit" class="text-3xl font-bold text-yellow-400 mt-2 heading-font">₹ 0.00</h2>
+            <p class="text-[11px] text-zinc-400 mt-1">Live margin calculation (Revenue minus Purchase Cost)</p>
+        </div>
+
+        <!-- Profit Table Card -->
+        <div class="glass-card rounded-2xl shadow-xl overflow-hidden border border-zinc-800">
+            <div class="px-4 py-3 bg-zinc-900/90 border-b border-zinc-800 flex flex-col md:flex-row justify-between items-center gap-2">
+                <h3 class="text-xs font-bold text-yellow-200 heading-font">💎 Brand-wise Margin & Revenue Analysis</h3>
+                <input type="text" id="search_box" onkeyup="filterTable()" placeholder="🔍 Search Brand Name..." class="bg-zinc-800 border border-zinc-700 text-xs px-3 py-1.5 rounded-lg text-white w-full md:w-56 focus:outline-none focus:border-yellow-500">
+            </div>
+
+            <div class="p-2 overflow-x-auto max-h-[500px] overflow-y-auto">
+                <table id="profit_table" class="w-full text-left border-collapse text-[11px]">
+                    <thead>
+                        <tr class="bg-zinc-900 text-zinc-400 uppercase border-b border-zinc-700 sticky top-0">
+                            <th class="p-2.5">#</th>
+                            <th class="p-2.5">Brand Name</th>
+                            <th class="p-2.5">Size</th>
+                            <th class="p-2.5">Sold QTY</th>
+                            <th class="p-2.5">MRP (₹)</th>
+                            <th class="p-2.5">Wholesale Rate (₹)</th>
+                            <th class="p-2.5 text-blue-400">Total Revenue</th>
+                            <th class="p-2.5 text-emerald-400">Net Profit</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-zinc-800 text-zinc-300">
+                        <tr>
+                            <td class="p-2.5">1</td>
+                            <td class="p-2.5 font-semibold text-amber-400">BLENDER PRIDE</td>
+                            <td class="p-2.5 text-white font-bold">750 ML</td>
+                            <td class="p-2.5"><input type="number" id="sale_qty_1" value="0" oninput="calculateProfitRow(1)" class="w-12 bg-zinc-800 border border-zinc-700 rounded text-center text-white p-1"></td>
+                            <td class="p-2.5"><input type="number" id="mrp_1" value="1250" oninput="calculateProfitRow(1)" class="w-16 bg-zinc-800 border border-zinc-700 rounded text-center text-amber-400 p-1"></td>
+                            <td class="p-2.5"><input type="number" id="ws_1" value="1000" oninput="calculateProfitRow(1)" class="w-16 bg-zinc-800 border border-zinc-700 rounded text-center text-white p-1"></td>
+                            <td class="p-2.5 font-bold text-blue-400 text-center" id="rev_1">₹ 0.00</td>
+                            <td class="p-2.5 font-bold text-emerald-400 text-center" id="prof_1">₹ 0.00</td>
+                        </tr>
+                        <tr>
+                            <td class="p-2.5">2</td>
+                            <td class="p-2.5 font-semibold text-amber-400">ROYAL STAG</td>
+                            <td class="p-2.5 text-white font-bold">750 ML</td>
+                            <td class="p-2.5"><input type="number" id="sale_qty_2" value="0" oninput="calculateProfitRow(2)" class="w-12 bg-zinc-800 border border-zinc-700 rounded text-center text-white p-1"></td>
+                            <td class="p-2.5"><input type="number" id="mrp_2" value="850" oninput="calculateProfitRow(2)" class="w-16 bg-zinc-800 border border-zinc-700 rounded text-center text-amber-400 p-1"></td>
+                            <td class="p-2.5"><input type="number" id="ws_2" value="700" oninput="calculateProfitRow(2)" class="w-16 bg-zinc-800 border border-zinc-700 rounded text-center text-white p-1"></td>
+                            <td class="p-2.5 font-bold text-blue-400 text-center" id="rev_2">₹ 0.00</td>
+                            <td class="p-2.5 font-bold text-emerald-400 text-center" id="prof_2">₹ 0.00</td>
+                        </tr>
+                        <tr>
+                            <td class="p-2.5">3</td>
+                            <td class="p-2.5 font-semibold text-amber-400">IMPERIAL BLUE</td>
+                            <td class="p-2.5 text-white font-bold">750 ML</td>
+                            <td class="p-2.5"><input type="number" id="sale_qty_3" value="0" oninput="calculateProfitRow(3)" class="w-12 bg-zinc-800 border border-zinc-700 rounded text-center text-white p-1"></td>
+                            <td class="p-2.5"><input type="number" id="mrp_3" value="700" oninput="calculateProfitRow(3)" class="w-16 bg-zinc-800 border border-zinc-700 rounded text-center text-amber-400 p-1"></td>
+                            <td class="p-2.5"><input type="number" id="ws_3" value="580" oninput="calculateProfitRow(3)" class="w-16 bg-zinc-800 border border-zinc-700 rounded text-center text-white p-1"></td>
+                            <td class="p-2.5 font-bold text-blue-400 text-center" id="rev_3">₹ 0.00</td>
+                            <td class="p-2.5 font-bold text-emerald-400 text-center" id="prof_3">₹ 0.00</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="p-4 bg-zinc-900/90 border-t border-zinc-800 text-center">
+                <button onclick="alert('Profit analysis successfully saved!')" class="px-6 py-2.5 rounded-xl text-xs font-bold bg-yellow-600 text-zinc-950 shadow-lg hover:bg-yellow-500 transition-all">
+                    💾 Save & Sync Profit Register
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-zinc-950 border-t border-zinc-900 py-3 text-center text-[10px] text-zinc-500">
+        <p>Abhishek Composite (Beer / Liquor) &copy; 2026 | Lucknow Bypass Unit</p>
+    </footer>
+
+</body>
+</html>
