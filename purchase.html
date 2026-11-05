@@ -1,1 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock In & Purchase Register | Abhishek Enterprises</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .heading-font { font-family: 'Playfair Display', serif; }
+        .glass-card { background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    </style>
+    <script>
+        function calculateStock(id) {
+            let qty = parseFloat(document.getElementById('qty_' + id).value) || 0;
+            let wsRate = parseFloat(document.getElementById('ws_' + id).value) || 0;
+            let mrp = parseFloat(document.getElementById('mrp_' + id).value) || 0;
 
+            // Total Purchase Value
+            let totalCost = qty * wsRate;
+            document.getElementById('total_cost_' + id).innerText = '₹ ' + totalCost.toFixed(2);
+
+            // Total MRP Value & Estimated Profit
+            let totalMrpValue = qty * mrp;
+            let profit = totalMrpValue - totalCost;
+            let profitEl = document.getElementById('profit_' + id);
+            
+            if (qty > 0 && wsRate > 0) {
+                profitEl.innerText = '₹ ' + profit.toFixed(2);
+                profitEl.className = "font-bold text-emerald-400 text-center";
+            } else {
+                profitEl.innerText = '₹ 0.00';
+                profitEl.className = "font-bold text-zinc-500 text-center";
+            }
+        }
+
+        function filterTable() {
+            let input = document.getElementById('search_box').value.toLowerCase();
+            let table = document.getElementById('purchase_table');
+            let tr = table.getElementsByTagName("tr");
+            for (let i = 1; i < tr.length; i++) {
+                let td = tr[i].getElementsByTagName("td")[1];
+                if (td) {
+                    let txtValue = td.textContent || td.innerText;
+                    tr[i].style.display = txtValue.toLowerCase().indexOf(input) > -1 ? "" : "none";
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gradient-to-br from-gray-950 via-zinc-900 to-stone-950 text-gray-100 min-h-screen flex flex-col justify-between">
+    
+    <!-- Header -->
+    <header class="bg-zinc-900/90 backdrop-blur-md border-b border-amber-900/30 py-3 px-4 flex justify-between items-center shadow-lg sticky top-0 z-50">
+        <div class="flex items-center space-x-2">
+            <a href="index.html" class="text-amber-400 text-sm font-bold bg-zinc-800 px-3 py-1.5 rounded-lg hover:bg-zinc-700">← Back</a>
+            <h1 class="text-sm font-bold tracking-wide heading-font text-blue-400">TOTAL PURCHASE & STOCK IN REGISTER</h1>
+        </div>
+        <span class="text-[10px] text-zinc-400">Lucknow Bypass Unit</span>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-3 py-4 max-w-5xl flex-grow">
+        
+        <div class="glass-card rounded-xl shadow-xl overflow-hidden border border-zinc-800">
+            <div class="px-4 py-3 bg-zinc-900/90 border-b border-zinc-800 flex flex-col md:flex-row justify-between items-center gap-2">
+                <h3 class="text-xs font-bold text-blue-200 heading-font">📦 Stock In, Wholesale Rate & Auto Profit</h3>
+                <input type="text" id="search_box" onkeyup="filterTable()" placeholder="🔍 Search Brand Name..." class="bg-zinc-800 border border-zinc-700 text-xs px-3 py-1.5 rounded-lg text-white w-full md:w-56 focus:outline-none focus:border-blue-500">
+            </div>
+
+            <div class="p-2 overflow-x-auto max-h-[550px] overflow-y-auto">
+                <table id="purchase_table" class="w-full text-left border-collapse text-[11px]">
+                    <thead>
+                        <tr class="bg-zinc-900 text-zinc-400 uppercase border-b border-zinc-700 sticky top-0">
+                            <th class="p-2">#</th>
+                            <th class="p-2">Brand Name</th>
+                            <th class="p-2">Size</th>
+                            <th class="p-2">Stock In (QTY)</th>
+                            <th class="p-2">Wholesale Rate (₹)</th>
+                            <th class="p-2">MRP (₹)</th>
+                            <th class="p-2 text-blue-400">Total Purchase (₹)</th>
+                            <th class="p-2 text-emerald-400">Est. Profit (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-zinc-800 text-zinc-300">
+                        <tr>
+                            <td class="p-2">1</td>
+                            <td class="p-2 font-semibold text-amber-400">BLENDER PRIDE</td>
+                            <td class="p-2 text-white font-bold">750 ML</td>
+                            <td class="p-2"><input type="number" id="qty_1" value="0" oninput="calculateStock(1)" class="w-12 bg-zinc-800 border border-zinc-700 rounded text-center text-white p-1"></td>
+                            <td class="p-2"><input type="number" id="ws_1" value="0" oninput="calculateStock(1)" class="w-16 bg-zinc-800 border border-zinc-700 rounded text-center text-white p-1"></td>
+                            <td class="p-2"><input type="number" id="mrp_1" value="1250" oninput="calculateStock(1)" class="w-16 bg-zinc-800 border border-zinc-700 rounded text-center text-amber-400 p-1"></td>
+                            <td class="p-2 font-bold text-blue-400 text-center" id="total_cost_1">₹ 0.00</td>
+                            <td class="p-2 font-bold text-zinc-500 text-center" id="profit_1">₹ 0.00</td>
+                        </tr>
+                        <tr>
+                            <td class="p-2">2</td>
+                            <td class="p-2 font-semibold text-amber-400">BLENDER PRIDE</td>
+                            <td class="p-2 text-white font-bold">375 ML</td>
+                            <td class="p-2"><input type="number" id="qty_2" value="0" oninput="calculateStock(2)" class="w-12 bg-zinc-800 border border-zinc-700 rounded text-center text-white p-1"></td>
+                            <td class="p-2"><input type="number" id="ws_2" value="0" oninput="calculateStock(2)" class="w-16 bg-zinc-800 border border-zinc-700 rounded text-center text-white p-1"></td>
+                            <td class="p-2"><input type="number" id="mrp_2" value="650" oninput="calculateStock(2)" class="w-16 bg-zinc-800 border border-zinc-700 rounded text-center text-amber-400 p-1"></td>
+                            <td class="p-2 font-bold text-blue-400 text-center" id="total_cost_2">₹ 0.00</td>
+                            <td class="p-2 font-bold text-zinc-500 text-center" id="profit_2">₹ 0.00</td>
+                        </tr>
+                        <tr>
+                            <td class="p-2">3</td>
+                            <td class="p-2 font-semibold text-amber-400">ROYAL STAG</td>
+                            <td class="p-2 text-white font-bold">750 ML</td>
+                            <td class="p-2"><input type="number" id="qty_3" value="0" oninput="calculateStock(3)" class="w-12 bg-zinc-800 border border-zinc-700 rounded text-center text-white p-1"></td>
+                            <td class="p-2"><input type="number" id="ws_3" value="0" oninput="calculateStock(3)" class="w-16 bg-zinc-800 border border-zinc-700 rounded text-center text-white p-1"></td>
+                            <td class="p-2"><input type="number" id="mrp_3" value="850" oninput="calculateStock(3)" class="w-16 bg-zinc-800 border border-zinc-700 rounded text-center text-amber-400 p-1"></td>
+                            <td class="p-2 font-bold text-blue-400 text-center" id="total_cost_3">₹ 0.00</td>
+                            <td class="p-2 font-bold text-zinc-500 text-center" id="profit_3">₹ 0.00</td>
+                        </tr>
+                        <tr>
+                            <td class="p-2">4</td>
+                            <td class="p-2 font-semibold text-amber-400">ROYAL STAG</td>
+                            <td class="p-2 text-white font-bold">375 ML</td>
+                            <td class="p-2"><input type="number" id="qty_4" value="0" oninput="calculateStock(4)" class="w-12 bg-zinc-800 border border-zinc-700 rounded text-center text-white p-1"></td>
+                            <td class="p-2"><input type="number" id="ws_4" value="0" oninput="calculateStock(4)" class="w-16 bg-zinc-800 border border-zinc-700 rounded text-center text-white p-1"></td>
+                            <td class="p-2"><input type="number" id="mrp_4" value="450" oninput="calculateStock(4)" class="w-16 bg-zinc-800 border border-zinc-700 rounded text-center text-amber-400 p-1"></td>
+                            <td class="p-2 font-bold text-blue-400 text-center" id="total_cost_4">₹ 0.00</td>
+                            <td class="p-2 font-bold text-zinc-500 text-center" id="profit_4">₹ 0.00</td>
+                        </tr>
+                        <tr>
+                            <td class="p-2">5</td>
+                            <td class="p-2 font-semibold text-amber-400">IMPERIAL BLUE</td>
+                            <td class="p-2 text-white font-bold">750 ML</td>
+                            <td class="p-2"><input type="number" id="qty_5" value="0" oninput="calculateStock(5)" class="w-12 bg-zinc-800 border border-zinc-700 rounded text-center text-white p-1"></td>
+                            <td class="p-2"><input type="number" id="ws_5" value="0" oninput="calculateStock(5)" class="w-16 bg-zinc-800 border border-zinc-700 rounded text-center text-white p-1"></td>
+                            <td class="p-2"><input type="number" id="mrp_5" value="700" oninput="calculateStock(5)" class="w-16 bg-zinc-800 border border-zinc-700 rounded text-center text-amber-400 p-1"></td>
+                            <td class="p-2 font-bold text-blue-400 text-center" id="total_cost_5">₹ 0.00</td>
+                            <td class="p-2 font-bold text-zinc-500 text-center" id="profit_5">₹ 0.00</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="p-4 bg-zinc-900/90 border-t border-zinc-800 text-center">
+                <button onclick="alert('Purchase stock successfully updated!')" class="px-6 py-2.5 rounded-xl text-xs font-bold bg-blue-600 text-white shadow-lg hover:bg-blue-500 transition-all">
+                    💾 Save & Sync Purchase Register
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-zinc-950 border-t border-zinc-900 py-3 text-center text-[10px] text-zinc-500">
+        <p>Abhishek Enterprises &copy; 2026 | Lucknow Bypass Unit</p>
+    </footer>
+
+</body>
+</html>
