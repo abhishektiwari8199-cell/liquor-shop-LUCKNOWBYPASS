@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Abhishek Enterprises | Complete Liquor & Beer Master Portal - Lucknow Bypass</title>
+    <title>Abhishek Enterprises | Master Portal - Lucknow Bypass</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
@@ -22,13 +22,13 @@
             if (tabName === 'beer') {
                 beerSec.style.display = 'block';
                 liquorSec.style.display = 'none';
-                btnBeer.className = "px-6 py-2.5 rounded-xl text-xs font-bold bg-amber-500 text-zinc-950 shadow-lg transition-all";
-                btnLiq.className = "px-6 py-2.5 rounded-xl text-xs font-bold bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-all";
+                btnBeer.className = "flex-1 py-2.5 rounded-xl text-xs font-bold bg-amber-500 text-zinc-950 shadow-lg transition-all";
+                btnLiq.className = "flex-1 py-2.5 rounded-xl text-xs font-bold bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-all";
             } else {
                 beerSec.style.display = 'none';
                 liquorSec.style.display = 'block';
-                btnLiq.className = "px-6 py-2.5 rounded-xl text-xs font-bold bg-amber-500 text-zinc-950 shadow-lg transition-all";
-                btnBeer.className = "px-6 py-2.5 rounded-xl text-xs font-bold bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-all";
+                btnLiq.className = "flex-1 py-2.5 rounded-xl text-xs font-bold bg-amber-500 text-zinc-950 shadow-lg transition-all";
+                btnBeer.className = "flex-1 py-2.5 rounded-xl text-xs font-bold bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-all";
             }
         }
 
@@ -54,167 +54,43 @@
     
     <div class="min-h-screen flex flex-col">
         <!-- Header -->
-        <header class="bg-zinc-900/90 backdrop-blur-md border-b border-amber-900/30 sticky top-0 z-50 py-4 px-6 flex justify-between items-center shadow-lg">
-            <div class="flex items-center space-x-3">
-                <span class="text-3xl">🍷</span>
+        <header class="bg-zinc-900/90 backdrop-blur-md border-b border-amber-900/30 sticky top-0 z-50 py-3 px-4 flex justify-between items-center shadow-lg">
+            <div class="flex items-center space-x-2">
+                <span class="text-2xl">🍷</span>
                 <div>
-                    <h1 class="text-xl font-bold tracking-wide heading-font text-amber-500">ABHISHEK ENTERPRISES</h1>
-                    <p class="text-xs text-zinc-400 tracking-wider">LUCKNOW BYPASS UNIT — MASTER PORTAL</p>
+                    <h1 class="text-sm font-bold tracking-wide heading-font text-amber-500">ABHISHEK ENTERPRISES</h1>
+                    <p class="text-[10px] text-zinc-400">LUCKNOW BYPASS UNIT</p>
                 </div>
             </div>
-            <div class="flex items-center space-x-2 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-full text-amber-400 text-xs font-medium">
-                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>System Online & Synced</span>
+            <div class="flex items-center space-x-1.5 bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-full text-amber-400 text-[10px] font-medium">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Live</span>
             </div>
         </header>
 
         <!-- Main Content -->
-        <main class="flex-grow container mx-auto px-4 py-8 max-w-7xl">
+        <main class="flex-grow container mx-auto px-3 py-4 max-w-7xl">
             
             <!-- Summary Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <div class="glass-card p-5 rounded-2xl border-l-4 border-amber-500 shadow-xl">
-                    <p class="text-zinc-400 text-xs uppercase tracking-wider font-semibold">Total Gross Sale</p>
-                    <h3 class="text-2xl font-bold text-amber-400 mt-1 heading-font">₹ 0.00</h3>
-                    <span class="text-emerald-400 text-xs mt-2 block">Live Synced</span>
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <div class="glass-card p-3 rounded-xl border-l-4 border-amber-500 shadow">
+                    <p class="text-[10px] text-zinc-400 uppercase font-semibold">Gross Sale</p>
+                    <h3 class="text-lg font-bold text-amber-400 mt-0.5 heading-font">₹ 0.00</h3>
                 </div>
-                <div class="glass-card p-5 rounded-2xl border-l-4 border-blue-500 shadow-xl">
-                    <p class="text-zinc-400 text-xs uppercase tracking-wider font-semibold">Total Purchase</p>
-                    <h3 class="text-2xl font-bold text-blue-400 mt-1 heading-font">₹ 0.00</h3>
-                    <span class="text-zinc-400 text-xs mt-2 block">Stock Restocked</span>
+                <div class="glass-card p-3 rounded-xl border-l-4 border-blue-500 shadow">
+                    <p class="text-[10px] text-zinc-400 uppercase font-semibold">Total Purchase</p>
+                    <h3 class="text-lg font-bold text-blue-400 mt-0.5 heading-font">₹ 0.00</h3>
                 </div>
-                <div class="glass-card p-5 rounded-2xl border-l-4 border-emerald-500 shadow-xl">
-                    <p class="text-zinc-400 text-xs uppercase tracking-wider font-semibold">Net Received</p>
-                    <h3 class="text-2xl font-bold text-emerald-400 mt-1 heading-font">₹ 0.00</h3>
-                    <span class="text-emerald-400 text-xs mt-2 block">Cash + Online</span>
+                <div class="glass-card p-3 rounded-xl border-l-4 border-emerald-500 shadow">
+                    <p class="text-[10px] text-zinc-400 uppercase font-semibold">Net Received</p>
+                    <h3 class="text-lg font-bold text-emerald-400 mt-0.5 heading-font">₹ 0.00</h3>
                 </div>
-                <div class="glass-card p-5 rounded-2xl border-l-4 border-rose-500 shadow-xl">
-                    <p class="text-zinc-400 text-xs uppercase tracking-wider font-semibold">Expenses</p>
-                    <h3 class="text-2xl font-bold text-rose-400 mt-1 heading-font">₹ 0.00</h3>
-                    <span class="text-zinc-400 text-xs mt-2 block">Daily Deductions</span>
+                <div class="glass-card p-3 rounded-xl border-l-4 border-rose-500 shadow">
+                    <p class="text-[10px] text-zinc-400 uppercase font-semibold">Expenses</p>
+                    <h3 class="text-lg font-bold text-rose-400 mt-0.5 heading-font">₹ 0.00</h3>
                 </div>
             </div>
 
-            <!-- Tab Switcher -->
-            <div class="glass-card p-4 rounded-2xl shadow-xl border border-zinc-800 mb-8 flex justify-between items-center">
-                <div class="flex items-center space-x-3">
-                    <span class="text-xs font-semibold text-zinc-300">📅 Select Date:</span>
-                    <input type="date" class="bg-zinc-800 border border-zinc-700 text-white text-xs px-3 py-2 rounded-xl focus:outline-none focus:border-amber-500">
-                </div>
-                <div class="flex space-x-3">
-                    <button id="btn_beer" onclick="switchTab('beer')" class="px-6 py-2.5 rounded-xl text-xs font-bold bg-amber-500 text-zinc-950 shadow-lg transition-all">
-                        🍺 Beer Section
-                    </button>
-                    <button id="btn_liq" onclick="switchTab('liquor')" class="px-6 py-2.5 rounded-xl text-xs font-bold bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-all">
-                        🍾 Liquor Catalog (115 Brands)
-                    </button>
-                </div>
-            </div>
-
-            <!-- BEER SECTION -->
-            <div id="beer_section" class="glass-card rounded-2xl shadow-xl overflow-hidden border border-zinc-800 mb-10">
-                <div class="px-6 py-4 bg-zinc-900/90 border-b border-zinc-800 flex justify-between items-center">
-                    <h3 class="text-lg font-bold text-amber-100 heading-font">🍺 Beer Register & Stock Sheet</h3>
-                    <span class="text-xs text-amber-400">November 2026 Rate Card</span>
-                </div>
-                <div class="p-4 overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-xs">
-                        <thead>
-                            <tr class="bg-zinc-900 text-zinc-300 uppercase tracking-wider border-b border-zinc-700 text-[11px]">
-                                <th class="py-3 px-2 border-r border-zinc-800">QTY</th>
-                                <th class="py-3 px-2 border-r border-zinc-800">Brand Name</th>
-                                <th class="py-3 px-2 border-r border-zinc-800">OPENING</th>
-                                <th class="py-3 px-2 border-r border-zinc-800">Purch</th>
-                                <th class="py-3 px-2 border-r border-zinc-800">Mrp</th>
-                                <th class="py-3 px-2 border-r border-zinc-800">Purchase Total</th>
-                                <th class="py-3 px-2 border-r border-zinc-800">Sale</th>
-                                <th class="py-3 px-2 border-r border-zinc-800">Sale Total</th>
-                                <th class="py-3 px-2 border-r border-zinc-800">Closing</th>
-                                <th class="py-3 px-2 border-r border-zinc-800">Stock Value</th>
-                                <th class="py-3 px-2">Profit</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-zinc-800 text-zinc-300">
-                            <tr class="hover:bg-zinc-900/30"><td class="py-2 px-2 font-bold text-white border-r">1</td><td class="py-2 px-2 font-semibold text-amber-400 border-r">KINGFISHER - 650 ML (BOTTLE)</td>
-                                <td class="py-2 px-2 border-r"><input type="number" id="beer_op_1" value="0" oninput="calculateRow('beer', 1)" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td>
-                                <td class="py-2 px-2 border-r"><input type="number" id="beer_pur_1" value="0" oninput="calculateRow('beer', 1)" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td>
-                                <td class="py-2 px-2 border-r"><input type="number" id="beer_mrp_1" value="190" oninput="calculateRow('beer', 1)" class="w-16 bg-zinc-800 border border-zinc-700 rounded px-1 text-amber-400 font-bold"></td>
-                                <td class="py-2 px-2 border-r font-bold">₹ <span id="beer_ptot_1">0</span></td>
-                                <td class="py-2 px-2 border-r"><input type="number" id="beer_sale_1" value="0" oninput="calculateRow('beer', 1)" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td>
-                                <td class="py-2 px-2 border-r font-bold text-amber-400">₹ <span id="beer_stot_1">0</span></td>
-                                <td class="py-2 px-2 border-r font-bold text-emerald-400" id="beer_close_1">0</td>
-                                <td class="py-2 px-2 border-r">₹ <span id="beer_sval_1">0</span></td>
-                                <td class="py-2 px-2">-</td></tr>
-                            <tr class="hover:bg-zinc-900/30"><td class="py-2 px-2 font-bold text-white border-r">2</td><td class="py-2 px-2 font-semibold text-amber-400 border-r">ULTRAMAX - 650 ML (BOTTLE)</td>
-                                <td class="py-2 px-2 border-r"><input type="number" id="beer_op_2" value="0" oninput="calculateRow('beer', 2)" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td>
-                                <td class="py-2 px-2 border-r"><input type="number" id="beer_pur_2" value="0" oninput="calculateRow('beer', 2)" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td>
-                                <td class="py-2 px-2 border-r"><input type="number" id="beer_mrp_2" value="210" oninput="calculateRow('beer', 2)" class="w-16 bg-zinc-800 border border-zinc-700 rounded px-1 text-amber-400 font-bold"></td>
-                                <td class="py-2 px-2 border-r font-bold">₹ <span id="beer_ptot_2">0</span></td>
-                                <td class="py-2 px-2 border-r"><input type="number" id="beer_sale_2" value="0" oninput="calculateRow('beer', 2)" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td>
-                                <td class="py-2 px-2 border-r font-bold text-amber-400">₹ <span id="beer_stot_2">0</span></td>
-                                <td class="py-2 px-2 border-r font-bold text-emerald-400" id="beer_close_2">0</td>
-                                <td class="py-2 px-2 border-r">₹ <span id="beer_sval_2">0</span></td>
-                                <td class="py-2 px-2">-</td></tr>
-                            <tr class="hover:bg-zinc-900/30"><td class="py-2 px-2 font-bold text-white border-r">3</td><td class="py-2 px-2 font-semibold text-amber-400 border-r">TUBORG - 650 ML (BOTTLE)</td>
-                                <td class="py-2 px-2 border-r"><input type="number" id="beer_op_3" value="0" oninput="calculateRow('beer', 3)" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td>
-                                <td class="py-2 px-2 border-r"><input type="number" id="beer_pur_3" value="0" oninput="calculateRow('beer', 3)" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td>
-                                <td class="py-2 px-2 border-r"><input type="number" id="beer_mrp_3" value="190" oninput="calculateRow('beer', 3)" class="w-16 bg-zinc-800 border border-zinc-700 rounded px-1 text-amber-400 font-bold"></td>
-                                <td class="py-2 px-2 border-r font-bold">₹ <span id="beer_ptot_3">0</span></td>
-                                <td class="py-2 px-2 border-r"><input type="number" id="beer_sale_3" value="0" oninput="calculateRow('beer', 3)" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td>
-                                <td class="py-2 px-2 border-r font-bold text-amber-400">₹ <span id="beer_stot_3">0</span></td>
-                                <td class="py-2 px-2 border-r font-bold text-emerald-400" id="beer_close_3">0</td>
-                                <td class="py-2 px-2 border-r">₹ <span id="beer_sval_3">0</span></td>
-                                <td class="py-2 px-2">-</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- LIQUOR SECTION -->
-            <div id="liquor_section" style="display: none;" class="glass-card rounded-2xl shadow-xl overflow-hidden border border-zinc-800 mb-10">
-                <div class="px-6 py-4 bg-zinc-900/90 border-b border-zinc-800 flex justify-between items-center">
-                    <h3 class="text-lg font-bold text-amber-100 heading-font">🍾 Regular Bottles Master Inventory & Register (115 Brands)</h3>
-                    <span class="text-xs text-zinc-400">Size-wise Excel Sheet</span>
-                </div>
-                <div class="p-4 overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-xs">
-                        <thead>
-                            <tr class="bg-zinc-900 text-zinc-300 uppercase tracking-wider border-b border-zinc-700 text-[11px]">
-                                <th class="py-3 px-2 border-r border-zinc-800">QTY</th>
-                                <th class="py-3 px-2 border-r border-zinc-800">Brand Name & Size</th>
-                                <th class="py-3 px-2 border-r border-zinc-800">OPENING</th>
-                                <th class="py-3 px-2 border-r border-zinc-800">Purch</th>
-                                <th class="py-3 px-2 border-r border-zinc-800">Mrp</th>
-                                <th class="py-3 px-2 border-r border-zinc-800">Purchase Total</th>
-                                <th class="py-3 px-2 border-r border-zinc-800">Sale</th>
-                                <th class="py-3 px-2 border-r border-zinc-800">Sale Total</th>
-                                <th class="py-3 px-2 border-r border-zinc-800">Closing</th>
-                                <th class="py-3 px-2 border-r border-zinc-800">Stock Value</th>
-                                <th class="py-3 px-2">Profit</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-zinc-800 text-zinc-300">
-                            <tr class="hover:bg-zinc-900/30"><td class="py-2 px-2 font-bold text-white border-r">1</td><td class="py-2 px-2 font-semibold text-amber-400 border-r">BLENDER PRIDE - 750 ML</td>
-                                <td class="py-2 px-2 border-r"><input type="number" id="liq_op_1" value="0" oninput="calculateRow('liq', 1)" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td>
-                                <td class="py-2 px-2 border-r"><input type="number" id="liq_pur_1" value="0" oninput="calculateRow('liq', 1)" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td>
-                                <td class="py-2 px-2 border-r"><input type="number" id="liq_mrp_1" value="950" oninput="calculateRow('liq', 1)" class="w-16 bg-zinc-800 border border-zinc-700 rounded px-1 text-amber-400 font-bold"></td>
-                                <td class="py-2 px-2 border-r font-bold">₹ <span id="liq_ptot_1">0</span></td>
-                                <td class="py-2 px-2 border-r"><input type="number" id="liq_sale_1" value="0" oninput="calculateRow('liq', 1)" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td>
-                                <td class="py-2 px-2 border-r font-bold text-amber-400">₹ <span id="liq_stot_1">0</span></td>
-                                <td class="py-2 px-2 border-r font-bold text-emerald-400" id="liq_close_1">0</td>
-                                <td class="py-2 px-2 border-r">₹ <span id="liq_sval_1">0</span></td>
-                                <td class="py-2 px-2">-</td></tr>
-                            <tr class="hover:bg-zinc-900/30"><td class="py-2 px-2 font-bold text-white border-r">2</td><td class="py-2 px-2 font-semibold text-amber-400 border-r">ROYAL STAG - 750 ML</td>
-                                <td class="py-2 px-2 border-r"><input type="number" id="liq_op_2" value="0" oninput="calculateRow('liq', 2)" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td>
-                                <td class="py-2 px-2 border-r"><input type="number" id="liq_pur_2" value="0" oninput="calculateRow('liq', 2)" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td>
-                                <td class="py-2 px-2 border-r"><input type="number" id="liq_mrp_2" value="900" oninput="calculateRow('liq', 2)" class="w-16 bg-zinc-800 border border-zinc-700 rounded px-1 text-amber-400 font-bold"></td>
-                                <td class="py-2 px-2 border-r font-bold">₹ <span id="liq_ptot_2">0</span></td>
-                                <td class="py-2 px-2 border-r"><input type="number" id="liq_sale_2" value="0" oninput="calculateRow('liq', 2)" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td>
-                                <td class="py-2 px-2 border-r font-bold text-amber-400">₹ <span id="liq_stot_2">0</span></td>
-                                <td class="py-2 px-2 border-r font-bold text-emerald-400" id="liq_close_2">0</td>
-                                <td class="py-2 px-2 border-r">₹ <span id="liq_sval_2">0</span></td>
-                                <td class="py-2 px-2">-</td></tr>
-                            <tr class="hover:bg-zinc-900/30"><td class="py-2 px-2 font-bold text-white border-r">3</td><td class="py-2 px-2 font-semibold text-amber-400 border-r">IMPERIAL BLUE - 750 ML</td>
-                                <td class="py-2 px-2 border-r"><input type="number" id="liq_op_3" value="0" oninput="calculateRow('liq', 3)" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td>
-                                <td class="py-2 px-2 border-r"><input type="number" id="liq_pur_3" value="0" oninput="calculateRow('liq', 3)" class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 text-white"></td>
-                                <td class="py-2 px-2 border-r"><input type="number" id="liq_mrp_3" value="850" oninput="calculateRow('liq', 3)" class="w-16 bg-zinc-800 border border-zinc-700 rounded px-1 
+            <!-- Tab Switcher (Beer / Liquor Buttons) -->
+            <div class="glass-card p-3 rounded-xl shadow border border-zinc-800 mb-4 flex space-x-2">
+                <button id="btn_beer" onclick="switchTab('beer')" class="flex-1 py-2.5 rounded-xl text-xs font
