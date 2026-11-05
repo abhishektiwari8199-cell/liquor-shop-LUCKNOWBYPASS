@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="hi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Beer Inventory</title>
+<style>
+:root{--bg:#f6f7f9;--c:#fff;--t:#1b1f24;--m:#6b7280;--b:#e2e5ea;--a:#b45309;--g:#15803d;--r:#b91c1c}
+@media(prefers-color-scheme:dark){:root{--bg:#111418;--c:#1b2026;--t:#e8eaed;--m:#9aa3ae;--b:#2d343c;--a:#f59e0b;--g:#4ade80;--r:#f87171}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font:15px system-ui,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--c);border-bottom:1px solid var(--b);padding:8px 10px}
+header b{font-size:17px}nav{display:flex;gap:6px;margin-top:6px}
+nav button{flex:1;padding:8px 2px;border:1px solid var(--b);background:var(--bg);color:var(--t);border-radius:8px;font-size:14px}
+nav button.on{background:var(--a);color:#fff;border-color:var(--a)}
+main{padding:10px;max-width:760px;margin:auto}section{display:none}section.on{display:block}
+.card{background:var(--c);border:1px solid var(--b);border-radius:10px;padding:10px;margin-bottom:10px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+input,button{font:inherit}
+input[type=number],input[type=text],input[type=date]{background:var(--bg);color:var(--t);border:1px solid var(--b);border-radius:6px;padding:6px;width:100%}
+td input{width:62px;text-align:center}
+.btn{padding:8px 12px;border:1px solid var(--b);background:var(--c);color:var(--t);border-radius:8px}
+.btn.p{background:var(--a);color:#fff;border-color:var(--a)}
+table{width:100%;border-collapse:collapse}th,td{padding:5px 3px;border-bottom:1px solid var(--b);text-align:center;font-size:14px}
+th{color:var(--m);font-weight:600;font-size:12px}td.n{text-align:left;font-size:13px}td.n small{display:block;color:var(--m)}
+.wrap{overflow-x:auto}.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.k{background:var(--bg);border-radius:8px;padding:8px}.k span{display:block;color:var(--m);font-size:12px}.k b{font-size:18px}
+.neg{color:var(--r)}.pos{color:var(--g)}.ex{display:flex;gap:6px;margin-bottom:6px}
+h3{margin:0 0 8px;font-size:15px}
+</style></head><body>
+<header><b>🍺 Beer Inventory</b>
+<nav id="nav"><button data-t="e" class="on">Entry</button><button data-t="d">Dashboard</button><button data-t="m">Month</button><button data-t="b">Brands</button></nav></header>
+<main>
+
+<section id="e" class="on">
+ <div class="card row"><button class="btn" id="pv">◀</button><input type="date" id="dt" style="flex:1"><button class="btn" id="nx">▶</button></div>
+ <div class="card wrap"><table><thead><tr><th style="text-align:left">Brand</th><th>Opening</th><th>Purchase</th><th>Sale</th><th>Closing</th></tr></thead><tbody id="rows"></tbody></table></div>
+ <div class="card"><h3>Aaj ka hisaab</h3><div class="grid" id="tot"></div></div>
+ <div class="card"><h3>Received Amount</h3><div class="grid">
+  <label>Night Cash<input type="number" inputmode="numeric" id="cash"></label>
+  <label>Online<input type="number" inputmode="numeric" id="online"></label>
+  <label>Rokad<input type="number" inputmode="numeric" id="rokad"></label>
+  <div class="k"><span>Total Received</span><b id="recv">0</b></div></div></div>
+ <div class="card"><h3>Expenses</h3><div id="exl"></div><button class="btn" id="exa">+ Kharcha jodo</button></div>
+</section>
+
+<section id="d">
+ <div class="card"><h3 id="dh">Aaj</h3><div class="grid" id="dc"></div></div>
+ <div class="card"><h3 id="mh">Month</h3><div class="grid" id="mc"></div></div>
+ <div class="card"><h3>Stock (kam se zyada)</h3><div id="st"></div></div>
+</section>
+
+<section id="m">
+ <div class="card wrap"><table><thead><tr><th>Date</th><th>Sale</th><th>Margin</th><th>Cash</th><th>Online</th><th>Rokad</th><th>Kharch</th><th>2% TCS</th><th>Profit</th></tr></thead><tbody id="mr"></tbody></table></div>
+ <button class="btn p" id="csv">CSV download</button>
+</section>
+
+<section id="b">
+ <div class="card"><h3>Brands (naam / sale rate / purchase price)</h3><div id="bl"></div><button class="btn" id="ba">+ Naya brand</button></div>
+ <div class="card"><h3>Backup</h3><div class="row"><button class="btn p" id="bk">Backup download</button>
+ <label class="btn">Restore<input type="file" id="rs" accept=".json" hidden></label></div></div>
+</section>
+</main>
+
+<script>
+const K='beerData',$=s=>document.querySelector(s),n0=n=>Math.round(n||0).toLocaleString('en-IN');
+const BR=[["KINGFISHER - 650 ML (BOTTLE)",190,165.89],["ULTRAMAX - 650 ML (BOTTLE)",210,185.04],["TUBORG - 650 ML (BOTTLE)",190,165.89],["ELEPHENT - 650 ML (BOTTLE)",210,185.08],["BROCODE - 375 ML (CAN)",150,139.06],["RIO GOLD",150,139.06],["ULTRAMAX - 500 ML (CAN)",160,140.73],["BUDWISER 650 ML (BOTTLE)",210,184.95],["ELEPHENT - 500 ML (CAN)",160,140.83],["BUDWISER 500 ML (CAN)",160,140.73],["KINGFISHER - 500 ML (CAN)",140,121.45],["TUBORG CLASSIC 500 ML (CAN)",160,140.73],["TUBORG STRONG 500 ML (CAN)",140,121.45],["SAB 500 ML (CAN)",140,121.4],["GOD FATHER 500 ML (CAN)",140,111.8],["HYWARDS 5000 - 500 ML (CAN)",120,104.91],["X7 CLASSICO 330ML",160,140.73],["ELIFHANTH SMOOCH PRE",100,0],["ELEFHANT 330 ML",110,0]];
+const Z=Array(19).fill(0);
+const SEED={open:[6,0,25,3,0,0,0,10,96,2,44,30,84,12,0,0,0,0,0],days:{
+"2026-11-01":{p:Z,s:[4,0,23,2,0,0,0,0,47,0,38,30,82,10,0,0,0,0,0],exp:[],cash:24000,online:7720,rokad:3850},
+"2026-11-02":{p:[12,0,12,12,0,0,0,0,48,48,120,24,120,0,0,0,0,0,0],s:[4,0,9,4,0,0,0,2,49,43,53,6,56,0,0,0,0,0,0],exp:[{n:"kharch",a:100}],cash:22000,online:9730,rokad:2840},
+"2026-11-03":{p:[0,0,24,0,0,0,0,0,48,48,72,0,72,0,0,0,0,0,0],s:[0,0,18,9,0,0,0,2,23,22,101,1,47,0,0,0,0,0,0],exp:[],cash:21000,online:9770,rokad:3040}}};
+let D=load(),cur=iso(new Date());
+function load(){try{const d=JSON.parse(localStorage.getItem(K));if(d&&d.brands)return d}catch(e){}
+ return{brands:BR.map(b=>({n:b[0],r:b[1],pp:b[2]})),open:SEED.open.slice(),days:JSON.parse(JSON.stringify(SEED.days))}}
+function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function shift(s,n){const d=new Date(s+'T00:00');d.setDate(d.getDate()+n);return iso(d)}
+const day=s=>D.days[s]||{p:[],s:[],exp:[],cash:0,online:0,rokad:0};
+function dayW(s){return D.days[s]||(D.days[s]={p:[],s:[],exp:[],cash:0,online:0,rokad:0})}
+function openFor(s){const o=D.brands.map((_,i)=>D.open[i]||0);
+ for(const k of Object.keys(D.days).sort()){if(k>=s)break;const d=D.days[k];o.forEach((v,i)=>o[i]=v+(d.p[i]||0)-(d.s[i]||0))}return o}
+function stats(s){const o=openFor(s),d=day(s),r={sale:0,margin:0,mrp:0,cost:0,stock:0,cl:[]};
+ D.brands.forEach((b,i)=>{const p=d.p[i]||0,q=d.s[i]||0,c=o[i]+p-q;r.cl[i]=c;r.sale+=q*b.r;r.margin+=q*(b.r-b.pp);r.mrp+=p*b.r;r.cost+=p*b.pp;r.stock+=c*b.r});
+ r.exp=d.exp.reduce((a,x)=>a+(+x.a||0),0);r.tcs=r.cost*.02;r.profit=r.margin-r.exp-r.tcs;
+ r.recv=(+d.cash||0)+(+d.online||0)+(+d.rokad||0);r.o=o;return r}
+function month(s){const m=s.slice(0,7),t={sale:0,margin:0,profit:0,exp:0,cash:0,online:0,rokad:0,tcs:0,rows:[]};
+ for(const k of Object.keys(D.days).sort())if(k.startsWith(m)){const x=stats(k),d=day(k);
+  t.rows.push([k,x,d]);t.sale+=x.sale;t.margin+=x.margin;t.profit+=x.profit;t.exp+=x.exp;t.tcs+=x.tcs;t.cash+=+d.cash||0;t.online+=+d.online||0;t.rokad+=+d.rokad||0}return t}
+function save(){localStorage.setItem(K,JSON.stringify(D));
+ const ks=Object.keys(D.days).sort(),last=ks[ks.length-1]||cur,x=stats(last),m=month(last);
+ localStorage.setItem('beerSummary',JSON.stringify({date:last,sale:Math.round(x.sale),margin:Math.round(x.margin),profit:Math.round(x.profit),stock:Math.round(x.stock),cash:+day(last).cash||0,online:+day(last).online||0,rokad:+day(last).rokad||0,exp:x.exp,mSale:Math.round(m.sale),mProfit:Math.round(m.profit),updated:Date.now()}))}
+function kp(l,v,c){return`<div class="k"><span>${l}</span><b class="${c||''}">₹${n0(v)}</b></div>`}
+function rEntry(){const d=day(cur),x=stats(cur);$('#dt').value=cur;
+ $('#rows').innerHTML=D.brands.map((b,i)=>`<tr><td class="n">${b.n}<small>₹${b.r}</small></td><td id="o${i}">${x.o[i]}</td>
+ <td><input type="number" inputmode="numeric" min="0" data-k="p" data-i="${i}" value="${d.p[i]||''}"></td>
+ <td><input type="number" inputmode="numeric" min="0" data-k="s" data-i="${i}" value="${d.s[i]||''}"></td><td id="c${i}"></td></tr>`).join('');
+ ['cash','online','rokad'].forEach(k=>$('#'+k).value=d[k]||'');rExp();upd()}
+function upd(){const x=stats(cur);
+ x.cl.forEach((c,i)=>{const e=$('#c'+i);if(e){e.textContent=c;e.className=c<0?'neg':''}const o=$('#o'+i);if(o)o.textContent=x.o[i]});
+ $('#tot').innerHTML=kp('Sale',x.sale)+kp('Margin',x.margin,'pos')+kp('Stock Value',x.stock)+kp('Purchase (MRP)',x.mrp)+kp('Kharch',x.exp)+kp('Profit',x.profit,x.profit<0?'neg':'pos');
+ $('#recv').textContent='₹'+n0(x.recv)}
+function rExp(){const d=day(cur);$('#exl').innerHTML=d.exp.map((e,i)=>`<div class="ex"><input type="text" placeholder="Kharcha" data-e="n" data-i="${i}" value="${e.n||''}"><input type="number" inputmode="numeric" placeholder="₹" style="width:90px" data-e="a" data-i="${i}" value="${e.a||''}"><button class="btn" data-x="${i}">✕</button></div>`).join('')}
+function rDash(){const x=stats(cur),m=month(cur),d=day(cur);
+ $('#dh').textContent=cur;$('#mh').textContent='Month '+cur.slice(0,7);
+ $('#dc').innerHTML=kp('Sale',x.sale)+kp('Profit',x.profit,x.profit<0?'neg':'pos')+kp('Stock Value',x.stock)+kp('Received',x.recv)+kp('Cash',d.cash)+kp('Online',d.online);
+ $('#mc').innerHTML=kp('Sale',m.sale)+kp('Margin',m.margin)+kp('Kharch',m.exp)+kp('Profit',m.profit,m.profit<0?'neg':'pos');
+ $('#st').innerHTML=D.brands.map((b,i)=>[b.n,x.cl[i]]).sort((a,b)=>a[1]-b[1]).map(([n,c])=>`<div class="row" style="justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--b)"><span>${n}</span><b class="${c<=5?'neg':''}">${c}</b></div>`).join('')}
+function rMonth(){const m=month(cur);
+ $('#mr').innerHTML=m.rows.map(([k,x,d])=>`<tr><td>${k.slice(8)}</td><td>${n0(x.sale)}</td><td>${n0(x.margin)}</td><td>${n0(d.cash)}</td><td>${n0(d.online)}</td><td>${n0(d.rokad)}</td><td>${n0(x.exp)}</td><td>${n0(x.tcs)}</td><td class="${x.profit<0?'neg':'pos'}">${n0(x.profit)}</td></tr>`).join('')
+ +`<tr><th>Total</th><th>${n0(m.sale)}</th><th>${n0(m.margin)}</th><th>${n0(m.cash)}</th><th>${n0(m.online)}</th><th>${n0(m.rokad)}</th><th>${n0(m.exp)}</th><th>${n0(m.tcs)}</th><th>${n0(m.profit)}</th></tr>`}
+function rBr(){$('#bl').innerHTML=D.brands.map((b,i)=>`<div class="ex"><input type="text" data-b="n" data-i="${i}" value="${b.n}"><input type="number" style="width:64px" data-b="r" data-i="${i}" value="${b.r}"><input type="number" step="0.01" style="width:76px" data-b="pp" data-i="${i}" value="${b.pp}"></div>`).join('')}
+function dl(name,txt,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type}));a.download=name;a.click()}
+function show(t){document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id===t));
+ document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+ if(t==='d')rDash();if(t==='m')rMonth();if(t==='b')rBr();if(t==='e')rEntry()}
+$('#nav').onclick=e=>e.target.dataset.t&&show(e.target.dataset.t);
+$('#dt').onchange=e=>{cur=e.target.value||cur;rEntry()};
+$('#pv').onclick=()=>{cur=shift(cur,-1);rEntry()};$('#nx').onclick=()=>{cur=shift(cur,1);rEntry()};
+$('#rows').oninput=e=>{const t=e.target,i=+t.dataset.i;if(!t.dataset.k)return;const d=dayW(cur);d[t.dataset.k][i]=+t.value||0;save();upd()};
+['cash','online','rokad'].forEach(k=>$('#'+k).oninput=e=>{dayW(cur)[k]=+e.target.value||0;save();upd()});
+$('#exa').onclick=()=>{dayW(cur).exp.push({n:'',a:0});save();rExp()};
+$('#exl').oninput=e=>{const t=e.target,x=dayW(cur).exp[+t.dataset.i];x[t.dataset.e]=t.dataset.e==='a'?+t.value||0:t.value;save();upd()};
+$('#exl').onclick=e=>{if(e.target.dataset.x!==undefined){dayW(cur).exp.splice(+e.target.dataset.x,1);save();rExp();upd()}};
+$('#bl').oninput=e=>{const t=e.target,b=D.brands[+t.dataset.i];b[t.dataset.b]=t.dataset.b==='n'?t.value:+t.value||0;save()};
+$('#ba').onclick=()=>{D.brands.push({n:'NEW BRAND',r:0,pp:0});save();rBr()};
+$('#bk').onclick=()=>dl('beer-backup-'+cur+'.json',JSON.stringify(D),'application/json');
+$('#rs').onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{const d=JSON.parse(t);if(!d.brands||!d.days)throw 0;D=d;save();rEntry();alert('Restore ho gaya')}catch(x){alert('File sahi nahi hai')}})};
+$('#csv').onclick=()=>{const m=month(cur);let c='DATE,SALE,MARGIN,CASH,ONLINE,ROKAD,TOTAL RECEIVED,EXPENSES,2% TCS,PROFIT\n';
+ m.rows.forEach(([k,x,d])=>c+=[k,x.sale,x.margin.toFixed(2),d.cash||0,d.online||0,d.rokad||0,x.recv,x.exp,x.tcs.toFixed(2),x.profit.toFixed(2)].join(',')+'\n');dl('beer-month-'+cur.slice(0,7)+'.csv',c,'text/csv')};
+save();rEntry();
+</script></body></html>
