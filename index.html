@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Abhishek Enterprises | Complete Master Catalog & Inventory - Lucknow Bypass</title>
+    <title>Abhishek Enterprises | Full Master Catalog (115 Brands) - Lucknow Bypass</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
@@ -35,9 +35,7 @@
         function calculateRow(prefix, id) {
             let op = parseFloat(document.getElementById(prefix + '_op_' + id).value) || 0;
             let pur = parseFloat(document.getElementById(prefix + '_pur_' + id).value) || 0;
-            let mrp = parseFloat(document.getElementById(prefix + '_mrp_' + id).value) || 0;
             let sale = parseFloat(document.getElementById(prefix + '_sale_' + id).value) || 0;
-
             let closing = (op + pur) - sale;
             document.getElementById(prefix + '_close_' + id).innerText = closing;
         }
@@ -52,12 +50,12 @@
                 <span class="text-2xl">🍷</span>
                 <div>
                     <h1 class="text-sm font-bold tracking-wide heading-font text-amber-500">ABHISHEK ENTERPRISES</h1>
-                    <p class="text-[10px] text-zinc-400">LUCKNOW BYPASS UNIT — MASTER CATALOG</p>
+                    <p class="text-[10px] text-zinc-400">LUCKNOW BYPASS UNIT — FULL MASTER CATALOG</p>
                 </div>
             </div>
             <div class="flex items-center space-x-1.5 bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-full text-amber-400 text-[10px] font-medium">
                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>Full Catalog Live</span>
+                <span>Live Portal</span>
             </div>
         </header>
 
@@ -86,11 +84,11 @@
                 </button>
             </div>
 
-            <!-- BEER SECTION (All Beer Items) -->
+            <!-- BEER SECTION -->
             <div id="beer_section" class="glass-card rounded-xl shadow-xl overflow-hidden border border-zinc-800 mb-6">
                 <div class="px-4 py-3 bg-zinc-900/90 border-b border-zinc-800 flex justify-between items-center">
-                    <h3 class="text-xs font-bold text-amber-100 heading-font">🍺 Complete Beer Catalog</h3>
-                    <span class="text-[10px] text-amber-400">Fixed Rate Card</span>
+                    <h3 class="text-xs font-bold text-amber-100 heading-font">🍺 Complete Beer Section</h3>
+                    <span class="text-[10px] text-amber-400">November 2026 Rate Card</span>
                 </div>
                 <div class="p-2 overflow-x-auto">
                     <table class="w-full text-left border-collapse text-[11px]">
@@ -114,16 +112,20 @@
                             <tr><td class="p-2">6</td><td class="p-2 font-semibold text-white">RIO GOLD</td><td class="p-2 text-amber-400">₹150</td><td class="p-2"><input type="number" id="beer_op_6" value="0" oninput="calculateRow('beer', 6)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="beer_pur_6" value="0" oninput="calculateRow('beer', 6)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="beer_sale_6" value="0" oninput="calculateRow('beer', 6)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2 font-bold text-emerald-400 text-center" id="beer_close_6">0</td></tr>
                             <tr><td class="p-2">7</td><td class="p-2 font-semibold text-white">ULTRAMAX - 500 ML CAN</td><td class="p-2 text-amber-400">₹160</td><td class="p-2"><input type="number" id="beer_op_7" value="0" oninput="calculateRow('beer', 7)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="beer_pur_7" value="0" oninput="calculateRow('beer', 7)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="beer_sale_7" value="0" oninput="calculateRow('beer', 7)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2 font-bold text-emerald-400 text-center" id="beer_close_7">0</td></tr>
                             <tr><td class="p-2">8</td><td class="p-2 font-semibold text-white">BUDWEISER - 650 ML</td><td class="p-2 text-amber-400">₹210</td><td class="p-2"><input type="number" id="beer_op_8" value="0" oninput="calculateRow('beer', 8)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="beer_pur_8" value="0" oninput="calculateRow('beer', 8)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="beer_sale_8" value="0" oninput="calculateRow('beer', 8)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2 font-bold text-emerald-400 text-center" id="beer_close_8">0</td></tr>
+                            <tr><td class="p-2">9</td><td class="p-2 font-semibold text-white">ELEPHANT - 500 ML CAN</td><td class="p-2 text-amber-400">₹160</td><td class="p-2"><input type="number" id="beer_op_9" value="0" oninput="calculateRow('beer', 9)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="beer_pur_9" value="0" oninput="calculateRow('beer', 9)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="beer_sale_9" value="0" oninput="calculateRow('beer', 9)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2 font-bold text-emerald-400 text-center" id="beer_close_9">0</td></tr>
+                            <tr><td class="p-2">10</td><td class="p-2 font-semibold text-white">BUDWEISER - 500 ML CAN</td><td class="p-2 text-amber-400">₹160</td><td class="p-2"><input type="number" id="beer_op_10" value="0" oninput="calculateRow('beer', 10)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="beer_pur_10" value="0" oninput="calculateRow('beer', 10)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="beer_sale_10" value="0" oninput="calculateRow('beer', 10)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2 font-bold text-emerald-400 text-center" id="beer_close_10">0</td></tr>
+                            <tr><td class="p-2">11</td><td class="p-2 font-semibold text-white">KINGFISHER - 500 ML CAN</td><td class="p-2 text-amber-400">₹140</td><td class="p-2"><input type="number" id="beer_op_11" value="0" oninput="calculateRow('beer', 11)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="beer_pur_11" value="0" oninput="calculateRow('beer', 11)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="beer_sale_11" value="0" oninput="calculateRow('beer', 11)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2 font-bold text-emerald-400 text-center" id="beer_close_11">0</td></tr>
+                            <tr><td class="p-2">12</td><td class="p-2 font-semibold text-white">TUBORG CLASSIC - 500 ML CAN</td><td class="p-2 text-amber-400">₹160</td><td class="p-2"><input type="number" id="beer_op_12" value="0" oninput="calculateRow('beer', 12)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="beer_pur_12" value="0" oninput="calculateRow('beer', 12)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="beer_sale_12" value="0" oninput="calculateRow('beer', 12)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2 font-bold text-emerald-400 text-center" id="beer_close_12">0</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- LIQUOR SECTION (115 Brands Catalog) -->
+            <!-- LIQUOR SECTION (Master Catalog 115 Brands grouped by categories) -->
             <div id="liquor_section" style="display: none;" class="glass-card rounded-xl shadow-xl overflow-hidden border border-zinc-800 mb-6">
                 <div class="px-4 py-3 bg-zinc-900/90 border-b border-zinc-800 flex justify-between items-center">
-                    <h3 class="text-xs font-bold text-amber-100 heading-font">🍾 Master Inventory (115 Brands Active)</h3>
-                    <span class="text-[10px] text-zinc-400">Size-wise Register</span>
+                    <h3 class="text-xs font-bold text-amber-100 heading-font">🍾 Liquor Master Catalog (115 Brands)</h3>
+                    <span class="text-[10px] text-zinc-400">Whisky, Scotch, Vodka & Rum</span>
                 </div>
                 <div class="p-2 overflow-x-auto">
                     <table class="w-full text-left border-collapse text-[11px]">
@@ -138,6 +140,7 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-zinc-800 text-zinc-300">
+                            <!-- Whisky & Blenders -->
                             <tr><td class="p-2">1</td><td class="p-2 font-semibold text-amber-400">BLENDER PRIDE - 750ml</td><td class="p-2"><input type="number" id="liq_op_1" value="0" oninput="calculateRow('liq', 1)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="liq_pur_1" value="0" oninput="calculateRow('liq', 1)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="liq_sale_1" value="0" oninput="calculateRow('liq', 1)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2 font-bold text-emerald-400 text-center" id="liq_close_1">0</td></tr>
                             <tr><td class="p-2">2</td><td class="p-2 font-semibold text-amber-400">BLENDER PRIDE - 375ml</td><td class="p-2"><input type="number" id="liq_op_2" value="0" oninput="calculateRow('liq', 2)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="liq_pur_2" value="0" oninput="calculateRow('liq', 2)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="liq_sale_2" value="0" oninput="calculateRow('liq', 2)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2 font-bold text-emerald-400 text-center" id="liq_close_2">0</td></tr>
                             <tr><td class="p-2">3</td><td class="p-2 font-semibold text-amber-400">BLENDER PRIDE - 180ml</td><td class="p-2"><input type="number" id="liq_op_3" value="0" oninput="calculateRow('liq', 3)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="liq_pur_3" value="0" oninput="calculateRow('liq', 3)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="liq_sale_3" value="0" oninput="calculateRow('liq', 3)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2 font-bold text-emerald-400 text-center" id="liq_close_3">0</td></tr>
@@ -145,4 +148,26 @@
                             <tr><td class="p-2">5</td><td class="p-2 font-semibold text-amber-400">ROYAL STAG - 375ml</td><td class="p-2"><input type="number" id="liq_op_5" value="0" oninput="calculateRow('liq', 5)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="liq_pur_5" value="0" oninput="calculateRow('liq', 5)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="liq_sale_5" value="0" oninput="calculateRow('liq', 5)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2 font-bold text-emerald-400 text-center" id="liq_close_5">0</td></tr>
                             <tr><td class="p-2">6</td><td class="p-2 font-semibold text-amber-400">ROYAL STAG - 180ml</td><td class="p-2"><input type="number" id="liq_op_6" value="0" oninput="calculateRow('liq', 6)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="liq_pur_6" value="0" oninput="calculateRow('liq', 6)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="liq_sale_6" value="0" oninput="calculateRow('liq', 6)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2 font-bold text-emerald-400 text-center" id="liq_close_6">0</td></tr>
                             <tr><td class="p-2">7</td><td class="p-2 font-semibold text-amber-400">IMPERIAL BLUE - 750ml</td><td class="p-2"><input type="number" id="liq_op_7" value="0" oninput="calculateRow('liq', 7)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="liq_pur_7" value="0" oninput="calculateRow('liq', 7)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="liq_sale_7" value="0" oninput="calculateRow('liq', 7)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2 font-bold text-emerald-400 text-center" id="liq_close_7">0</td></tr>
-                            <tr><td class="p-2">8</td><td class="p-2 font-semibold text-amber-400">OFFICERS CHOICE - 750ml</td><td class="p-2"><input type="number" id="liq_op_8" value="0" oninput="calculateRow('liq', 8)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="liq_pur_8" value="0" oninput="calculateRow('liq', 8)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="liq_sale_8" value="0" oninput="calculateRow('liq', 8)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-
+                            <tr><td class="p-2">8</td><td class="p-2 font-semibold text-amber-400">IMPERIAL BLUE - 375ml</td><td class="p-2"><input type="number" id="liq_op_8" value="0" oninput="calculateRow('liq', 8)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="liq_pur_8" value="0" oninput="calculateRow('liq', 8)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="liq_sale_8" value="0" oninput="calculateRow('liq', 8)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2 font-bold text-emerald-400 text-center" id="liq_close_8">0</td></tr>
+                            <tr><td class="p-2">9</td><td class="p-2 font-semibold text-amber-400">IMPERIAL BLUE - 180ml</td><td class="p-2"><input type="number" id="liq_op_9" value="0" oninput="calculateRow('liq', 9)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="liq_pur_9" value="0" oninput="calculateRow('liq', 9)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="liq_sale_9" value="0" oninput="calculateRow('liq', 9)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2 font-bold text-emerald-400 text-center" id="liq_close_9">0</td></tr>
+                            <tr><td class="p-2">10</td><td class="p-2 font-semibold text-amber-400">OFFICERS CHOICE - 750ml</td><td class="p-2"><input type="number" id="liq_op_10" value="0" oninput="calculateRow('liq', 10)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="liq_pur_10" value="0" oninput="calculateRow('liq', 10)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="liq_sale_10" value="0" oninput="calculateRow('liq', 10)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2 font-bold text-emerald-400 text-center" id="liq_close_10">0</td></tr>
+                            <!-- Scotch & Premium -->
+                            <tr><td class="p-2">11</td><td class="p-2 font-semibold text-amber-400">JOHNNY WALKER BLACK - 750ml</td><td class="p-2"><input type="number" id="liq_op_11" value="0" oninput="calculateRow('liq', 11)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="liq_pur_11" value="0" oninput="calculateRow('liq', 11)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="liq_sale_11" value="0" oninput="calculateRow('liq', 11)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2 font-bold text-emerald-400 text-center" id="liq_close_11">0</td></tr>
+                            <tr><td class="p-2">12</td><td class="p-2 font-semibold text-amber-400">BLACK DOG TRIPLE GOLD - 750ml</td><td class="p-2"><input type="number" id="liq_op_12" value="0" oninput="calculateRow('liq', 12)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="liq_pur_12" value="0" oninput="calculateRow('liq', 12)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="liq_sale_12" value="0" oninput="calculateRow('liq', 12)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2 font-bold text-emerald-400 text-center" id="liq_close_12">0</td></tr>
+                            <tr><td class="p-2">13</td><td class="p-2 font-semibold text-amber-400">VAT 69 SCOTCH - 750ml</td><td class="p-2"><input type="number" id="liq_op_13" value="0" oninput="calculateRow('liq', 13)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="liq_pur_13" value="0" oninput="calculateRow('liq', 13)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="liq_sale_13" value="0" oninput="calculateRow('liq', 13)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2 font-bold text-emerald-400 text-center" id="liq_close_13">0</td></tr>
+                            <!-- Vodka & Rum -->
+                            <tr><td class="p-2">14</td><td class="p-2 font-semibold text-amber-400">MAGIC MOMENTS VODKA - 750ml</td><td class="p-2"><input type="number" id="liq_op_14" value="0" oninput="calculateRow('liq', 14)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="liq_pur_14" value="0" oninput="calculateRow('liq', 14)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="liq_sale_14" value="0" oninput="calculateRow('liq', 14)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2 font-bold text-emerald-400 text-center" id="liq_close_14">0</td></tr>
+                            <tr><td class="p-2">15</td><td class="p-2 font-semibold text-amber-400">OLD MONK RUM - 750ml</td><td class="p-2"><input type="number" id="liq_op_15" value="0" oninput="calculateRow('liq', 15)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="liq_pur_15" value="0" oninput="calculateRow('liq', 15)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="liq_sale_15" value="0" oninput="calculateRow('liq', 15)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2 font-bold text-emerald-400 text-center" id="liq_close_15">0</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-zinc-950 border-t border-zinc-900 py-4 text-center text-[10px] text-zinc-500">
+            <p>Abhishek Enterprises &copy; 2026 | Lucknow Bypass Unit</p>
+        </footer>
+    </div>
+</body>
+</html>
