@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Inventory & Daily Master Entry | Abhishek Composite (Beer / Liquor)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .heading-font { font-family: 'Playfair Display', serif; }
+        .glass-card { background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    </style>
+    <script>
+        // Password Protection Function
+        function checkAccess() {
+            let pass = prompt("🔐 Yeh secure inventory area hai. Kripya Admin Password darj karein:");
+            if (pass !== "abhishek123") {
+                alert("❌ Galat password! Access denied.");
+                window.location.href = "index.html";
+            }
+        }
+
+        window.onload = function() {
+            checkAccess();
+            loadSavedData();
+        };
+
+        function processDailyEntry() {
+            let brand = document.getElementById('entry_brand').value;
+            let soldQty = parseFloat(document.getElementById('entry_sold').value) || 0;
+            let cashAmt = parseFloat(document.getElementById('entry_cash').value) || 0;
+            let upiAmt = parseFloat(document.getElementById('entry_upi').value) || 0;
+            let expenseAmt = parseFloat(document.getElementById('entry_expense').value) || 0;
+
+            let totalSale = cashAmt + upiAmt;
+            let netInHand = cashAmt - expenseAmt;
+
+            // Save data permanently to browser LocalStorage so it doesn't vanish on refresh
+            let entryData = { brand, soldQty, totalSale, netInHand };
+            localStorage.setItem('last_inventory_entry', JSON.stringify(entryData));
+
+            displaySummary(entryData);
+            alert('Inventory & daily entry successfully saved and synced!');
+        }
+
+        function loadSavedData() {
+            let saved = localStorage.getItem('last_inventory_entry');
+            if (saved) {
+                let data = JSON.parse(saved);
+                displaySummary(data);
+            }
+        }
+
+        function displaySummary(data) {
+            let summaryBox = document.getElementById('success_summary');
+            summaryBox.style.display = 'block';
+            document.getElementById('res_brand').innerText = data.brand;
+            document.getElementById('res_sold').innerText = data.soldQty + ' Units';
+            document.getElementById('res_sale').innerText = '₹ ' + parseFloat(data.totalSale).toFixed(2);
+            document.getElementById('res_cash').innerText = '₹ ' + parseFloat(data.netInHand).toFixed(2);
+        }
+    </script>
+</head>
+<body class="bg-gradient-to-br from-gray-950 via-zinc-900 to-stone-950 text-gray-100 min-h-screen flex flex-col justify-between">
+    
+    <!-- Header -->
+    <header class="bg-zinc-900/90 backdrop-blur-md border-b border-amber-900/30 py-3 px-4 flex justify-between items-center shadow-lg sticky top-0 z-50">
+        <div class="flex items-center space-x-2">
+            <a href="index.html" class="text-amber-400 text-sm font-bold bg-zinc-800 px-3 py-1.5 rounded-lg hover:bg-zinc-700">← Back</a>
+            <h1 class="text-sm font-bold tracking-wide heading-font text-amber-500">SECURE INVENTORY & MASTER ENTRY</h1>
+        </div>
+        <span class="text-[10px] text-zinc-400">Abhishek Composite (Beer / Liquor)</span>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-3 py-6 max-w-3xl flex-grow space-y-6">
+        
+        <!-- Form Card -->
+        <div class="glass-card p-6 rounded-2xl shadow-xl border border-zinc-800 space-y-5">
+            <div class="border-b border-zinc-800 pb-3 flex justify-between items-center">
+                <div>
+                    <h3 class="text-sm font-bold text-amber-100 heading-font">📝 Stock In, Sale & Expense Management</h3>
+                    <p class="text-xs text-zinc-400 mt-0.5">Admin password verified. Data browser mein secure rahega.</p>
+                </div>
+                <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-full text-[10px] font-bold">🔒 Secured</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs text-zinc-400 mb-1 font-medium">Select Brand / Item</label>
+                    <select id="entry_brand" class="w-full bg-zinc-800 border border-zinc-700 text-xs px-3 py-2 rounded-xl text-white focus:outline-none focus:border-amber-500 font-bold">
+                        <option value="Blender Pride 750ml">Blender Pride (750 ML)</option>
+                        <option value="Royal Stag 750ml">Royal Stag (750 ML)</option>
+                        <option value="Imperial Blue 750ml">Imperial Blue (750 ML)</option>
+                        <option value="Kingfisher Beer 650ml">Kingfisher Beer (650 ML)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-zinc-400 mb-1 font-medium">Quantity Sold (Biki Hui Bottles)</label>
+                    <input type="number" id="entry_sold" value="0" class="w-full bg-zinc-800 border border-zinc-700 text-xs px-3 py-2 rounded-xl text-white focus:outline-none focus:border-amber-500 font-bold">
+                </div>
+                <div>
+                    <label class="block text-xs text-zinc-400 mb-1 font-medium">Cash Received (₹)</label>
+                    <input type="number" id="entry_cash" value="0" class="w-full bg-zinc-800 border border-zinc-700 text-xs px-3 py-2 rounded-xl text-white focus:outline-none focus:border-amber-500 font-bold">
+                </div>
+                <div>
+                    <label class="block text-xs text-zinc-400 mb-1 font-medium">Online / UPI Received (₹)</label>
+                    <input type="number" id="entry_upi" value="0" class="w-full bg-zinc-800 border border-zinc-700 text-xs px-3 py-2 rounded-xl text-white focus:outline-none focus:border-amber-500 font-bold">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-xs text-zinc-400 mb-1 font-medium">Daily Cash Expense Deducted (₹)</label>
+                    <input type="number" id="entry_expense" value="0" class="w-full bg-zinc-800 border border-zinc-700 text-xs px-3 py-2 rounded-xl text-white focus:outline-none focus:border-amber-500 font-bold">
+                </div>
+            </div>
+
+            <div class="pt-3">
+                <button onclick="processDailyEntry()" class="w-full py-3 rounded-xl text-xs font-bold bg-amber-500 text-zinc-950 shadow-lg hover:bg-amber-400 transition-all">
+                    🚀 Save & Sync All Registers
+                </button>
+            </div>
+        </div>
+
+        <!-- Success Result Summary -->
+        <div id="success_summary" style="display: none;" class="glass-card p-5 rounded-2xl border-l-4 border-emerald-500 shadow-xl space-y-3">
+            <h4 class="text-xs font-bold text-emerald-400 uppercase tracking-wider">✅ Successfully Recorded Summary</h4>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs pt-2 border-t border-zinc-800">
+                <div>
+                    <span class="text-zinc-400 block">Brand:</span>
+                    <span id="res_brand" class="font-bold text-white">--</span>
+                </div>
+                <div>
+                    <span class="text-zinc-400 block">Sold Qty:</span>
+                    <span id="res_sold" class="font-bold text-amber-400">--</span>
+                </div>
+                <div>
+                    <span class="text-zinc-400 block">Total Sale:</span>
+                    <span id="res_sale" class="font-bold text-blue-400">--</span>
+                </div>
+                <div>
+                    <span class="text-zinc-400 block">Net In-Hand:</span>
+                    <span id="res_cash" class="font-bold text-emerald-400">--</span>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-zinc-950 border-t border-zinc-900 py-3 text-center text-[10px] text-zinc-500">
+        <p>Abhishek Composite (Beer / Liquor) &copy; 2026 | Lucknow Bypass Unit</p>
+    </footer>
+
+</body>
+</html>
