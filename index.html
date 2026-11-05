@@ -14,7 +14,7 @@
         .glass-card:hover { border-color: rgba(245, 158, 11, 0.4); transform: translateY(-3px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5); }
     </style>
     <script>
-        // Check if already remembered on page load
+        // Check active session on page load
         window.addEventListener('DOMContentLoaded', (event) => {
             let savedUser = localStorage.getItem('comp_user');
             if (savedUser) {
@@ -23,7 +23,7 @@
             }
         });
 
-        // Master Site Login Protection with Save Password Support
+        // Master Site Login Protection
         function verifyLogin() {
             let user = document.getElementById('login_user').value;
             let pass = document.getElementById('login_pass').value;
@@ -37,10 +37,31 @@
                 }
                 document.getElementById('login_modal').style.display = 'none';
                 document.getElementById('main_dashboard').style.display = 'block';
+                startInactivityTimer(); // Start Auto-Logout Timer
             } else {
                 document.getElementById('login_error').innerText = "❌ Galat Username ya Password! Dobara koshish karein.";
             }
         }
+
+        // Auto Logout after 15 minutes of complete inactivity
+        let inactivityTimer;
+        function resetTimer() {
+            clearTimeout(inactivityTimer);
+            // 15 minutes = 15 * 60 * 1000 milliseconds (Aap ise apne anusaar change kar sakte hain)
+            inactivityTimer = setTimeout(() => {
+                alert("⏳ 15 minute tak koi activity na hone ke karan session expire ho gaya hai. Kripya dobara login karein.");
+                location.reload();
+            }, 15 * 60 * 1000);
+        }
+
+        // Track user activity
+        window.onload = function() {
+            window.onload = resetTimer;
+            window.onmousemove = resetTimer;
+            window.onmousedown = resetTimer;
+            window.onclick = resetTimer;
+            window.onkeypress = resetTimer;
+        };
 
         // Refresh / Sync Page Function
         function refreshDashboard() {
@@ -97,7 +118,6 @@
             <div class="flex items-center space-x-3">
                 <a href="inventory.html" class="bg-amber-500/10 border border-amber-500/40 text-amber-400 text-xs px-3 py-1.5 rounded-xl font-bold hover:bg-amber-500/20">⚙️ Secure Inventory</a>
                 
-                <!-- Clickable Refresh / Live Sync Badge -->
                 <button onclick="refreshDashboard()" title="Click to refresh & sync" class="flex items-center space-x-2 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-full text-amber-400 text-xs font-medium hover:bg-amber-500/20 transition-all cursor-pointer">
                     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                     <span>Live Sync Active (Click to Refresh)</span>
