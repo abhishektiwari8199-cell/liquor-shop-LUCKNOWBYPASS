@@ -15,8 +15,8 @@ header{background:linear-gradient(120deg,#101827,#263449);color:white;padding:18
 .head p{margin:4px 0 0;color:#cbd5e1;font-size:12px}
 .date{color:#fbbf24;font-weight:700;font-size:13px}
 main{max-width:1180px;margin:auto;padding:16px}
-.nav{display:flex;gap:8px;overflow:auto;padding:4px 0 14px}
-.nav button,.btn{border:1px solid var(--line);background:white;color:var(--ink);padding:10px 14px;border-radius:10px;font-weight:650;white-space:nowrap}
+.nav{display:flex;gap:8px;overflow-x:auto;padding:4px 0 14px;scrollbar-width:thin}
+.nav button,.btn{border:1px solid var(--line);background:white;color:var(--ink);padding:10px 14px;border-radius:10px;font-weight:650;white-space:nowrap;cursor:pointer}
 .nav button.active,.primary{background:var(--gold)!important;color:white!important;border-color:var(--gold)!important}
 section.page{display:none}
 section.page.active{display:block}
@@ -37,7 +37,7 @@ input,select{border:1px solid #d7deea;border-radius:9px;padding:10px;background:
 input:focus,select:focus{outline:2px solid #f59e0b55;border-color:#d97706}
 .table-wrap{overflow:auto}
 table{width:100%;border-collapse:collapse;min-width:690px}
-th,td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th,td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
 th{background:#f8fafc;color:var(--muted);font-size:11px;text-transform:uppercase;position:sticky;top:0}
 th:first-child,td:first-child{text-align:left}
 td.name{white-space:normal;min-width:170px;font-weight:650}
@@ -52,12 +52,26 @@ td input{width:76px;text-align:right;padding:8px}
 .low{color:var(--red);font-weight:800}
 .good{color:var(--green);font-weight:700}
 .muted{color:var(--muted)}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.toolbar input{flex:1;min-width:180px}
 footer{text-align:center;color:var(--muted);font-size:11px;padding:18px}
-@media(max-width:760px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.fields{grid-template-columns:1fr 1fr}.heading h2{font-size:20px}}
-@media(max-width:430px){main{padding:11px}.card{padding:12px}.fields{grid-template-columns:1fr}.datebar{grid-template-columns:40px 1fr 40px}.datebar .today{grid-column:1/-1}.metric strong{font-size:18px}}
+@media(max-width:760px){
+.grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.fields{grid-template-columns:1fr 1fr}
+.heading h2{font-size:20px}
+}
+@media(max-width:430px){
+main{padding:11px}
+.card{padding:12px}
+.fields{grid-template-columns:1fr}
+.datebar{grid-template-columns:40px 1fr 40px}
+.datebar .today{grid-column:1/-1}
+.metric strong{font-size:18px}
+}
 </style>
 </head>
 <body>
+
 <header>
 <div class="head">
 <div>
@@ -67,100 +81,243 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:18px}
 <div class="date" id="headerDate"></div>
 </div>
 </header>
+
 <main>
+
 <nav class="nav" id="nav">
-<button class="active" data-page="entry">Daily Entry</button>
-<button data-page="dashboard">Dashboard</button>
-<button data-page="monthly">Monthly Report</button>
-<button data-page="brands">Brand Master</button>
-<button data-page="backup">Backup & Restore</button>
+<button class="active" type="button" data-page="entry">Daily Entry</button>
+<button type="button" data-page="dashboard">Dashboard</button>
+<button type="button" data-page="monthly">Monthly Report</button>
+<button type="button" data-page="brands">Brand Master</button>
+<button type="button" data-page="backup">Backup &amp; Restore</button>
 </nav>
 
 <section class="page active" id="page-entry">
+
 <div class="heading">
-<div><h2>Daily Liquor Register</h2><p>Brand and bottle-size wise purchase and sale tracking.</p></div>
+<div>
+<h2>Daily Liquor Register</h2>
+<p>Brand and bottle-size wise purchase and sale tracking.</p>
+</div>
 <span class="pill" id="status">Local storage</span>
 </div>
+
 <div class="card datebar">
-<button class="btn" id="prev">‹</button>
+<button class="btn" id="prev" type="button">‹</button>
 <input type="date" id="date">
-<button class="btn" id="next">›</button>
-<button class="btn today" id="today">Today</button>
+<button class="btn" id="next" type="button">›</button>
+<button class="btn today" id="today" type="button">Today</button>
 </div>
+
 <div class="card">
 <div class="heading">
-<div><h3>Stock Register</h3><p>Closing = Opening + Purchase − Sale</p></div>
+<div>
+<h3>Stock Register</h3>
+<p>Closing = Opening + Purchase − Sale</p>
+</div>
 <span class="pill" id="count"></span>
 </div>
+
+<div class="toolbar">
+<input id="stockSearch" placeholder="Search brand..." aria-label="Search brand">
+<select id="stockFilter">
+<option value="all">All brands / sizes</option>
+<option value="stock">Opening or closing stock</option>
+<option value="active">Brands with MRP</option>
+</select>
+</div>
+
 <div class="table-wrap">
 <table>
-<thead><tr><th>Brand / Size</th><th>Opening</th><th>Purchase</th><th>Sale</th><th>Closing</th><th>Sale Value</th></tr></thead>
+<thead>
+<tr>
+<th>Brand / Size</th>
+<th>Opening</th>
+<th>Purchase</th>
+<th>Sale</th>
+<th>Closing</th>
+<th>Sale Value</th>
+</tr>
+</thead>
 <tbody id="stockRows"></tbody>
 </table>
 </div>
 </div>
-<div class="card"><h3>Daily Summary</h3><div class="grid" id="dailyMetrics"></div></div>
+
+<div class="card">
+<h3>Daily Summary</h3>
+<div class="grid" id="dailyMetrics"></div>
+</div>
+
 <div class="card">
 <h3>Collections</h3>
 <div class="fields">
-<div class="field"><label>Cash ₹</label><input id="cash" type="number" min="0" step=".01"></div>
-<div class="field"><label>Online ₹</label><input id="online" type="number" min="0" step=".01"></div>
-<div class="field"><label>Rokad / Credit ₹</label><input id="rokad" type="number" min="0" step=".01"></div>
+<div class="field">
+<label>Cash ₹</label>
+<input id="cash" type="number" min="0" step=".01">
+</div>
+<div class="field">
+<label>Online ₹</label>
+<input id="online" type="number" min="0" step=".01">
+</div>
+<div class="field">
+<label>Rokad / Credit ₹</label>
+<input id="rokad" type="number" min="0" step=".01">
+</div>
 </div>
 <p>Total recorded: <b class="green" id="collectionTotal">₹0</b></p>
 </div>
+
 <div class="card">
-<div class="heading"><div><h3>Expenses</h3><p>Record daily shop expenses.</p></div><button class="btn primary" id="addExpense">＋ Add Expense</button></div>
+<div class="heading">
+<div>
+<h3>Expenses</h3>
+<p>Record daily shop expenses.</p>
+</div>
+<button class="btn primary" id="addExpense" type="button">＋ Add Expense</button>
+</div>
 <div id="expenses"></div>
 <p>Total expenses: <b class="red" id="expenseTotal">₹0</b></p>
 </div>
+
 <div class="row">
-<button class="btn primary" id="save">Save Daily Entry</button>
-<button class="btn" id="clear">Clear Selected Day</button>
+<button class="btn primary" id="save" type="button">Save Daily Entry</button>
+<button class="btn" id="clear" type="button">Clear Selected Day</button>
 </div>
-<div class="notice" style="margin-top:14px"><b>Data note:</b> Data is saved only in this browser on this device. It does not sync to other devices. Download regular backups. Do not clear browser storage without a backup.</div>
+
+<div class="notice" style="margin-top:14px">
+<b>Data note:</b> Data is saved only in this browser on this device. It does not sync to other devices. Download regular backups. Do not clear browser storage without a backup.
+</div>
 </section>
 
 <section class="page" id="page-dashboard">
-<div class="heading"><div><h2>Liquor Dashboard</h2><p>Daily overview and month-to-date totals.</p></div><button class="btn" id="refresh">↻ Refresh</button></div>
-<div class="card datebar">
-<button class="btn" id="dprev">‹</button><input type="date" id="dashDate">
-<button class="btn" id="dnext">›</button><button class="btn today" id="dtoday">Today</button>
+<div class="heading">
+<div>
+<h2>Liquor Dashboard</h2>
+<p>Daily overview and month-to-date totals.</p>
 </div>
-<div class="card"><h3 id="dashTitle">Daily Overview</h3><div class="grid" id="dashMetrics"></div></div>
-<div class="card"><h3 id="monthTitle">Month Summary</h3><div class="grid" id="monthMetrics"></div></div>
-<div class="card"><h3>Low Stock Alerts (5 units or less)</h3><div id="lowStock"></div></div>
+<button class="btn" id="refresh" type="button">↻ Refresh</button>
+</div>
+
+<div class="card datebar">
+<button class="btn" id="dprev" type="button">‹</button>
+<input type="date" id="dashDate">
+<button class="btn" id="dnext" type="button">›</button>
+<button class="btn today" id="dtoday" type="button">Today</button>
+</div>
+
+<div class="card">
+<h3 id="dashTitle">Daily Overview</h3>
+<div class="grid" id="dashMetrics"></div>
+</div>
+
+<div class="card">
+<h3 id="monthTitle">Month Summary</h3>
+<div class="grid" id="monthMetrics"></div>
+</div>
+
+<div class="card">
+<h3>Low Stock Alerts (5 units or less)</h3>
+<div id="lowStock"></div>
+</div>
 </section>
 
 <section class="page" id="page-monthly">
 <div class="heading">
-<div><h2>Monthly Report</h2><p>Daily sales, estimated margin, collections and expenses.</p></div>
-<div class="row"><input type="month" id="month"><button class="btn primary" id="csv">Download CSV</button></div>
+<div>
+<h2>Monthly Report</h2>
+<p>Daily sales, estimated margin, collections and expenses.</p>
 </div>
-<div class="card"><div class="grid" id="reportMetrics"></div></div>
+<div class="row">
+<input type="month" id="month">
+<button class="btn primary" id="csv" type="button">Download CSV</button>
+</div>
+</div>
+
+<div class="card">
+<div class="grid" id="reportMetrics"></div>
+</div>
+
 <div class="card table-wrap">
-<table><thead><tr><th>Date</th><th>Sales</th><th>Est. Margin</th><th>Cash</th><th>Online</th><th>Rokad</th><th>Expense</th><th>Est. Profit</th></tr></thead>
-<tbody id="reportRows"></tbody></table>
+<table>
+<thead>
+<tr>
+<th>Date</th><th>Sales</th><th>Est. Margin</th><th>Cash</th>
+<th>Online</th><th>Rokad</th><th>Expense</th><th>Est. Profit</th>
+</tr>
+</thead>
+<tbody id="reportRows"></tbody>
+</table>
 <p class="muted">Profit is an estimate based on entered purchase costs and sale rates. Verify against invoices and accounting records.</p>
 </div>
 </section>
 
 <section class="page" id="page-brands">
-<div class="heading"><div><h2>Liquor Brand Master</h2><p>Edit rates and add bottle sizes as needed.</p></div><button class="btn primary" id="addBrand">＋ Add Brand</button></div>
-<div class="card table-wrap">
-<table><thead><tr><th>Brand</th><th>Size</th><th>Sale Rate ₹</th><th>Purchase Cost ₹</th><th>Action</th></tr></thead>
-<tbody id="brandRows"></tbody></table>
+<div class="heading">
+<div>
+<h2>Liquor Brand Master</h2>
+<p>Edit sale MRP and purchase cost. Original opening quantities are retained.</p>
+</div>
+<button class="btn primary" id="addBrand" type="button">＋ Add Brand</button>
+</div>
+
+<div class="card">
+<div class="grid" id="brandMetrics"></div>
+</div>
+
+<div class="card">
+<div class="toolbar">
+<input id="brandSearch" placeholder="Search brand or size...">
+<select id="brandFilter">
+<option value="all">All brands / sizes</option>
+<option value="opening">Opening stock only</option>
+<option value="priced">MRP entered</option>
+<option value="missing">Missing MRP</option>
+</select>
+</div>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+<th>Brand</th><th>Size</th><th>Opening Qty</th>
+<th>Sale MRP ₹</th><th>Purchase Cost ₹</th>
+</tr>
+</thead>
+<tbody id="brandRows"></tbody>
+</table>
+</div>
 </div>
 </section>
 
 <section class="page" id="page-backup">
-<div class="heading"><div><h2>Backup & Restore</h2><p>Keep a safe copy of your liquor records.</p></div></div>
-<div class="card"><h3>Download Backup</h3><p class="muted">Export all liquor brands, opening quantities and daily entries to JSON.</p><button class="btn primary" id="backup">Download Full Backup</button></div>
-<div class="card"><h3>Restore Backup</h3><p class="muted">Restoring replaces current liquor data in this browser.</p><label class="btn">Choose JSON file <input id="restore" type="file" accept=".json,application/json" hidden></label></div>
+<div class="heading">
+<div>
+<h2>Backup &amp; Restore</h2>
+<p>Keep a safe copy of your liquor records.</p>
+</div>
+</div>
+
+<div class="card">
+<h3>Download Backup</h3>
+<p class="muted">Export all liquor brands, opening quantities and daily entries to JSON.</p>
+<button class="btn primary" id="backup" type="button">Download Full Backup</button>
+</div>
+
+<div class="card">
+<h3>Restore Backup</h3>
+<p class="muted">Restoring replaces current liquor data in this browser.</p>
+<label class="btn">Choose JSON file
+<input id="restore" type="file" accept=".json,application/json" hidden>
+</label>
+</div>
+
 <div class="notice">This module is local-browser storage, not cloud accounting software. Keep original invoices and physical stock records.</div>
 </section>
+
 <footer>Abhishek Composite · Liquor Inventory Pro · Regular backups recommended</footer>
 </main>
+
 <script>
 'use strict';
 
@@ -174,7 +331,6 @@ const today=iso(new Date());
 const START_DATE='2026-11-02';
 const SIZES=['750 ML','375 ML','180 ML','90 ML'];
 
-const EXCEL_BRANDS=[
 const EXCEL_BRANDS=[
 {"name":"BLENDER RESERVE BLUE","open":[0,17,38,0],"mrp":[1040,530,270,130]},
 {"name":"BLENDER PRIDE","open":[7,21,38,0],"mrp":[950,490,250,120]},
@@ -193,10 +349,9 @@ const EXCEL_BRANDS=[
 {"name":"ROYAL STAG BARELL","open":[0,0,44,0],"mrp":[790,410,210,100]},
 {"name":"EXCLAMATION WHISKEY","open":[0,0,12,0],"mrp":[1120,570,210,0]},
 {"name":"R.G 8 JAMUN","open":[0,0,0,0],"mrp":[0,0,0,0]},
-{"name":"LEMON DEDDY RUM","open":[0,0,0,0],"mrp":[0,0,0,0]},
-{"name":"HIGH IMPACT","open":[0,0,0,0],"mrp":[0,0,0,0]},
-{"name":"MACDAWELL CITRONN RUM","open":[0,0,0,0],"mrp":[0,0,0,0]}
-];
+{"name":"8 PM BLACK","open":[0,22,29,0],"mrp":[680,350,180,0]},
+{"name":"8 PM GOLD","open":[0,0,0,0],"mrp":[0,0,140,0]},
+{"name":"8 PM WHISKEY","open":[0,3,150,0],"mrp":[470,250,130,0]},
 {"name":"STRELLING B7","open":[9,15,37,0],"mrp":[690,360,190,90]},
 {"name":"ROYAL GREEN","open":[0,0,0,0],"mrp":[690,360,190,90]},
 {"name":"WHITE & BLUE","open":[0,0,0,0],"mrp":[0,0,0,0]},
@@ -228,6 +383,7 @@ const EXCEL_BRANDS=[
 {"name":"BOHO","open":[0,0,0,0],"mrp":[0,0,0,0]},
 {"name":"ALL SEASON","open":[11,20,29,28],"mrp":[690,360,190,0]},
 {"name":"DHURANDHAR","open":[0,0,0,0],"mrp":[0,0,0,0]},
+{"name":"SCOTCH","open":[0,0,0,0],"mrp":[0,0,0,0]},
 {"name":"SIWAS REGAL","open":[0,0,0,0],"mrp":[0,0,0,0]},
 {"name":"GODAOON","open":[0,0,0,0],"mrp":[0,0,0,0]},
 {"name":"JONNY WALKER GOLD LEBAL","open":[0,0,0,0],"mrp":[0,0,0,0]},
@@ -249,6 +405,7 @@ const EXCEL_BRANDS=[
 {"name":"BOMBEY SUFFAIR","open":[0,0,0,0],"mrp":[2200,0,0,0]},
 {"name":"DEWARS","open":[0,0,0,0],"mrp":[0,0,0,0]},
 {"name":"MACDOWEL","open":[0,0,0,0],"mrp":[0,0,0,0]},
+{"name":"VODKA","open":[0,0,0,0],"mrp":[0,0,0,0]},
 {"name":"SIMRAN OF CRAFT","open":[0,0,0,0],"mrp":[0,0,0,0]},
 {"name":"SIMRAN MINTY JAMUN","open":[7,21,88,0],"mrp":[940,480,250,0]},
 {"name":"SIMRAN MANGO MIRCHI","open":[0,0,0,0],"mrp":[0,0,0,0]},
@@ -274,6 +431,7 @@ const EXCEL_BRANDS=[
 {"name":"LIPTOP PLANE","open":[0,0,0,0],"mrp":[0,0,0,0]},
 {"name":"MAGIC MOMENT AAM PANA","open":[0,22,19,0],"mrp":[0,370,190,0]},
 {"name":"BUNTY JAMUN","open":[0,0,129,0],"mrp":[0,0,130,0]},
+{"name":"RUM WINTER","open":[0,0,0,0],"mrp":[0,0,0,0]},
 {"name":"BAKARDI WHITE","open":[0,0,0,0],"mrp":[0,0,0,0]},
 {"name":"BAKARDI MANGO CHILLI","open":[0,0,35,0],"mrp":[0,0,0,0]},
 {"name":"BAKARDI LEMON","open":[0,16,46,0],"mrp":[840,430,220,0]},
@@ -291,46 +449,72 @@ const EXCEL_BRANDS=[
 {"name":"MACDAWELL CITRONN RUM","open":[0,0,0,0],"mrp":[0,0,0,0]}
 ];
 const SKUS=EXCEL_BRANDS.flatMap((b,bi)=>SIZES.map((size,si)=>({
- id:bi+'_'+si,brand:b.name,size,rate:n(b.mrp[si]),cost:0,
- opening:n(b.open[si])
+ id:bi+'_'+si,brand:b.name,size,rate:n(b.mrp[si]),cost:0,opening:n(b.open[si])
 })));
 
 function blank(){return {p:[],s:[],exp:[],cash:0,online:0,rokad:0};}
+
 function load(){
  try{
-  const d=JSON.parse(localStorage.getItem(KEY));
-  if(d&&Array.isArray(d.skus)&&d.days&&typeof d.days==='object')return d;
+  const old=JSON.parse(localStorage.getItem(KEY));
+  if(old&&Array.isArray(old.skus)&&old.days&&typeof old.days==='object'){
+   const byKey=new Map(old.skus.map((b,i)=>[
+    String(b.brand).trim().toUpperCase()+'|'+String(b.size).trim().toUpperCase(),
+    {b,i}
+   ]));
+   const merged=SKUS.map(base=>{
+    const found=byKey.get(String(base.brand).trim().toUpperCase()+'|'+String(base.size).trim().toUpperCase());
+    return found?{...base,rate:n(found.b.rate??base.rate),cost:n(found.b.cost??base.cost),opening:n(found.b.opening??base.opening)}:{...base};
+   });
+   const oldIndex=new Map(old.skus.map((b,i)=>[
+    String(b.brand).trim().toUpperCase()+'|'+String(b.size).trim().toUpperCase(),i
+   ]));
+   const days={};
+   Object.entries(old.days).forEach(([date,d])=>{
+    const p=Array(merged.length).fill(0),s=Array(merged.length).fill(0);
+    merged.forEach((b,i)=>{
+     const oi=oldIndex.get(String(b.brand).trim().toUpperCase()+'|'+String(b.size).trim().toUpperCase());
+     if(oi!==undefined){p[i]=n(d.p?.[oi]);s[i]=n(d.s?.[oi]);}
+    });
+    days[date]={...blank(),...d,p,s,exp:Array.isArray(d.exp)?d.exp:[]};
+   });
+   return {...old,skus:merged,openingDate:old.openingDate||START_DATE,days};
+  }
  }catch(e){}
  return {skus:SKUS,openingDate:START_DATE,days:{}};
 }
+
 let D=load(),selected=today;
 
 function day(k){return D.days[k]||blank();}
 function writable(k){if(!D.days[k])D.days[k]=blank();return D.days[k];}
+
 function opening(k){
  const a=D.skus.map(x=>n(x.opening));
  Object.keys(D.days).sort().forEach(date=>{
-  if(date>=D.openingDate&&date<k){
+  if(date>=(D.openingDate||START_DATE)&&date<k){
    const d=D.days[date];
-   a.forEach((v,i)=>a[i]=v+n(d.p[i])-n(d.s[i]));
+   a.forEach((v,i)=>a[i]=v+n(d.p?.[i])-n(d.s?.[i]));
   }
  });
  return a;
 }
+
 function stats(k){
  const d=day(k),op=opening(k);
  let sale=0,margin=0,purchase=0,sold=0,bought=0;
  const closing=D.skus.map((b,i)=>{
-  const p=n(d.p[i]),s=n(d.s[i]);
+  const p=n(d.p?.[i]),s=n(d.s?.[i]);
   bought+=p;sold+=s;sale+=s*n(b.rate);
   margin+=s*(n(b.rate)-n(b.cost));
   purchase+=p*n(b.cost);
   return op[i]+p-s;
  });
- const expenses=d.exp.reduce((a,e)=>a+n(e.amount),0);
+ const expenses=(d.exp||[]).reduce((a,e)=>a+n(e.amount),0);
  const received=n(d.cash)+n(d.online)+n(d.rokad);
  return {op,closing,sale,margin,purchase,sold,bought,expenses,received,profit:margin-expenses};
 }
+
 function monthStats(m){
  const r={sale:0,margin:0,purchase:0,expenses:0,profit:0,days:[]};
  Object.keys(D.days).sort().filter(k=>k.startsWith(m)).forEach(k=>{
@@ -340,103 +524,164 @@ function monthStats(m){
  });
  return r;
 }
+
 function persist(){
  localStorage.setItem(KEY,JSON.stringify(D));
- $('#status').textContent='Saved on this device';
+ const st=$('#status');
+ if(st)st.textContent='Saved on this device';
 }
+
 function esc(s){
  return String(s).replace(/[&<>"']/g,c=>({
   '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
  }[c]));
 }
+
+function shift(k,delta){
+ const d=new Date((k||today)+'T12:00:00');
+ d.setDate(d.getDate()+delta);
+ return iso(d);
+}
+
 function metric(label,value,cls=''){
- return '<div class="metric"><span>'+label+'</span><strong class="'+cls+'">'+value+'</strong></div>';
+ return `<div class="metric"><span>${label}</span><strong class="${cls}">${value}</strong></div>`;
 }
-function renderEntry(){
- const d=day(selected),x=stats(selected);
- $('#date').value=selected;
- $('#count').textContent=D.skus.length+' brand-size SKUs';
- $('#stockRows').innerHTML=D.skus.map((b,i)=>`
- <tr>
- <td class="name">${esc(b.brand)}<small>${b.size} · MRP ${money(b.rate)}</small></td>
- <td>${x.op[i]}</td>
- <td><input type="number" min="0" step="1" data-qty="p" data-i="${i}" value="${n(d.p[i])||''}"></td>
- <td><input type="number" min="0" step="1" data-qty="s" data-i="${i}" value="${n(d.s[i])||''}"></td>
- <td class="${x.closing[i]<=5?'low':'good'}" id="close${i}">${x.closing[i]}</td>
- <td>${money(n(b.rate)*n(d.s[i]))}</td>
- </tr>`).join('');
- ['cash','online','rokad'].forEach(k=>$('#'+k).value=n(d[k])||'');
- renderExpenses();renderDaily();
-}
+
 function renderDaily(){
- const x=stats(selected);
- $('#dailyMetrics').innerHTML=
- metric('Sales Value',money(x.sale),'gold')+
- metric('Estimated Margin',money(x.margin),'green')+
- metric('Purchase Cost',money(x.purchase),'blue')+
- metric('Closing Bottles',x.closing.reduce((a,b)=>a+b,0))+
- metric('Units Sold',x.sold)+
- metric('Units Purchased',x.bought)+
- metric('Expenses',money(x.expenses),'red')+
- metric('Estimated Profit',money(x.profit),x.profit<0?'red':'green');
+ const x=stats(selected),d=writable(selected);
+ $('#dailyMetrics').innerHTML=[
+  metric('Sales Value',money(x.sale),'gold'),
+  metric('Bottles Sold',x.sold),
+  metric('Bottles Purchased',x.bought),
+  metric('Estimated Margin',money(x.margin),'green')
+ ].join('');
+ $('#cash').value=d.cash||'';
+ $('#online').value=d.online||'';
+ $('#rokad').value=d.rokad||'';
  $('#collectionTotal').textContent=money(x.received);
  $('#expenseTotal').textContent=money(x.expenses);
 }
+
 function renderExpenses(){
- const d=day(selected);
+ const d=writable(selected);
  $('#expenses').innerHTML=d.exp.map((e,i)=>`
  <div class="expense">
- <input data-exp="name" data-i="${i}" placeholder="Expense description" value="${esc(e.name||'')}">
- <input type="number" min="0" step=".01" data-exp="amount" data-i="${i}" placeholder="Amount" value="${n(e.amount)||''}">
- <button class="btn" data-remove="${i}">×</button>
- </div>`).join('')||'<p class="muted">No expenses entered.</p>';
+ <input data-exp="name" data-i="${i}" placeholder="Expense name" value="${esc(e.name||'')}">
+ <input data-exp="amount" data-i="${i}" type="number" min="0" step=".01" placeholder="Amount" value="${n(e.amount)||''}">
+ <button class="btn" type="button" data-remove="${i}">×</button>
+ </div>
+ `).join('')||'<p class="muted">No expenses added.</p>';
 }
+
+function renderEntry(){
+ $('#date').value=selected;
+ const d=writable(selected),x=stats(selected);
+ const q=$('#stockSearch').value.trim().toLowerCase();
+ const f=$('#stockFilter').value;
+ const rows=[];
+
+ D.skus.forEach((b,i)=>{
+  const name=(b.brand+' '+b.size).toLowerCase(),cl=x.closing[i];
+  if(q&&!name.includes(q))return;
+  if(f==='stock'&&x.op[i]===0&&cl===0)return;
+  if(f==='active'&&n(b.rate)<=0)return;
+
+  rows.push(`
+  <tr>
+  <td class="name">${esc(b.brand)}<small>${esc(b.size)}</small></td>
+  <td>${x.op[i]}</td>
+  <td><input type="number" min="0" step="1" data-qty="p" data-i="${i}" value="${n(d.p?.[i])||''}"></td>
+  <td><input type="number" min="0" step="1" data-qty="s" data-i="${i}" value="${n(d.s?.[i])||''}"></td>
+  <td id="close${i}" class="${cl<=5?'low':'good'}">${cl}</td>
+  <td>${money(n(d.s?.[i])*n(b.rate))}</td>
+  </tr>`);
+ });
+
+ $('#stockRows').innerHTML=rows.join('')||'<tr><td colspan="6">No matching brands.</td></tr>';
+ $('#count').textContent=`${D.skus.length} SKUs · ${rows.length} shown`;
+ renderDaily();
+ renderExpenses();
+}
+
 function renderDash(){
- const k=$('#dashDate').value||today,x=stats(k),d=day(k),m=monthStats(k.slice(0,7));
+ const k=$('#dashDate').value||today;
+ const x=stats(k),m=k.slice(0,7),mx=monthStats(m);
  $('#dashTitle').textContent='Daily Overview · '+k;
- $('#dashMetrics').innerHTML=
- metric('Sales',money(x.sale),'gold')+
- metric('Purchase Cost',money(x.purchase),'blue')+
- metric('Expenses',money(x.expenses),'red')+
- metric('Estimated Profit',money(x.profit),x.profit<0?'red':'green')+
- metric('Cash',money(d.cash))+
- metric('Online',money(d.online))+
- metric('Rokad',money(d.rokad))+
- metric('Units Sold',x.sold);
- $('#monthTitle').textContent='Month Summary · '+k.slice(0,7);
- $('#monthMetrics').innerHTML=
- metric('Month Sales',money(m.sale),'gold')+
- metric('Month Margin',money(m.margin),'green')+
- metric('Month Expenses',money(m.expenses),'red')+
- metric('Month Est. Profit',money(m.profit),m.profit<0?'red':'green');
- $('#lowStock').innerHTML=x.closing.map((q,i)=>({q,b:D.skus[i]}))
- .filter(v=>v.q<=5)
- .map(v=>'<p>'+esc(v.b.brand)+' · '+v.b.size+
- '<b class="low" style="float:right">'+v.q+' units</b></p>').join('')
- ||'<p class="muted">No low-stock items.</p>';
+ $('#dashMetrics').innerHTML=[
+  metric('Sales',money(x.sale),'gold'),
+  metric('Bottles Sold',x.sold),
+  metric('Collections',money(x.received),'green'),
+  metric('Expenses',money(x.expenses),'red')
+ ].join('');
+
+ $('#monthTitle').textContent='Month Summary · '+m;
+ $('#monthMetrics').innerHTML=[
+  metric('Month Sales',money(mx.sale),'gold'),
+  metric('Month Margin',money(mx.margin),'green'),
+  metric('Month Expenses',money(mx.expenses),'red'),
+  metric('Estimated Profit',money(mx.profit),'blue')
+ ].join('');
+
+ const lows=x.closing.map((v,i)=>({v,b:D.skus[i]}))
+  .filter(z=>z.v>0&&z.v<=5)
+  .sort((a,b)=>a.v-b.v).slice(0,30);
+
+ $('#lowStock').innerHTML=lows.map(z=>`
+ <div class="row"><b>${esc(z.b.brand)}</b>
+ <span class="muted">${esc(z.b.size)}</span>
+ <span class="low">${z.v} left</span></div>
+ `).join('')||'<p class="muted">No low-stock items for this date.</p>';
 }
+
 function renderMonthly(){
  const m=$('#month').value||today.slice(0,7),x=monthStats(m);
- $('#reportMetrics').innerHTML=
- metric('Sales',money(x.sale),'gold')+
- metric('Estimated Margin',money(x.margin),'green')+
- metric('Expenses',money(x.expenses),'red')+
- metric('Estimated Profit',money(x.profit),x.profit<0?'red':'green');
+ $('#reportMetrics').innerHTML=[
+  metric('Total Sales',money(x.sale),'gold'),
+  metric('Estimated Margin',money(x.margin),'green'),
+  metric('Expenses',money(x.expenses),'red'),
+  metric('Estimated Profit',money(x.profit),'blue')
+ ].join('');
+
  $('#reportRows').innerHTML=x.days.map(v=>`
- <tr><td>${v.date}</td><td>${money(v.x.sale)}</td>
+ <tr>
+ <td>${v.date}</td><td>${money(v.x.sale)}</td>
  <td>${money(v.x.margin)}</td><td>${money(v.d.cash)}</td>
  <td>${money(v.d.online)}</td><td>${money(v.d.rokad)}</td>
- <td>${money(v.x.expenses)}</td><td>${money(v.x.profit)}</td></tr>
+ <td>${money(v.x.expenses)}</td><td>${money(v.x.profit)}</td>
+ </tr>
  `).join('')||'<tr><td colspan="8">No records this month.</td></tr>';
 }
+
 function renderBrands(){
- $('#brandRows').innerHTML=D.skus.map((b,i)=>`
- <tr><td>${esc(b.brand)}</td><td>${b.size}</td>
- <td><input type="number" min="0" step=".01" data-brand="rate" data-i="${i}" value="${n(b.rate)}"></td>
- <td><input type="number" min="0" step=".01" data-brand="cost" data-i="${i}" value="${n(b.cost)}"></td>
- <td><button class="btn" data-del-brand="${i}">Delete</button></td></tr>
- `).join('');
+ const q=$('#brandSearch').value.trim().toLowerCase();
+ const f=$('#brandFilter').value;
+ const arr=D.skus.map((b,i)=>({b,i})).filter(({b})=>{
+  const match=(b.brand+' '+b.size).toLowerCase().includes(q);
+  if(!match)return false;
+  if(f==='opening'&&n(b.opening)<=0)return false;
+  if(f==='priced'&&n(b.rate)<=0)return false;
+  if(f==='missing'&&n(b.rate)>0)return false;
+  return true;
+ });
+
+ const totalOpen=D.skus.reduce((a,b)=>a+n(b.opening),0);
+ $('#brandMetrics').innerHTML=[
+  metric('Brands',new Set(D.skus.map(x=>x.brand)).size),
+  metric('Bottle-size SKUs',D.skus.length),
+  metric('Opening Bottles',totalOpen,'green'),
+  metric('Visible Rows',arr.length)
+ ].join('');
+
+ $('#brandRows').innerHTML=arr.map(({b,i})=>`
+ <tr>
+ <td>${esc(b.brand)}</td><td>${esc(b.size)}</td>
+ <td>${n(b.opening)}</td>
+ <td><input type="number" min="0" step=".01" data-brand="rate" data-i="${i}" value="${n(b.rate)||''}"></td>
+ <td><input type="number" min="0" step=".01" data-brand="cost" data-i="${i}" value="${n(b.cost)||''}"></td>
+ </tr>
+ `).join('')||'<tr><td colspan="5">No matching brands.</td></tr>';
 }
+
 function page(p){
  document.querySelectorAll('section.page').forEach(x=>x.classList.toggle('active',x.id==='page-'+p));
  document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.page===p));
@@ -445,118 +690,180 @@ function page(p){
  if(p==='monthly')renderMonthly();
  if(p==='brands')renderBrands();
 }
-function file(name,body,type){
+
+function download(name,body,type){
  const u=URL.createObjectURL(new Blob([body],{type}));
- const a=document.createElement('a');a.href=u;a.download=name;
+ const a=document.createElement('a');
+ a.href=u;a.download=name;
  document.body.appendChild(a);a.click();a.remove();
  setTimeout(()=>URL.revokeObjectURL(u),1000);
 }
-$('#nav').onclick=e=>{
- const b=e.target.closest('[data-page]');
+
+$('#nav').addEventListener('click',e=>{
+ const b=e.target.closest('button[data-page]');
  if(b)page(b.dataset.page);
-};
-$('#date').onchange=e=>{selected=e.target.value||today;renderEntry();};
+});
+
+$('#date').addEventListener('change',e=>{
+ selected=e.target.value||today;
+ renderEntry();
+});
 $('#prev').onclick=()=>{selected=shift(selected,-1);renderEntry();};
 $('#next').onclick=()=>{selected=shift(selected,1);renderEntry();};
 $('#today').onclick=()=>{selected=today;renderEntry();};
 
+$('#stockSearch').oninput=renderEntry;
+$('#stockFilter').onchange=renderEntry;
+
 $('#stockRows').oninput=e=>{
- const t=e.target;if(!t.dataset.qty)return;
+ const t=e.target;
+ if(!t.dataset.qty)return;
  const i=+t.dataset.i,k=t.dataset.qty;
- writable(selected)[k][i]=Math.max(0,Math.floor(n(t.value)));
- persist();renderDaily();
- const x=stats(selected);
- $('#close'+i).textContent=x.closing[i];
- $('#close'+i).className=x.closing[i]<=5?'low':'good';
+ const d=writable(selected);
+ d[k][i]=Math.max(0,Math.floor(n(t.value)));
+ persist();
+ renderEntry();
 };
+
 ['cash','online','rokad'].forEach(k=>{
  $('#'+k).oninput=e=>{
   writable(selected)[k]=Math.max(0,n(e.target.value));
-  persist();renderDaily();
+  persist();
+  renderDaily();
  };
 });
+
 $('#expenses').oninput=e=>{
- const t=e.target;if(!t.dataset.exp)return;
+ const t=e.target;
+ if(!t.dataset.exp)return;
  const z=writable(selected).exp[+t.dataset.i];
- if(z){z[t.dataset.exp]=t.dataset.exp==='amount'?Math.max(0,n(t.value)):t.value;persist();renderDaily();}
+ if(z){
+  z[t.dataset.exp]=t.dataset.exp==='amount'?Math.max(0,n(t.value)):t.value;
+  persist();
+  renderDaily();
+ }
 };
+
 $('#expenses').onclick=e=>{
  const b=e.target.closest('[data-remove]');
- if(b){writable(selected).exp.splice(+b.dataset.remove,1);persist();renderEntry();}
+ if(b){
+  writable(selected).exp.splice(+b.dataset.remove,1);
+  persist();
+  renderEntry();
+ }
 };
+
 $('#addExpense').onclick=()=>{
  writable(selected).exp.push({name:'',amount:0});
- persist();renderExpenses();
+ persist();
+ renderExpenses();
 };
+
 $('#save').onclick=()=>{
- persist();renderEntry();
+ persist();
+ renderEntry();
  alert('Liquor daily entry saved on this device.');
 };
+
 $('#clear').onclick=()=>{
  if(confirm('Clear all entries for '+selected+'?')){
-  D.days[selected]=blank();persist();renderEntry();
+  D.days[selected]=blank();
+  persist();
+  renderEntry();
  }
 };
 
 $('#dashDate').value=today;
 $('#dashDate').onchange=renderDash;
-$('#dprev').onclick=()=>{$('#dashDate').value=shift($('#dashDate').value,-1);renderDash();};
-$('#dnext').onclick=()=>{$('#dashDate').value=shift($('#dashDate').value,1);renderDash();};
-$('#dtoday').onclick=()=>{$('#dashDate').value=today;renderDash();};
+$('#dprev').onclick=()=>{
+ $('#dashDate').value=shift($('#dashDate').value,-1);
+ renderDash();
+};
+$('#dnext').onclick=()=>{
+ $('#dashDate').value=shift($('#dashDate').value,1);
+ renderDash();
+};
+$('#dtoday').onclick=()=>{
+ $('#dashDate').value=today;
+ renderDash();
+};
 $('#refresh').onclick=renderDash;
 
 $('#month').value=today.slice(0,7);
 $('#month').onchange=renderMonthly;
+
 $('#csv').onclick=()=>{
- const m=$('#month').value||today.slice(0,7),x=monthStats(m);
+ const m=$('#month').value||today.slice(0,7);
+ const x=monthStats(m);
  const rows=[['Date','Sales','Margin','Cash','Online','Rokad','Expenses','Estimated Profit']];
- x.days.forEach(v=>rows.push([v.date,v.x.sale,v.x.margin,v.d.cash,v.d.online,v.d.rokad,v.x.expenses,v.x.profit]));
- file('liquor-report-'+m+'.csv','\uFEFF'+rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n'),'text/csv;charset=utf-8');
+ x.days.forEach(v=>rows.push([
+  v.date,v.x.sale,v.x.margin,v.d.cash,v.d.online,v.d.rokad,v.x.expenses,v.x.profit
+ ]));
+ download('liquor-report-'+m+'.csv',
+  '\uFEFF'+rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n'),
+  'text/csv;charset=utf-8');
 };
+
+$('#brandSearch').oninput=renderBrands;
+$('#brandFilter').onchange=renderBrands;
+
 $('#addBrand').onclick=()=>{
  const name=prompt('Brand name?');
- if(!name)return;
+ if(!name||!name.trim())return;
  const size=prompt('Bottle size? Enter 750 ML, 375 ML, 180 ML or 90 ML','750 ML');
- if(!size)return;
+ if(!size||!size.trim())return;
  const rate=Math.max(0,n(prompt('Sale MRP ₹','0')));
  const cost=Math.max(0,n(prompt('Purchase cost ₹ (0 if unknown)','0')));
- D.skus.push({id:'new_'+Date.now(),brand:name.trim(),size:size.trim().toUpperCase(),rate,cost,opening:0});
- persist();renderBrands();
+ D.skus.push({
+  id:'new_'+Date.now(),
+  brand:name.trim(),
+  size:size.trim().toUpperCase(),
+  rate,cost,opening:0
+ });
+ persist();
+ renderBrands();
 };
+
 $('#brandRows').oninput=e=>{
- const t=e.target;if(!t.dataset.brand)return;
- const b=D.skus[+t.dataset.i];if(!b)return;
- const f=t.dataset.brand;b[f]=Math.max(0,n(t.value));persist();
+ const t=e.target;
+ if(!t.dataset.brand)return;
+ const b=D.skus[+t.dataset.i];
+ if(!b)return;
+ b[t.dataset.brand]=Math.max(0,n(t.value));
+ persist();
 };
-$('#brandRows').onclick=e=>{
- const b=e.target.closest('[data-del-brand]');if(!b)return;
- const i=+b.dataset.delBrand;
- if(confirm('Delete this SKU? Historical rows may no longer align.')){
-  D.skus.splice(i,1);D.opening.splice(i,1);
-  Object.values(D.days).forEach(d=>{d.p.splice(i,1);d.s.splice(i,1);});
-  persist();renderBrands();
- }
-};
+
 $('#backup').onclick=()=>{
- file('liquor-inventory-backup-'+today+'.json',JSON.stringify(D,null,2),'application/json');
+ download('liquor-inventory-backup-'+today+'.json',
+  JSON.stringify(D,null,2),'application/json');
 };
+
 $('#restore').onchange=e=>{
- const f=e.target.files[0];if(!f)return;
+ const f=e.target.files[0];
+ if(!f)return;
  const r=new FileReader();
  r.onload=()=>{
   try{
    const d=JSON.parse(r.result);
    if(!Array.isArray(d.skus)||!d.days)throw Error();
    if(confirm('Restore backup? Current liquor records will be replaced.')){
-    D=d;persist();renderEntry();alert('Backup restored.');
+    D=d;
+    persist();
+    renderEntry();
+    alert('Backup restored.');
    }
-  }catch(err){alert('Invalid backup file.');}
+  }catch(err){
+   alert('Invalid backup file.');
+  }
  };
- r.readAsText(f);e.target.value='';
+ r.readAsText(f);
+ e.target.value='';
 };
+
 $('#headerDate').textContent=new Date().toLocaleDateString('en-IN',{
  weekday:'short',day:'2-digit',month:'short',year:'numeric'
 });
+
 persist();
 renderEntry();
 </script>
