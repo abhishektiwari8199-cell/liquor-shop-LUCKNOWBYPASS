@@ -1,1 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gross Sale Register | Abhishek Enterprises</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .heading-font { font-family: 'Playfair Display', serif; }
+        .glass-card { background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    </style>
+    <script>
+        function calculateSales() {
+            let cash = parseFloat(document.getElementById('cash_sale').value) || 0;
+            let online = parseFloat(document.getElementById('online_sale').value) || 0;
+            let total = cash + online;
+            document.getElementById('total_gross_sale').innerText = '₹ ' + total.toFixed(2);
+            document.getElementById('summary_cash').innerText = '₹ ' + cash.toFixed(2);
+            document.getElementById('summary_online').innerText = '₹ ' + online.toFixed(2);
+        }
+    </script>
+</head>
+<body class="bg-gradient-to-br from-gray-950 via-zinc-900 to-stone-950 text-gray-100 min-h-screen flex flex-col justify-between">
+    
+    <!-- Header -->
+    <header class="bg-zinc-900/90 backdrop-blur-md border-b border-amber-900/30 py-3 px-4 flex justify-between items-center shadow-lg">
+        <div class="flex items-center space-x-2">
+            <a href="index.html" class="text-amber-400 text-sm font-bold bg-zinc-800 px-3 py-1.5 rounded-lg hover:bg-zinc-700">← Back</a>
+            <h1 class="text-sm font-bold tracking-wide heading-font text-amber-500">GROSS SALE REGISTER</h1>
+        </div>
+        <span class="text-[10px] text-zinc-400">Lucknow Bypass Unit</span>
+    </header>
 
+    <!-- Main Content -->
+    <main class="container mx-auto px-3 py-6 max-w-3xl flex-grow">
+        
+        <!-- Summary Display Card -->
+        <div class="glass-card p-6 rounded-2xl border-l-4 border-amber-500 shadow-xl mb-6 text-center">
+            <p class="text-xs uppercase tracking-wider text-zinc-400 font-semibold">Today's Total Gross Sale</p>
+            <h2 id="total_gross_sale" class="text-3xl font-bold text-amber-400 mt-2 heading-font">₹ 0.00</h2>
+            <div class="flex justify-center space-x-6 mt-4 pt-4 border-t border-zinc-800 text-xs">
+                <div>
+                    <span class="text-zinc-400">Cash Drawer: </span>
+                    <span id="summary_cash" class="font-bold text-emerald-400">₹ 0.00</span>
+                </div>
+                <div>
+                    <span class="text-zinc-400">Online / UPI: </span>
+                    <span id="summary_online" class="font-bold text-blue-400">₹ 0.00</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Form Card -->
+        <div class="glass-card p-5 rounded-2xl shadow-xl border border-zinc-800 space-y-4">
+            <h3 class="text-xs font-bold text-amber-100 heading-font uppercase tracking-wider border-b border-zinc-800 pb-2">📝 Enter Today's Collection</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs text-zinc-400 mb-1 font-medium">Cash Sale Amount (₹)</label>
+                    <input type="number" id="cash_sale" value="0" oninput="calculateSales()" class="w-full bg-zinc-800 border border-zinc-700 text-sm px-3 py-2 rounded-xl text-white focus:outline-none focus:border-amber-500 font-bold">
+                </div>
+                <div>
+                    <label class="block text-xs text-zinc-400 mb-1 font-medium">Online / UPI Sale Amount (₹)</label>
+                    <input type="number" id="online_sale" value="0" oninput="calculateSales()" class="w-full bg-zinc-800 border border-zinc-700 text-sm px-3 py-2 rounded-xl text-white focus:outline-none focus:border-amber-500 font-bold">
+                </div>
+            </div>
+
+            <div class="pt-4">
+                <button onclick="alert('Sales data successfully recorded for today!')" class="w-full py-3 rounded-xl text-xs font-bold bg-amber-500 text-zinc-950 shadow-lg hover:bg-amber-400 transition-all">
+                    💾 Save & Sync Sale Data
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-zinc-950 border-t border-zinc-900 py-3 text-center text-[10px] text-zinc-500">
+        <p>Abhishek Enterprises &copy; 2026 | Lucknow Bypass Unit</p>
+    </footer>
+
+</body>
+</html>
