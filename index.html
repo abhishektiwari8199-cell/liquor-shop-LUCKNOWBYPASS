@@ -14,7 +14,6 @@
         .glass-card:hover { border-color: rgba(245, 158, 11, 0.4); transform: translateY(-3px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5); }
     </style>
     <script>
-        // Check if already logged in / remembered on page load
         window.addEventListener('DOMContentLoaded', (event) => {
             let activeSession = localStorage.getItem('comp_logged_in');
             let savedUser = localStorage.getItem('comp_user');
@@ -22,6 +21,7 @@
             if (activeSession === "true") {
                 document.getElementById('login_modal').style.display = 'none';
                 document.getElementById('main_dashboard').style.display = 'block';
+                loadLiveDashboardData();
             }
 
             if (savedUser) {
@@ -30,7 +30,6 @@
             }
         });
 
-        // Master Site Login Protection
         function verifyLogin() {
             let user = document.getElementById('login_user').value;
             let pass = document.getElementById('login_pass').value;
@@ -45,12 +44,27 @@
                 }
                 document.getElementById('login_modal').style.display = 'none';
                 document.getElementById('main_dashboard').style.display = 'block';
+                loadLiveDashboardData();
             } else {
                 document.getElementById('login_error').innerText = "❌ Galat Username ya Password! Dobara koshish karein.";
             }
         }
 
-        // Manual Logout Function (Jab tak khud click na karo, logout nahi hoga)
+        // Fetch live values from inventory storage and display on blocks
+        function loadLiveDashboardData() {
+            let sale = localStorage.getItem('live_sale') || "0.00";
+            let purchase = localStorage.getItem('live_purchase') || "0.00";
+            let expense = localStorage.getItem('live_expense') || "0.00";
+            let netCash = localStorage.getItem('live_net_cash') || "0.00";
+            let soldQty = localStorage.getItem('live_sold_qty') || "0";
+
+            document.getElementById('block_sale').innerText = '₹ ' + sale;
+            document.getElementById('block_purchase').innerText = '₹ ' + purchase;
+            document.getElementById('block_expense').innerText = '₹ ' + expense;
+            document.getElementById('block_net_cash').innerText = '₹ ' + netCash;
+            document.getElementById('block_stock').innerText = soldQty + ' Sold';
+        }
+
         function performLogout() {
             if (confirm("Kya aap sach mein logout karna chahte hain?")) {
                 localStorage.removeItem('comp_logged_in');
@@ -58,7 +72,6 @@
             }
         }
 
-        // Refresh / Sync Page Function
         function refreshDashboard() {
             location.reload();
         }
@@ -66,7 +79,7 @@
 </head>
 <body class="bg-gradient-to-br from-gray-950 via-zinc-900 to-stone-950 text-gray-100 min-h-screen flex flex-col justify-between">
     
-    <!-- LOGIN MODAL SCREEN -->
+    <!-- LOGIN MODAL -->
     <div id="login_modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
         <div class="glass-card p-8 rounded-2xl max-w-md w-full border border-amber-500/30 shadow-2xl text-center space-y-5">
             <span class="text-4xl">🔐</span>
@@ -101,7 +114,6 @@
     <!-- MAIN DASHBOARD -->
     <div id="main_dashboard" style="display: none;" class="flex flex-col min-h-screen justify-between">
         
-        <!-- Header -->
         <header class="bg-zinc-900/90 backdrop-blur-md border-b border-amber-900/30 py-4 px-6 flex justify-between items-center shadow-2xl sticky top-0 z-40">
             <div class="flex items-center space-x-3">
                 <span class="text-3xl">🍷</span>
@@ -118,20 +130,18 @@
                     <span>Live Sync</span>
                 </button>
 
-                <!-- Manual Logout Button -->
                 <button onclick="performLogout()" class="bg-rose-500/10 border border-rose-500/40 text-rose-400 text-xs px-3 py-1.5 rounded-xl font-bold hover:bg-rose-500/20 transition-all">
                     🔒 Logout
                 </button>
             </div>
         </header>
 
-        <!-- Main Container -->
         <main class="container mx-auto px-4 py-6 max-w-6xl flex-grow">
             
             <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 bg-zinc-900/40 p-4 rounded-2xl border border-zinc-800">
                 <div>
                     <h2 class="text-xl font-bold heading-font text-amber-100">Dukaan Overview & Summary</h2>
-                    <p class="text-xs text-zinc-400">Kisi bhi financial block par click karke uski poori detail report dekhein.</p>
+                    <p class="text-xs text-zinc-400">Inventory mein entry karte hi yahan live data reflect hone lagega.</p>
                 </div>
                 <div class="flex items-center space-x-2 bg-zinc-800/80 px-3 py-2 rounded-xl border border-zinc-700">
                     <span class="text-xs text-zinc-300">📅 Date:</span>
@@ -139,7 +149,7 @@
                 </div>
             </div>
 
-            <!-- CLICKABLE FINANCIAL BLOCKS -->
+            <!-- LIVE SYNCHRONIZED FINANCIAL BLOCKS -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
                 
                 <a href="sale.html" class="glass-card p-5 rounded-2xl border-l-4 border-amber-500 shadow-xl block group">
@@ -147,7 +157,7 @@
                         <p class="text-xs uppercase tracking-wider text-zinc-400 font-semibold">Total Gross Sale</p>
                         <span class="text-lg group-hover:scale-110 transition-transform">📈</span>
                     </div>
-                    <h3 class="text-2xl font-bold text-amber-400 mt-2 heading-font">₹ 0.00</h3>
+                    <h3 id="block_sale" class="text-2xl font-bold text-amber-400 mt-2 heading-font">₹ 0.00</h3>
                     <p class="text-[11px] text-emerald-400 mt-2 flex items-center justify-between">
                         <span>Click to view sales report</span>
                         <span class="text-amber-400 font-bold">→</span>
@@ -159,7 +169,7 @@
                         <p class="text-xs uppercase tracking-wider text-zinc-400 font-semibold">Total Purchase</p>
                         <span class="text-lg group-hover:scale-110 transition-transform">📦</span>
                     </div>
-                    <h3 class="text-2xl font-bold text-blue-400 mt-2 heading-font">₹ 0.00</h3>
+                    <h3 id="block_purchase" class="text-2xl font-bold text-blue-400 mt-2 heading-font">₹ 0.00</h3>
                     <p class="text-[11px] text-zinc-400 mt-2 flex items-center justify-between">
                         <span>Click to view stock restock</span>
                         <span class="text-blue-400 font-bold">→</span>
@@ -171,7 +181,7 @@
                         <p class="text-xs uppercase tracking-wider text-zinc-400 font-semibold">Daily Expenses</p>
                         <span class="text-lg group-hover:scale-110 transition-transform">💸</span>
                     </div>
-                    <h3 class="text-2xl font-bold text-rose-400 mt-2 heading-font">₹ 0.00</h3>
+                    <h3 id="block_expense" class="text-2xl font-bold text-rose-400 mt-2 heading-font">₹ 0.00</h3>
                     <p class="text-[11px] text-zinc-400 mt-2 flex items-center justify-between">
                         <span>Click to manage deductions</span>
                         <span class="text-rose-400 font-bold">→</span>
@@ -183,7 +193,7 @@
                         <p class="text-xs uppercase tracking-wider text-zinc-400 font-semibold">Net Cash / Received</p>
                         <span class="text-lg group-hover:scale-110 transition-transform">💵</span>
                     </div>
-                    <h3 class="text-2xl font-bold text-emerald-400 mt-2 heading-font">₹ 0.00</h3>
+                    <h3 id="block_net_cash" class="text-2xl font-bold text-emerald-400 mt-2 heading-font">₹ 0.00</h3>
                     <p class="text-[11px] text-emerald-400 mt-2 flex items-center justify-between">
                         <span>Click to view cash drawer & UPI</span>
                         <span class="text-emerald-400 font-bold">→</span>
@@ -195,7 +205,7 @@
                         <p class="text-xs uppercase tracking-wider text-zinc-400 font-semibold">Total Stock Balance</p>
                         <span class="text-xs text-amber-300 font-medium">115+ Brands</span>
                     </div>
-                    <h3 class="text-2xl font-bold text-purple-400 mt-2 heading-font">0 Units</h3>
+                    <h3 id="block_stock" class="text-2xl font-bold text-purple-400 mt-2 heading-font">0 Units</h3>
                     <p class="text-[11px] text-zinc-400 mt-2 flex items-center justify-between">
                         <span>Click for physical stock audit</span>
                         <span class="text-purple-400 font-bold">→</span>
@@ -216,51 +226,8 @@
 
             </div>
 
-            <!-- GRAPH & REGISTERS ACCESS -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                <div class="lg:col-span-2 glass-card p-5 rounded-2xl shadow-xl flex flex-col justify-between">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-sm font-bold text-amber-100 heading-font">📊 Weekly Sales vs Purchase Performance</h3>
-                        <span class="text-[10px] text-zinc-400 bg-zinc-800 px-2.5 py-1 rounded-lg">Live Analytics</span>
-                    </div>
-                    <div class="relative h-64 w-full">
-                        <canvas id="performanceChart"></canvas>
-                    </div>
-                </div>
-
-                <div class="glass-card p-5 rounded-2xl shadow-xl flex flex-col justify-between space-y-4">
-                    <div>
-                        <h3 class="text-sm font-bold text-amber-100 heading-font mb-2">⚡ Quick Register Access</h3>
-                        <p class="text-xs text-zinc-400">Inventory entry aur daily management ke liye register kholen:</p>
-                    </div>
-                    
-                    <a href="beer.html" class="bg-zinc-900/90 border border-amber-500/40 hover:border-amber-400 p-4 rounded-xl flex items-center justify-between group transition-all">
-                        <div class="flex items-center space-x-3">
-                            <span class="text-2xl">🍺</span>
-                            <div>
-                                <h4 class="text-xs font-bold text-amber-400">Beer Register</h4>
-                                <p class="text-[10px] text-zinc-400">Manage all beer stock</p>
-                            </div>
-                        </div>
-                        <span class="text-amber-400 text-sm font-bold">→</span>
-                    </a>
-
-                    <a href="liquor.html" class="bg-zinc-900/90 border border-blue-500/40 hover:border-blue-400 p-4 rounded-xl flex items-center justify-between group transition-all">
-                        <div class="flex items-center space-x-3">
-                            <span class="text-2xl">🍾</span>
-                            <div>
-                                <h4 class="text-xs font-bold text-blue-400">Liquor Master (115 Brands)</h4>
-                                <p class="text-[10px] text-zinc-400">Size-wise brand register</p>
-                            </div>
-                        </div>
-                        <span class="text-blue-400 text-sm font-bold">→</span>
-                    </a>
-                </div>
-            </div>
-
         </main>
 
-        <!-- Footer -->
         <footer class="bg-zinc-950 border-t border-zinc-900 py-4 text-center text-xs text-zinc-500">
             <p>Abhishek Composite (Beer / Liquor) &copy; 2026 | Lucknow Bypass Unit — Secure POS & Inventory System</p>
         </footer>
@@ -269,27 +236,6 @@
 
     <script>
         document.getElementById('dash_date').valueAsDate = new Date();
-
-        const ctx = document.getElementById('performanceChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                datasets: [
-                    { label: 'Sales (₹)', data: [12400, 15800, 14200, 18900, 22100, 31000, 28500], backgroundColor: 'rgba(245, 158, 11, 0.8)', borderRadius: 6 },
-                    { label: 'Purchase (₹)', data: [0, 8000, 0, 15000, 0, 25000, 0], backgroundColor: 'rgba(59, 130, 246, 0.8)', borderRadius: 6 }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { labels: { color: '#d1d5db', font: { size: 11 } } } },
-                scales: {
-                    x: { ticks: { color: '#9ca3af', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                    y: { ticks: { color: '#9ca3af', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } }
-                }
-            }
-        });
     </script>
 </body>
 </html>
