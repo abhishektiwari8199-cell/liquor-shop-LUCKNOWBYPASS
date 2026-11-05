@@ -14,9 +14,16 @@
         .glass-card:hover { border-color: rgba(245, 158, 11, 0.4); transform: translateY(-3px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5); }
     </style>
     <script>
-        // Check active session on page load
+        // Check if already logged in / remembered on page load
         window.addEventListener('DOMContentLoaded', (event) => {
+            let activeSession = localStorage.getItem('comp_logged_in');
             let savedUser = localStorage.getItem('comp_user');
+            
+            if (activeSession === "true") {
+                document.getElementById('login_modal').style.display = 'none';
+                document.getElementById('main_dashboard').style.display = 'block';
+            }
+
             if (savedUser) {
                 document.getElementById('login_user').value = savedUser;
                 document.getElementById('remember_me').checked = true;
@@ -30,6 +37,7 @@
             let remember = document.getElementById('remember_me').checked;
 
             if (user === "abhishek" && pass === "abhishek123") {
+                localStorage.setItem('comp_logged_in', 'true');
                 if (remember) {
                     localStorage.setItem('comp_user', user);
                 } else {
@@ -37,31 +45,18 @@
                 }
                 document.getElementById('login_modal').style.display = 'none';
                 document.getElementById('main_dashboard').style.display = 'block';
-                startInactivityTimer(); // Start Auto-Logout Timer
             } else {
                 document.getElementById('login_error').innerText = "❌ Galat Username ya Password! Dobara koshish karein.";
             }
         }
 
-        // Auto Logout after 15 minutes of complete inactivity
-        let inactivityTimer;
-        function resetTimer() {
-            clearTimeout(inactivityTimer);
-            // 15 minutes = 15 * 60 * 1000 milliseconds (Aap ise apne anusaar change kar sakte hain)
-            inactivityTimer = setTimeout(() => {
-                alert("⏳ 15 minute tak koi activity na hone ke karan session expire ho gaya hai. Kripya dobara login karein.");
+        // Manual Logout Function (Jab tak khud click na karo, logout nahi hoga)
+        function performLogout() {
+            if (confirm("Kya aap sach mein logout karna chahte hain?")) {
+                localStorage.removeItem('comp_logged_in');
                 location.reload();
-            }, 15 * 60 * 1000);
+            }
         }
-
-        // Track user activity
-        window.onload = function() {
-            window.onload = resetTimer;
-            window.onmousemove = resetTimer;
-            window.onmousedown = resetTimer;
-            window.onclick = resetTimer;
-            window.onkeypress = resetTimer;
-        };
 
         // Refresh / Sync Page Function
         function refreshDashboard() {
@@ -91,7 +86,7 @@
                 </div>
                 <div class="flex items-center space-x-2 pt-1">
                     <input type="checkbox" id="remember_me" class="w-4 h-4 rounded bg-zinc-900 border-zinc-700 text-amber-500 focus:ring-0 cursor-pointer">
-                    <label for="remember_me" class="text-xs text-zinc-300 cursor-pointer select-none">Remember Me / Save Password</label>
+                    <label for="remember_me" class="text-xs text-zinc-300 cursor-pointer select-none">Remember Me / Save Username</label>
                 </div>
             </div>
 
@@ -116,11 +111,16 @@
                 </div>
             </div>
             <div class="flex items-center space-x-3">
-                <a href="inventory.html" class="bg-amber-500/10 border border-amber-500/40 text-amber-400 text-xs px-3 py-1.5 rounded-xl font-bold hover:bg-amber-500/20">⚙️ Secure Inventory</a>
+                <a href="inventory.html" class="bg-amber-500/10 border border-amber-500/40 text-amber-400 text-xs px-3 py-1.5 rounded-xl font-bold hover:bg-amber-500/25">⚙️ Secure Inventory</a>
                 
                 <button onclick="refreshDashboard()" title="Click to refresh & sync" class="flex items-center space-x-2 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-full text-amber-400 text-xs font-medium hover:bg-amber-500/20 transition-all cursor-pointer">
                     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span>Live Sync Active (Click to Refresh)</span>
+                    <span>Live Sync</span>
+                </button>
+
+                <!-- Manual Logout Button -->
+                <button onclick="performLogout()" class="bg-rose-500/10 border border-rose-500/40 text-rose-400 text-xs px-3 py-1.5 rounded-xl font-bold hover:bg-rose-500/20 transition-all">
+                    🔒 Logout
                 </button>
             </div>
         </header>
