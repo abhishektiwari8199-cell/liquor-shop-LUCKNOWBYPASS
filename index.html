@@ -14,13 +14,27 @@
         .glass-card:hover { border-color: rgba(245, 158, 11, 0.4); transform: translateY(-3px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5); }
     </style>
     <script>
-        // Master Site Login Protection
+        // Check if already remembered on page load
+        window.addEventListener('DOMContentLoaded', (event) => {
+            let savedUser = localStorage.getItem('comp_user');
+            if (savedUser) {
+                document.getElementById('login_user').value = savedUser;
+                document.getElementById('remember_me').checked = true;
+            }
+        });
+
+        // Master Site Login Protection with Save Password Support
         function verifyLogin() {
             let user = document.getElementById('login_user').value;
             let pass = document.getElementById('login_pass').value;
+            let remember = document.getElementById('remember_me').checked;
 
-            // Yahan aap apna username aur password set kar sakte hain
             if (user === "abhishek" && pass === "abhishek123") {
+                if (remember) {
+                    localStorage.setItem('comp_user', user);
+                } else {
+                    localStorage.removeItem('comp_user');
+                }
                 document.getElementById('login_modal').style.display = 'none';
                 document.getElementById('main_dashboard').style.display = 'block';
             } else {
@@ -31,13 +45,13 @@
 </head>
 <body class="bg-gradient-to-br from-gray-950 via-zinc-900 to-stone-950 text-gray-100 min-h-screen flex flex-col justify-between">
     
-    <!-- LOGIN MODAL SCREEN (By default visible) -->
+    <!-- LOGIN MODAL SCREEN WITH SAVE PASSWORD OPTION -->
     <div id="login_modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
         <div class="glass-card p-8 rounded-2xl max-w-md w-full border border-amber-500/30 shadow-2xl text-center space-y-5">
             <span class="text-4xl">🔐</span>
             <div>
                 <h2 class="text-xl font-bold heading-font text-amber-400">ABHISHEK COMPOSITE</h2>
-                <p class="text-xs text-zinc-400 mt-1">Lucknow Bypass Unit — Secure Access Portal</p>
+                <p class="text-xs text-zinc-400 mt-1">Beer / Liquor — Lucknow Bypass Unit</p>
             </div>
             
             <div class="space-y-3 text-left">
@@ -49,6 +63,10 @@
                     <label class="block text-xs text-zinc-300 mb-1 font-medium">Password</label>
                     <input type="password" id="login_pass" placeholder="Enter password" class="w-full bg-zinc-900 border border-zinc-700 text-xs px-3 py-2.5 rounded-xl text-white focus:outline-none focus:border-amber-500 font-bold">
                 </div>
+                <div class="flex items-center space-x-2 pt-1">
+                    <input type="checkbox" id="remember_me" class="w-4 h-4 rounded bg-zinc-900 border-zinc-700 text-amber-500 focus:ring-0 cursor-pointer">
+                    <label for="remember_me" class="text-xs text-zinc-300 cursor-pointer select-none">Remember Me / Save Password</label>
+                </div>
             </div>
 
             <p id="login_error" class="text-xs text-rose-400 font-medium h-4"></p>
@@ -59,7 +77,7 @@
         </div>
     </div>
 
-    <!-- MAIN DASHBOARD (Hidden until login) -->
+    <!-- MAIN DASHBOARD -->
     <div id="main_dashboard" style="display: none;" class="flex flex-col min-h-screen justify-between">
         
         <!-- Header -->
@@ -72,7 +90,7 @@
                 </div>
             </div>
             <div class="flex items-center space-x-3">
-                <a href="inventory.html" class="bg-amber-500/10 border border-amber-500/40 text-amber-400 text-xs px-3 py-1.5 rounded-xl font-bold hover:bg-amber-500/20">⚙️ Inventory Login</a>
+                <a href="inventory.html" class="bg-amber-500/10 border border-amber-500/40 text-amber-400 text-xs px-3 py-1.5 rounded-xl font-bold hover:bg-amber-500/20">⚙️ Secure Inventory</a>
                 <div class="flex items-center space-x-2 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-full text-amber-400 text-xs font-medium">
                     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                     <span>Live Sync Active</span>
