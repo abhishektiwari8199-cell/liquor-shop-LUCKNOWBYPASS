@@ -1,1 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liquor Master Register | Abhishek Enterprises</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .heading-font { font-family: 'Playfair Display', serif; }
+        .glass-card { background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    </style>
+    <script>
+        function filterTable() {
+            let input = document.getElementById('search_box').value.toLowerCase();
+            let table = document.getElementById('liq_table');
+            let tr = table.getElementsByTagName("tr");
+            for (let i = 1; i < tr.length; i++) {
+                let td = tr[i].getElementsByTagName("td")[1];
+                if (td) {
+                    let txtValue = td.textContent || td.innerText;
+                    tr[i].style.display = txtValue.toLowerCase().indexOf(input) > -1 ? "" : "none";
+                }
+            }
+        }
 
+        function calculateRow(id) {
+            let op = parseFloat(document.getElementById('op_' + id).value) || 0;
+            let pur = parseFloat(document.getElementById('pur_' + id).value) || 0;
+            let sale = parseFloat(document.getElementById('sale_' + id).value) || 0;
+            let closing = (op + pur) - sale;
+            document.getElementById('close_' + id).innerText = closing;
+        }
+    </script>
+</head>
+<body class="bg-gradient-to-br from-gray-950 via-zinc-900 to-stone-950 text-gray-100 min-h-screen flex flex-col justify-between">
+    
+    <!-- Header -->
+    <header class="bg-zinc-900/90 backdrop-blur-md border-b border-amber-900/30 py-3 px-4 flex justify-between items-center shadow-lg">
+        <div class="flex items-center space-x-2">
+            <a href="index.html" class="text-amber-400 text-sm font-bold bg-zinc-800 px-3 py-1.5 rounded-lg hover:bg-zinc-700">← Back</a>
+            <h1 class="text-sm font-bold tracking-wide heading-font text-amber-500">LIQUOR MASTER REGISTER</h1>
+        </div>
+        <span class="text-[10px] text-zinc-400">115 Brands Active</span>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-3 py-4 max-w-4xl flex-grow">
+        <div class="glass-card rounded-xl shadow-xl overflow-hidden border border-zinc-800">
+            <div class="px-4 py-3 bg-zinc-900/90 border-b border-zinc-800 flex flex-col md:flex-row justify-between items-center gap-2">
+                <h3 class="text-xs font-bold text-amber-100 heading-font">🍾 Brand-wise QTY Register</h3>
+                <input type="text" id="search_box" onkeyup="filterTable()" placeholder="🔍 Search Brand Name..." class="bg-zinc-800 border border-zinc-700 text-xs px-3 py-1.5 rounded-lg text-white w-full md:w-48 focus:outline-none focus:border-amber-500">
+            </div>
+            <div class="p-2 overflow-x-auto max-h-[500px] overflow-y-auto">
+                <table id="liq_table" class="w-full text-left border-collapse text-[11px]">
+                    <thead>
+                        <tr class="bg-zinc-900 text-zinc-400 uppercase border-b border-zinc-700 sticky top-0">
+                            <th class="p-2">#</th>
+                            <th class="p-2">Brand Name</th>
+                            <th class="p-2">QTY / Size</th>
+                            <th class="p-2">Op</th>
+                            <th class="p-2">Pur</th>
+                            <th class="p-2">Sale</th>
+                            <th class="p-2 text-emerald-400">Close</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-zinc-800 text-zinc-300">
+                        <tr><td class="p-2">1</td><td class="p-2 font-semibold text-amber-400">BLENDER PRIDE</td><td class="p-2 text-white font-bold">750 ML</td><td class="p-2"><input type="number" id="op_1" value="0" oninput="calculateRow(1)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="pur_1" value="0" oninput="calculateRow(1)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="sale_1" value="0" oninput="calculateRow(1)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2 font-bold text-emerald-400 text-center" id="close_1">0</td></tr>
+                        <tr><td class="p-2">2</td><td class="p-2 font-semibold text-amber-400">BLENDER PRIDE</td><td class="p-2 text-white font-bold">375 ML</td><td class="p-2"><input type="number" id="op_2" value="0" oninput="calculateRow(2)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="pur_2" value="0" oninput="calculateRow(2)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="sale_2" value="0" oninput="calculateRow(2)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2 font-bold text-emerald-400 text-center" id="close_2">0</td></tr>
+                        <tr><td class="p-2">3</td><td class="p-2 font-semibold text-amber-400">BLENDER PRIDE</td><td class="p-2 text-white font-bold">180 ML</td><td class="p-2"><input type="number" id="op_3" value="0" oninput="calculateRow(3)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="pur_3" value="0" oninput="calculateRow(3)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="sale_3" value="0" oninput="calculateRow(3)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2 font-bold text-emerald-400 text-center" id="close_3">0</td></tr>
+                        <tr><td class="p-2">4</td><td class="p-2 font-semibold text-amber-400">ROYAL STAG</td><td class="p-2 text-white font-bold">750 ML</td><td class="p-2"><input type="number" id="op_4" value="0" oninput="calculateRow(4)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="pur_4" value="0" oninput="calculateRow(4)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="sale_4" value="0" oninput="calculateRow(4)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2 font-bold text-emerald-400 text-center" id="close_4">0</td></tr>
+                        <tr><td class="p-2">5</td><td class="p-2 font-semibold text-amber-400">ROYAL STAG</td><td class="p-2 text-white font-bold">375 ML</td><td class="p-2"><input type="number" id="op_5" value="0" oninput="calculateRow(5)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="pur_5" value="0" oninput="calculateRow(5)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="sale_5" value="0" oninput="calculateRow(5)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2 font-bold text-emerald-400 text-center" id="close_5">0</td></tr>
+                        <tr><td class="p-2">6</td><td class="p-2 font-semibold text-amber-400">ROYAL STAG</td><td class="p-2 text-white font-bold">180 ML</td><td class="p-2"><input type="number" id="op_6" value="0" oninput="calculateRow(6)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="pur_6" value="0" oninput="calculateRow(6)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="sale_6" value="0" oninput="calculateRow(6)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2 font-bold text-emerald-400 text-center" id="close_6">0</td></tr>
+                        <tr><td class="p-2">7</td><td class="p-2 font-semibold text-amber-400">IMPERIAL BLUE</td><td class="p-2 text-white font-bold">750 ML</td><td class="p-2"><input type="number" id="op_7" value="0" oninput="calculateRow(7)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="pur_7" value="0" oninput="calculateRow(7)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="sale_7" value="0" oninput="calculateRow(7)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2 font-bold text-emerald-400 text-center" id="close_7">0</td></tr>
+                        <tr><td class="p-2">8</td><td class="p-2 font-semibold text-amber-400">IMPERIAL BLUE</td><td class="p-2 text-white font-bold">375 ML</td><td class="p-2"><input type="number" id="op_8" value="0" oninput="calculateRow(8)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="pur_8" value="0" oninput="calculateRow(8)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="sale_8" value="0" oninput="calculateRow(8)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2 font-bold text-emerald-400 text-center" id="close_8">0</td></tr>
+                        <tr><td class="p-2">9</td><td class="p-2 font-semibold text-amber-400">OFFICERS CHOICE</td><td class="p-2 text-white font-bold">750 ML</td><td class="p-2"><input type="number" id="op_9" value="0" oninput="calculateRow(9)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="pur_9" value="0" oninput="calculateRow(9)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="sale_9" value="0" oninput="calculateRow(9)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2 font-bold text-emerald-400 text-center" id="close_9">0</td></tr>
+                        <tr><td class="p-2">10</td><td class="p-2 font-semibold text-amber-400">MAGIC MOMENTS VODKA</td><td class="p-2 text-white font-bold">750 ML</td><td class="p-2"><input type="number" id="op_10" value="0" oninput="calculateRow(10)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="pur_10" value="0" oninput="calculateRow(10)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="sale_10" value="0" oninput="calculateRow(10)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2 font-bold text-emerald-400 text-center" id="close_10">0</td></tr>
+                        <tr><td class="p-2">11</td><td class="p-2 font-semibold text-amber-400">OLD MONK RUM</td><td class="p-2 text-white font-bold">750 ML</td><td class="p-2"><input type="number" id="op_11" value="0" oninput="calculateRow(11)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="pur_11" value="0" oninput="calculateRow('11')" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2"><input type="number" id="sale_11" value="0" oninput="calculateRow(11)" class="w-10 bg-zinc-800 border border-zinc-700 rounded text-center text-white"></td><td class="p-2 font-bold text-emerald-400 text-center" id="close_11">0</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-zinc-950 border-t border-zinc-900 py-3 text-center text-[10px] text-zinc-500">
+        <p>Abhishek Enterprises &copy; 2026</p>
+    </footer>
+
+</body>
+</html>
