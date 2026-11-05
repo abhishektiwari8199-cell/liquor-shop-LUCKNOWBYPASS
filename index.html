@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Abhishek Enterprises | Daily Beer Register & Summary - Lucknow Bypass</title>
+    <title>Abhishek Enterprises | Complete Composite Liquor Reporting System - Lucknow Bypass</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -13,36 +14,48 @@
         input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     </style>
     <script>
-        function calculateRow(id) {
-            let opening = parseFloat(document.getElementById('op_' + id).value) || 0;
-            let purch = parseFloat(document.getElementById('purch_' + id).value) || 0;
-            let mrp = parseFloat(document.getElementById('mrp_' + id).value) || 0;
-            let sale = parseFloat(document.getElementById('sale_' + id).value) || 0;
+        function switchTab(tabName) {
+            document.getElementById('liquor_tab').style.display = tabName === 'liquor' ? 'block' : 'none';
+            document.getElementById('beer_tab').style.display = tabName === 'beer' ? 'block' : 'none';
+            document.getElementById('daybook_tab').style.display = tabName === 'daybook' ? 'block' : 'none';
 
-            let purchTotal = purch * mrp;
-            let saleTotal = sale * mrp;
-            let closing = (opening + purch) - sale;
-            let stockValue = closing * mrp;
+            let btnLiq = document.getElementById('btn_liq');
+            let btnBeer = document.getElementById('btn_beer');
+            let btnDay = document.getElementById('btn_day');
 
-            document.getElementById('purch_total_' + id).innerText = purchTotal.toFixed(2);
-            document.getElementById('sale_total_' + id).innerText = saleTotal.toFixed(2);
-            document.getElementById('closing_' + id).innerText = closing;
-            document.getElementById('stock_val_' + id).innerText = stockValue.toFixed(2);
-
-            updateSummaryTotals();
+            btnLiq.className = tabName === 'liquor' ? "px-5 py-2.5 rounded-xl text-xs font-bold bg-amber-500 text-zinc-950 shadow-lg transition-all" : "px-5 py-2.5 rounded-xl text-xs font-bold bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-all";
+            btnBeer.className = tabName === 'beer' ? "px-5 py-2.5 rounded-xl text-xs font-bold bg-amber-500 text-zinc-950 shadow-lg transition-all" : "px-5 py-2.5 rounded-xl text-xs font-bold bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-all";
+            btnDay.className = tabName === 'daybook' ? "px-5 py-2.5 rounded-xl text-xs font-bold bg-amber-500 text-zinc-950 shadow-lg transition-all" : "px-5 py-2.5 rounded-xl text-xs font-bold bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-all";
         }
 
-        function updateSummaryTotals() {
-            let totalSaleSum = 0;
-            for(let i=1; i<=19; i++) {
-                let sTotal = parseFloat(document.getElementById('sale_total_' + i)?.innerText) || 0;
-                totalSaleSum += sTotal;
-            }
+        function calculateBeerRow(id) {
+            let op = parseFloat(document.getElementById('beer_op_' + id).value) || 0;
+            let pur = parseFloat(document.getElementById('beer_pur_' + id).value) || 0;
+            let mrp = parseFloat(document.getElementById('beer_mrp_' + id).value) || 0;
+            let sale = parseFloat(document.getElementById('beer_sale_' + id).value) || 0;
 
-            document.getElementById('display_total_sale').innerText = "₹ " + totalSaleSum.toFixed(2);
-            let expenses = parseFloat(document.getElementById('input_expenses').value) || 0;
-            let netTotal = totalSaleSum - expenses;
-            document.getElementById('display_net_total').innerText = "₹ " + netTotal.toFixed(2);
+            let purchTotal = pur * mrp;
+            let saleTotal = sale * mrp;
+            let closing = (op + pur) - sale;
+            let stockVal = closing * mrp;
+
+            document.getElementById('beer_ptot_' + id).innerText = purchTotal.toFixed(2);
+            document.getElementById('beer_stot_' + id).innerText = saleTotal.toFixed(2);
+            document.getElementById('beer_close_' + id).innerText = closing;
+            document.getElementById('beer_sval_' + id).innerText = stockVal.toFixed(2);
+
+            updateGrandTotals();
+        }
+
+        function updateGrandTotals() {
+            let totalSale = parseFloat(document.getElementById('beer_stot_1')?.innerText || 0) + 
+                            parseFloat(document.getElementById('beer_stot_2')?.innerText || 0) + 
+                            parseFloat(document.getElementById('beer_stot_3')?.innerText || 0);
+
+            document.getElementById('card_sales').innerText = "₹ " + totalSale.toFixed(2);
+            let expenses = parseFloat(document.getElementById('exp_val').value) || 0;
+            let netReceived = totalSale - expenses;
+            document.getElementById('card_net').innerText = "₹ " + netReceived.toFixed(2);
         }
     </script>
 </head>
@@ -52,50 +65,19 @@
         <!-- Header -->
         <header class="bg-zinc-900/90 backdrop-blur-md border-b border-amber-900/30 sticky top-0 z-50 py-4 px-6 flex justify-between items-center shadow-lg">
             <div class="flex items-center space-x-3">
-                <span class="text-3xl">🍺</span>
+                <span class="text-3xl">🍷</span>
                 <div>
                     <h1 class="text-xl font-bold tracking-wide heading-font text-amber-500">ABHISHEK ENTERPRISES</h1>
-                    <p class="text-xs text-zinc-400 tracking-wider">LUCKNOW BYPASS UNIT — DAILY REGISTER</p>
+                    <p class="text-xs text-zinc-400 tracking-wider">LUCKNOW BYPASS UNIT — COMPOSITE REPORTING</p>
                 </div>
             </div>
             <div class="flex items-center space-x-2 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-full text-amber-400 text-xs font-medium">
                 <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>04-Nov-2026 Live Register</span>[cite: 5]
+                <span>System Live & Synchronized</span>
             </div>
         </header>
 
         <!-- Main Content -->
         <main class="flex-grow container mx-auto px-4 py-8 max-w-7xl">
             
-            <!-- HOME PAGE SUMMARY CARDS (Data Home Page Me Dikhega) -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <div class="glass-card p-5 rounded-2xl border-l-4 border-amber-500 shadow-xl">
-                    <p class="text-zinc-400 text-xs uppercase tracking-wider font-semibold">Total Sale (Home View)</p>
-                    <h3 id="display_total_sale" class="text-2xl font-bold text-amber-400 mt-1 heading-font">₹ 0.00</h3>
-                    <span class="text-emerald-400 text-xs mt-2 block">Live Updated from Register</span>
-                </div>
-                <div class="glass-card p-5 rounded-2xl border-l-4 border-rose-500 shadow-xl">
-                    <p class="text-zinc-400 text-xs uppercase tracking-wider font-semibold">Expenses</p>
-                    <h3 class="text-2xl font-bold text-rose-400 mt-1 heading-font">₹ 0.00</h3>
-                    <span class="text-zinc-400 text-xs mt-2 block">Daily Deductions</span>
-                </div>
-                <div class="glass-card p-5 rounded-2xl border-l-4 border-blue-500 shadow-xl">
-                    <p class="text-zinc-400 text-xs uppercase tracking-wider font-semibold">Online Received</p>
-                    <h3 class="text-2xl font-bold text-blue-400 mt-1 heading-font">₹ 0.00</h3>
-                    <span class="text-zinc-400 text-xs mt-2 block">UPI / Bank Transfer</span>
-                </div>
-                <div class="glass-card p-5 rounded-2xl border-l-4 border-emerald-500 shadow-xl">
-                    <p class="text-zinc-400 text-xs uppercase tracking-wider font-semibold">Net Total Received</p>
-                    <h3 id="display_net_total" class="text-2xl font-bold text-emerald-400 mt-1 heading-font">₹ 0.00</h3>
-                    <span class="text-emerald-400 text-xs mt-2 block">Cash + Online</span>
-                </div>
-            </div>
-
-            <!-- EXCEL STYLE REGISTER TABLE -->
-            <div class="glass-card rounded-2xl shadow-xl overflow-hidden border border-zinc-800">
-                <div class="px-6 py-4 bg-zinc-900/90 border-b border-zinc-800 flex justify-between items-center">
-                    <h3 class="text-lg font-bold text-amber-100 heading-font">📋 Daily Beer Inventory & Sales Sheet</h3>
-                    <span class="text-xs text-amber-400">Excel Matching Framework</span>[cite: 5]
-                </div>
-                <div class="p-4 overflow-x-auto">
-                    <table class="w-full text-left border-collapse text
+            <!-- LAYER 1: Summary
