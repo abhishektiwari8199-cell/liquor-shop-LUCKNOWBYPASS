@@ -1,241 +1,269 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Abhishek Composite (Beer / Liquor) | Executive Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        .heading-font { font-family: 'Playfair Display', serif; }
-        .glass-card { background: rgba(30, 41, 59, 0.75); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); transition: all 0.3s ease; }
-        .glass-card:hover { border-color: rgba(245, 158, 11, 0.4); transform: translateY(-3px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5); }
-    </style>
-    <script>
-        window.addEventListener('DOMContentLoaded', (event) => {
-            let activeSession = localStorage.getItem('comp_logged_in');
-            let savedUser = localStorage.getItem('comp_user');
-            
-            if (activeSession === "true") {
-                document.getElementById('login_modal').style.display = 'none';
-                document.getElementById('main_dashboard').style.display = 'block';
-                loadLiveDashboardData();
-            }
-
-            if (savedUser) {
-                document.getElementById('login_user').value = savedUser;
-                document.getElementById('remember_me').checked = true;
-            }
-        });
-
-        function verifyLogin() {
-            let user = document.getElementById('login_user').value;
-            let pass = document.getElementById('login_pass').value;
-            let remember = document.getElementById('remember_me').checked;
-
-            if (user === "abhishek" && pass === "abhishek123") {
-                localStorage.setItem('comp_logged_in', 'true');
-                if (remember) {
-                    localStorage.setItem('comp_user', user);
-                } else {
-                    localStorage.removeItem('comp_user');
-                }
-                document.getElementById('login_modal').style.display = 'none';
-                document.getElementById('main_dashboard').style.display = 'block';
-                loadLiveDashboardData();
-            } else {
-                document.getElementById('login_error').innerText = "❌ Galat Username ya Password! Dobara koshish karein.";
-            }
-        }
-
-        // Fetch live values from inventory storage and display on blocks
-        function loadLiveDashboardData() {
-            let sale = localStorage.getItem('live_sale') || "0.00";
-            let purchase = localStorage.getItem('live_purchase') || "0.00";
-            let expense = localStorage.getItem('live_expense') || "0.00";
-            let netCash = localStorage.getItem('live_net_cash') || "0.00";
-            let soldQty = localStorage.getItem('live_sold_qty') || "0";
-
-            document.getElementById('block_sale').innerText = '₹ ' + sale;
-            document.getElementById('block_purchase').innerText = '₹ ' + purchase;
-            document.getElementById('block_expense').innerText = '₹ ' + expense;
-            document.getElementById('block_net_cash').innerText = '₹ ' + netCash;
-            document.getElementById('block_stock').innerText = soldQty + ' Sold';
-        }
-
-        function performLogout() {
-            if (confirm("Kya aap sach mein logout karna chahte hain?")) {
-                localStorage.removeItem('comp_logged_in');
-                location.reload();
-            }
-        }
-
-        function refreshDashboard() {
-            location.reload();
-        }
-    </script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Abhishek Composite | Business Dashboard</title>
+<style>
+:root {
+  --bg:#0b1120;
+  --panel:#151f32;
+  --panel2:#1c2940;
+  --text:#f5f7fb;
+  --muted:#9aa9bf;
+  --gold:#f5b942;
+  --green:#22c58b;
+  --red:#ff6577;
+  --blue:#60a5fa;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:Arial, sans-serif;
+}
+header{
+  padding:22px 5%;
+  background:#101a2c;
+  border-bottom:1px solid #27344b;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:12px;
+}
+.brand h1{margin:0;font-size:22px}
+.brand p{margin:6px 0 0;color:var(--muted);font-size:12px}
+.date{color:var(--gold);font-size:13px}
+.container{max-width:1250px;margin:auto;padding:25px 5%}
+.welcome{margin-bottom:24px}
+.welcome h2{margin:0 0 8px;font-size:25px}
+.welcome p{color:var(--muted);margin:0}
+.section-title{
+  font-size:17px;
+  margin:28px 0 15px;
+  color:var(--gold);
+}
+.stats{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:15px;
+}
+.stat{
+  background:var(--panel);
+  border:1px solid #29374f;
+  padding:20px;
+  border-radius:14px;
+}
+.stat small{color:var(--muted)}
+.stat h2{font-size:25px;margin:13px 0 0}
+.gold{color:var(--gold)}
+.green{color:var(--green)}
+.red{color:var(--red)}
+.blue{color:var(--blue)}
+.modules{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:15px;
+}
+.module{
+  display:block;
+  text-decoration:none;
+  color:var(--text);
+  background:var(--panel);
+  border:1px solid #29374f;
+  border-radius:14px;
+  padding:20px;
+  transition:.2s;
+}
+.module:hover{
+  background:var(--panel2);
+  border-color:var(--gold);
+  transform:translateY(-3px);
+}
+.module .icon{font-size:28px}
+.module h3{margin:13px 0 7px;font-size:17px}
+.module p{margin:0;color:var(--muted);font-size:13px;line-height:1.5}
+.arrow{display:block;color:var(--gold);margin-top:16px;font-size:13px}
+.notice{
+  margin-top:25px;
+  padding:17px;
+  background:#17243a;
+  border:1px solid #34435c;
+  border-radius:12px;
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.6;
+}
+footer{
+  text-align:center;
+  color:var(--muted);
+  padding:25px;
+  border-top:1px solid #27344b;
+  font-size:12px;
+}
+button{
+  background:var(--gold);
+  border:0;
+  padding:10px 15px;
+  border-radius:8px;
+  font-weight:bold;
+  cursor:pointer;
+}
+@media(max-width:600px){
+  header{padding:18px 5%}
+  .welcome h2{font-size:21px}
+  .stat h2{font-size:22px}
+}
+</style>
 </head>
-<body class="bg-gradient-to-br from-gray-950 via-zinc-900 to-stone-950 text-gray-100 min-h-screen flex flex-col justify-between">
-    
-    <!-- LOGIN MODAL -->
-    <div id="login_modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
-        <div class="glass-card p-8 rounded-2xl max-w-md w-full border border-amber-500/30 shadow-2xl text-center space-y-5">
-            <span class="text-4xl">🔐</span>
-            <div>
-                <h2 class="text-xl font-bold heading-font text-amber-400">ABHISHEK COMPOSITE</h2>
-                <p class="text-xs text-zinc-400 mt-1">Beer / Liquor — Lucknow Bypass Unit</p>
-            </div>
-            
-            <div class="space-y-3 text-left">
-                <div>
-                    <label class="block text-xs text-zinc-300 mb-1 font-medium">Username</label>
-                    <input type="text" id="login_user" placeholder="Enter username" class="w-full bg-zinc-900 border border-zinc-700 text-xs px-3 py-2.5 rounded-xl text-white focus:outline-none focus:border-amber-500 font-bold">
-                </div>
-                <div>
-                    <label class="block text-xs text-zinc-300 mb-1 font-medium">Password</label>
-                    <input type="password" id="login_pass" placeholder="Enter password" class="w-full bg-zinc-900 border border-zinc-700 text-xs px-3 py-2.5 rounded-xl text-white focus:outline-none focus:border-amber-500 font-bold">
-                </div>
-                <div class="flex items-center space-x-2 pt-1">
-                    <input type="checkbox" id="remember_me" class="w-4 h-4 rounded bg-zinc-900 border-zinc-700 text-amber-500 focus:ring-0 cursor-pointer">
-                    <label for="remember_me" class="text-xs text-zinc-300 cursor-pointer select-none">Remember Me / Save Username</label>
-                </div>
-            </div>
+<body>
 
-            <p id="login_error" class="text-xs text-rose-400 font-medium h-4"></p>
+<header>
+  <div class="brand">
+    <h1>🏢 ABHISHEK COMPOSITE</h1>
+    <p>BEER / LIQUOR · LUCKNOW BYPASS UNIT</p>
+  </div>
+  <div class="date" id="today"></div>
+</header>
 
-            <button onclick="verifyLogin()" class="w-full py-3 rounded-xl text-xs font-bold bg-amber-500 text-zinc-950 shadow-lg hover:bg-amber-400 transition-all">
-                Login to Dashboard
-            </button>
-        </div>
+<main class="container">
+
+  <section class="welcome">
+    <h2>Executive Dashboard</h2>
+    <p>Business overview, inventory management and financial control.</p>
+  </section>
+
+  <h3 class="section-title">BUSINESS OVERVIEW</h3>
+
+  <section class="stats">
+    <div class="stat">
+      <small>Today's Sales</small>
+      <h2 class="gold" id="sales">₹0</h2>
     </div>
-
-    <!-- MAIN DASHBOARD -->
-    <div id="main_dashboard" style="display: none;" class="flex flex-col min-h-screen justify-between">
-        
-        <header class="bg-zinc-900/90 backdrop-blur-md border-b border-amber-900/30 py-4 px-6 flex justify-between items-center shadow-2xl sticky top-0 z-40">
-            <div class="flex items-center space-x-3">
-                <span class="text-3xl">🍷</span>
-                <div>
-                    <h1 class="text-lg font-bold tracking-wider heading-font text-amber-500">ABHISHEK COMPOSITE (BEER / LIQUOR)</h1>
-                    <p class="text-[10px] text-zinc-400 tracking-widest uppercase">Lucknow Bypass Unit — Executive Control Center</p>
-                </div>
-            </div>
-            <div class="flex items-center space-x-3">
-                <a href="inventory.html" class="bg-amber-500/10 border border-amber-500/40 text-amber-400 text-xs px-3 py-1.5 rounded-xl font-bold hover:bg-amber-500/25">⚙️ Secure Inventory</a>
-                
-                <button onclick="refreshDashboard()" title="Click to refresh & sync" class="flex items-center space-x-2 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-full text-amber-400 text-xs font-medium hover:bg-amber-500/20 transition-all cursor-pointer">
-                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span>Live Sync</span>
-                </button>
-
-                <button onclick="performLogout()" class="bg-rose-500/10 border border-rose-500/40 text-rose-400 text-xs px-3 py-1.5 rounded-xl font-bold hover:bg-rose-500/20 transition-all">
-                    🔒 Logout
-                </button>
-            </div>
-        </header>
-
-        <main class="container mx-auto px-4 py-6 max-w-6xl flex-grow">
-            
-            <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 bg-zinc-900/40 p-4 rounded-2xl border border-zinc-800">
-                <div>
-                    <h2 class="text-xl font-bold heading-font text-amber-100">Dukaan Overview & Summary</h2>
-                    <p class="text-xs text-zinc-400">Inventory mein entry karte hi yahan live data reflect hone lagega.</p>
-                </div>
-                <div class="flex items-center space-x-2 bg-zinc-800/80 px-3 py-2 rounded-xl border border-zinc-700">
-                    <span class="text-xs text-zinc-300">📅 Date:</span>
-                    <input type="date" id="dash_date" class="bg-transparent text-amber-400 text-xs font-bold focus:outline-none">
-                </div>
-            </div>
-
-            <!-- LIVE SYNCHRONIZED FINANCIAL BLOCKS -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
-                
-                <a href="sale.html" class="glass-card p-5 rounded-2xl border-l-4 border-amber-500 shadow-xl block group">
-                    <div class="flex justify-between items-start">
-                        <p class="text-xs uppercase tracking-wider text-zinc-400 font-semibold">Total Gross Sale</p>
-                        <span class="text-lg group-hover:scale-110 transition-transform">📈</span>
-                    </div>
-                    <h3 id="block_sale" class="text-2xl font-bold text-amber-400 mt-2 heading-font">₹ 0.00</h3>
-                    <p class="text-[11px] text-emerald-400 mt-2 flex items-center justify-between">
-                        <span>Click to view sales report</span>
-                        <span class="text-amber-400 font-bold">→</span>
-                    </p>
-                </a>
-
-                <a href="purchase.html" class="glass-card p-5 rounded-2xl border-l-4 border-blue-500 shadow-xl block group">
-                    <div class="flex justify-between items-start">
-                        <p class="text-xs uppercase tracking-wider text-zinc-400 font-semibold">Total Purchase</p>
-                        <span class="text-lg group-hover:scale-110 transition-transform">📦</span>
-                    </div>
-                    <h3 id="block_purchase" class="text-2xl font-bold text-blue-400 mt-2 heading-font">₹ 0.00</h3>
-                    <p class="text-[11px] text-zinc-400 mt-2 flex items-center justify-between">
-                        <span>Click to view stock restock</span>
-                        <span class="text-blue-400 font-bold">→</span>
-                    </p>
-                </a>
-
-                <a href="expenses.html" class="glass-card p-5 rounded-2xl border-l-4 border-rose-500 shadow-xl block group">
-                    <div class="flex justify-between items-start">
-                        <p class="text-xs uppercase tracking-wider text-zinc-400 font-semibold">Daily Expenses</p>
-                        <span class="text-lg group-hover:scale-110 transition-transform">💸</span>
-                    </div>
-                    <h3 id="block_expense" class="text-2xl font-bold text-rose-400 mt-2 heading-font">₹ 0.00</h3>
-                    <p class="text-[11px] text-zinc-400 mt-2 flex items-center justify-between">
-                        <span>Click to manage deductions</span>
-                        <span class="text-rose-400 font-bold">→</span>
-                    </p>
-                </a>
-
-                <a href="net-cash.html" class="glass-card p-5 rounded-2xl border-l-4 border-emerald-500 shadow-xl block group">
-                    <div class="flex justify-between items-start">
-                        <p class="text-xs uppercase tracking-wider text-zinc-400 font-semibold">Net Cash / Received</p>
-                        <span class="text-lg group-hover:scale-110 transition-transform">💵</span>
-                    </div>
-                    <h3 id="block_net_cash" class="text-2xl font-bold text-emerald-400 mt-2 heading-font">₹ 0.00</h3>
-                    <p class="text-[11px] text-emerald-400 mt-2 flex items-center justify-between">
-                        <span>Click to view cash drawer & UPI</span>
-                        <span class="text-emerald-400 font-bold">→</span>
-                    </p>
-                </a>
-
-                <a href="stock-balance.html" class="glass-card p-5 rounded-2xl border-l-4 border-purple-500 shadow-xl block group">
-                    <div class="flex justify-between items-start">
-                        <p class="text-xs uppercase tracking-wider text-zinc-400 font-semibold">Total Stock Balance</p>
-                        <span class="text-xs text-amber-300 font-medium">115+ Brands</span>
-                    </div>
-                    <h3 id="block_stock" class="text-2xl font-bold text-purple-400 mt-2 heading-font">0 Units</h3>
-                    <p class="text-[11px] text-zinc-400 mt-2 flex items-center justify-between">
-                        <span>Click for physical stock audit</span>
-                        <span class="text-purple-400 font-bold">→</span>
-                    </p>
-                </a>
-
-                <a href="profit.html" class="glass-card p-5 rounded-2xl border-l-4 border-yellow-500 shadow-xl block group">
-                    <div class="flex justify-between items-start">
-                        <p class="text-xs uppercase tracking-wider text-zinc-400 font-semibold">Estimated Profit</p>
-                        <span class="text-lg group-hover:scale-110 transition-transform">💎</span>
-                    </div>
-                    <h3 class="text-2xl font-bold text-yellow-400 mt-2 heading-font">₹ 0.00</h3>
-                    <p class="text-[11px] text-yellow-500 mt-2 flex items-center justify-between">
-                        <span>Click to check margin analysis</span>
-                        <span class="text-yellow-400 font-bold">→</span>
-                    </p>
-                </a>
-
-            </div>
-
-        </main>
-
-        <footer class="bg-zinc-950 border-t border-zinc-900 py-4 text-center text-xs text-zinc-500">
-            <p>Abhishek Composite (Beer / Liquor) &copy; 2026 | Lucknow Bypass Unit — Secure POS & Inventory System</p>
-        </footer>
-
+    <div class="stat">
+      <small>Today's Purchase</small>
+      <h2 class="blue" id="purchase">₹0</h2>
     </div>
+    <div class="stat">
+      <small>Today's Expenses</small>
+      <h2 class="red" id="expenses">₹0</h2>
+    </div>
+    <div class="stat">
+      <small>Net Cash</small>
+      <h2 class="green" id="cash">₹0</h2>
+    </div>
+    <div class="stat">
+      <small>Quantity Sold</small>
+      <h2 id="quantity">0</h2>
+    </div>
+  </section>
 
-    <script>
-        document.getElementById('dash_date').valueAsDate = new Date();
-    </script>
+  <h3 class="section-title">INVENTORY MANAGEMENT</h3>
+  <section class="modules">
+    <a class="module" href="beer-inventory.html">
+      <div class="icon">🍺</div>
+      <h3>Beer Inventory Pro</h3>
+      <p>Manage beer stock, purchases, sales, expenses and reports.</p>
+      <span class="arrow">Open Module →</span>
+    </a>
+    <a class="module" href="liquor.html">
+      <div class="icon">🥃</div>
+      <h3>Liquor Management</h3>
+      <p>Access the liquor inventory management module.</p>
+      <span class="arrow">Open Module →</span>
+    </a>
+    <a class="module" href="stock-balance.html">
+      <div class="icon">📦</div>
+      <h3>Stock Balance</h3>
+      <p>Check available stock and stock balance.</p>
+      <span class="arrow">Open Module →</span>
+    </a>
+    <a class="module" href="beer.html">
+      <div class="icon">📋</div>
+      <h3>Beer Management</h3>
+      <p>Open the existing beer management page.</p>
+      <span class="arrow">Open Module →</span>
+    </a>
+  </section>
+
+  <h3 class="section-title">FINANCE & REPORTS</h3>
+  <section class="modules">
+    <a class="module" href="net-cash.html">
+      <div class="icon">💰</div>
+      <h3>Cash Reconciliation</h3>
+      <p>Review cash and financial reconciliation.</p>
+      <span class="arrow">Open Module →</span>
+    </a>
+    <a class="module" href="profit.html">
+      <div class="icon">📈</div>
+      <h3>Profit Analysis</h3>
+      <p>Review the existing profit analysis page.</p>
+      <span class="arrow">Open Module →</span>
+    </a>
+  </section>
+
+  <div class="notice">
+    <strong>Important Data & Security Notice</strong><br>
+    This dashboard reads summary values from this browser's local storage.
+    It does not automatically synchronize records across devices.
+    Keep regular backups of your business data.
+    Do not store passwords or sensitive business credentials in public HTML files.
+    Financial figures should be verified against original records before accounting use.
+  </div>
+
+</main>
+
+<footer>
+  © <span id="year"></span> Abhishek Composite · Business Management System
+  <br>Lucknow Bypass Unit
+</footer>
+
+<script>
+function readNumber(key){
+  const value = Number(localStorage.getItem(key));
+  return Number.isFinite(value) ? value : 0;
+}
+
+function money(value){
+  return "₹" + value.toLocaleString("en-IN", {
+    maximumFractionDigits: 2
+  });
+}
+
+function updateDashboard(){
+  document.getElementById("sales").textContent =
+    money(readNumber("live_sale"));
+
+  document.getElementById("purchase").textContent =
+    money(readNumber("live_purchase"));
+
+  document.getElementById("expenses").textContent =
+    money(readNumber("live_expense"));
+
+  document.getElementById("cash").textContent =
+    money(readNumber("live_net_cash"));
+
+  document.getElementById("quantity").textContent =
+    readNumber("live_sold_qty").toLocaleString("en-IN");
+}
+
+const now = new Date();
+document.getElementById("today").textContent =
+  now.toLocaleDateString("en-IN", {
+    weekday:"short",
+    day:"2-digit",
+    month:"short",
+    year:"numeric"
+  });
+
+document.getElementById("year").textContent =
+  now.getFullYear();
+
+updateDashboard();
+</script>
+
 </body>
 </html>
