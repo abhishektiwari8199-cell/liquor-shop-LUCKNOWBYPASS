@@ -41,11 +41,16 @@
                 document.getElementById('login_error').innerText = "❌ Galat Username ya Password! Dobara koshish karein.";
             }
         }
+
+        // Refresh / Sync Page Function
+        function refreshDashboard() {
+            location.reload();
+        }
     </script>
 </head>
 <body class="bg-gradient-to-br from-gray-950 via-zinc-900 to-stone-950 text-gray-100 min-h-screen flex flex-col justify-between">
     
-    <!-- LOGIN MODAL SCREEN WITH SAVE PASSWORD OPTION -->
+    <!-- LOGIN MODAL SCREEN -->
     <div id="login_modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
         <div class="glass-card p-8 rounded-2xl max-w-md w-full border border-amber-500/30 shadow-2xl text-center space-y-5">
             <span class="text-4xl">🔐</span>
@@ -91,10 +96,12 @@
             </div>
             <div class="flex items-center space-x-3">
                 <a href="inventory.html" class="bg-amber-500/10 border border-amber-500/40 text-amber-400 text-xs px-3 py-1.5 rounded-xl font-bold hover:bg-amber-500/20">⚙️ Secure Inventory</a>
-                <div class="flex items-center space-x-2 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-full text-amber-400 text-xs font-medium">
+                
+                <!-- Clickable Refresh / Live Sync Badge -->
+                <button onclick="refreshDashboard()" title="Click to refresh & sync" class="flex items-center space-x-2 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-full text-amber-400 text-xs font-medium hover:bg-amber-500/20 transition-all cursor-pointer">
                     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span>Live Sync Active</span>
-                </div>
+                    <span>Live Sync Active (Click to Refresh)</span>
+                </button>
             </div>
         </header>
 
