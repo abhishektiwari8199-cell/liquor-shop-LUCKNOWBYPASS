@@ -11,7 +11,7 @@
         body { font-family: 'Inter', sans-serif; }
         .heading-font { font-family: 'Playfair Display', serif; }
         .glass-card { background: rgba(30, 41, 59, 0.75); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); transition: all 0.3s ease; }
-        .glass-card:hover { border-color: rgba(245, 158, 11, 0.4); transform: translateY(-2px); }
+        .glass-card:hover { border-color: rgba(245, 158, 11, 0.4); transform: translateY(-3px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5); }
     </style>
 </head>
 <body class="bg-gradient-to-br from-gray-950 via-zinc-900 to-stone-950 text-gray-100 min-h-screen flex flex-col justify-between">
@@ -38,7 +38,7 @@
         <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 bg-zinc-900/40 p-4 rounded-2xl border border-zinc-800">
             <div>
                 <h2 class="text-xl font-bold heading-font text-amber-100">Dukaan Overview & Summary</h2>
-                <p class="text-xs text-zinc-400">Aaj ka poora financial data aur stock balance yahan live dikh raha hai.</p>
+                <p class="text-xs text-zinc-400">Kisi bhi financial block par click karke uski poori detail report dekhein.</p>
             </div>
             <div class="flex items-center space-x-2 bg-zinc-800/80 px-3 py-2 rounded-xl border border-zinc-700">
                 <span class="text-xs text-zinc-300">📅 Date:</span>
@@ -46,75 +46,91 @@
             </div>
         </div>
 
-        <!-- FINANCIAL SUMMARY BLOCKS (Clickable / Interactive) -->
+        <!-- CLICKABLE FINANCIAL SUMMARY BLOCKS -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
             
             <!-- Block 1: Gross Sale -->
-            <div class="glass-card p-5 rounded-2xl border-l-4 border-amber-500 shadow-xl">
+            <a href="sale.html" class="glass-card p-5 rounded-2xl border-l-4 border-amber-500 shadow-xl block group">
                 <div class="flex justify-between items-start">
                     <p class="text-xs uppercase tracking-wider text-zinc-400 font-semibold">Total Gross Sale</p>
-                    <span class="text-lg">📈</span>
+                    <span class="text-lg group-hover:scale-110 transition-transform">📈</span>
                 </div>
-                <h3 id="block_sale" class="text-2xl font-bold text-amber-400 mt-2 heading-font">₹ 0.00</h3>
-                <p class="text-[11px] text-emerald-400 mt-2">Real-time register updated</p>
-            </div>
+                <h3 class="text-2xl font-bold text-amber-400 mt-2 heading-font">₹ 0.00</h3>
+                <p class="text-[11px] text-emerald-400 mt-2 flex items-center justify-between">
+                    <span>Click to view sales report</span>
+                    <span class="text-amber-400 font-bold">→</span>
+                </p>
+            </a>
 
             <!-- Block 2: Total Purchase -->
-            <div class="glass-card p-5 rounded-2xl border-l-4 border-blue-500 shadow-xl">
+            <a href="purchase.html" class="glass-card p-5 rounded-2xl border-l-4 border-blue-500 shadow-xl block group">
                 <div class="flex justify-between items-start">
                     <p class="text-xs uppercase tracking-wider text-zinc-400 font-semibold">Total Purchase</p>
-                    <span class="text-lg">📦</span>
+                    <span class="text-lg group-hover:scale-110 transition-transform">📦</span>
                 </div>
-                <h3 id="block_purch" class="text-2xl font-bold text-blue-400 mt-2 heading-font">₹ 0.00</h3>
-                <p class="text-[11px] text-zinc-400 mt-2">New stock restocked</p>
-            </div>
+                <h3 class="text-2xl font-bold text-blue-400 mt-2 heading-font">₹ 0.00</h3>
+                <p class="text-[11px] text-zinc-400 mt-2 flex items-center justify-between">
+                    <span>Click to view stock restock</span>
+                    <span class="text-blue-400 font-bold">→</span>
+                </p>
+            </a>
 
             <!-- Block 3: Expenses -->
-            <div class="glass-card p-5 rounded-2xl border-l-4 border-rose-500 shadow-xl">
+            <a href="expenses.html" class="glass-card p-5 rounded-2xl border-l-4 border-rose-500 shadow-xl block group">
                 <div class="flex justify-between items-start">
                     <p class="text-xs uppercase tracking-wider text-zinc-400 font-semibold">Daily Expenses</p>
-                    <span class="text-lg">💸</span>
+                    <span class="text-lg group-hover:scale-110 transition-transform">💸</span>
                 </div>
-                <h3 id="block_exp" class="text-2xl font-bold text-rose-400 mt-2 heading-font">₹ 0.00</h3>
-                <p class="text-[11px] text-zinc-400 mt-2">Deductions & misc</p>
-            </div>
+                <h3 class="text-2xl font-bold text-rose-400 mt-2 heading-font">₹ 0.00</h3>
+                <p class="text-[11px] text-zinc-400 mt-2 flex items-center justify-between">
+                    <span>Click to manage deductions</span>
+                    <span class="text-rose-400 font-bold">→</span>
+                </p>
+            </a>
 
             <!-- Block 4: Net Received / Cash -->
-            <div class="glass-card p-5 rounded-2xl border-l-4 border-emerald-500 shadow-xl">
+            <a href="net-cash.html" class="glass-card p-5 rounded-2xl border-l-4 border-emerald-500 shadow-xl block group">
                 <div class="flex justify-between items-start">
                     <p class="text-xs uppercase tracking-wider text-zinc-400 font-semibold">Net Cash / Received</p>
-                    <span class="text-lg">💵</span>
+                    <span class="text-lg group-hover:scale-110 transition-transform">💵</span>
                 </div>
-                <h3 id="block_net" class="text-2xl font-bold text-emerald-400 mt-2 heading-font">₹ 0.00</h3>
-                <p class="text-[11px] text-emerald-400 mt-2">Cash drawer + Online UPI</p>
-            </div>
+                <h3 class="text-2xl font-bold text-emerald-400 mt-2 heading-font">₹ 0.00</h3>
+                <p class="text-[11px] text-emerald-400 mt-2 flex items-center justify-between">
+                    <span>Click to view cash drawer & UPI</span>
+                    <span class="text-emerald-400 font-bold">→</span>
+                </p>
+            </a>
 
             <!-- Block 5: Stock Balance -->
-            <div class="glass-card p-5 rounded-2xl border-l-4 border-purple-500 shadow-xl">
+            <a href="stock-balance.html" class="glass-card p-5 rounded-2xl border-l-4 border-purple-500 shadow-xl block group">
                 <div class="flex justify-between items-start">
                     <p class="text-xs uppercase tracking-wider text-zinc-400 font-semibold">Total Stock Balance</p>
-                    <h3 class="text-xs text-amber-300 font-medium">115+ Brands Live</h3>
+                    <span class="text-xs text-amber-300 font-medium">115+ Brands</span>
                 </div>
-                <h3 id="block_stock" class="text-2xl font-bold text-purple-400 mt-2 heading-font">0 Units</h3>
-                <p class="text-[11px] text-zinc-400 mt-2">Closing physical stock</p>
-            </div>
+                <h3 class="text-2xl font-bold text-purple-400 mt-2 heading-font">0 Units</h3>
+                <p class="text-[11px] text-zinc-400 mt-2 flex items-center justify-between">
+                    <span>Click for physical stock audit</span>
+                    <span class="text-purple-400 font-bold">→</span>
+                </p>
+            </a>
 
             <!-- Block 6: Estimated Profit -->
-            <div class="glass-card p-5 rounded-2xl border-l-4 border-yellow-500 shadow-xl">
+            <a href="profit.html" class="glass-card p-5 rounded-2xl border-l-4 border-yellow-500 shadow-xl block group">
                 <div class="flex justify-between items-start">
                     <p class="text-xs uppercase tracking-wider text-zinc-400 font-semibold">Estimated Profit</p>
-                    <span class="text-lg">💎</span>
+                    <span class="text-lg group-hover:scale-110 transition-transform">💎</span>
                 </div>
-                <h3 id="block_profit" class="text-2xl font-bold text-yellow-400 mt-2 heading-font">₹ 0.00</h3>
-                <p class="text-[11px] text-yellow-500 mt-2">Margin calculation</p>
-            </div>
+                <h3 class="text-2xl font-bold text-yellow-400 mt-2 heading-font">₹ 0.00</h3>
+                <p class="text-[11px] text-yellow-500 mt-2 flex items-center justify-between">
+                    <span>Click to check margin analysis</span>
+                    <span class="text-yellow-400 font-bold">→</span>
+                </p>
+            </a>
 
         </div>
 
-        <!-- GRAPH & NAVIGATION SECTION -->
+        <!-- GRAPH & QUICK NAVIGATION -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            
-            <!-- Sales vs Purchase Live Graph -->
             <div class="lg:col-span-2 glass-card p-5 rounded-2xl shadow-xl flex flex-col justify-between">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-sm font-bold text-amber-100 heading-font">📊 Weekly Sales vs Purchase Performance</h3>
@@ -125,7 +141,6 @@
                 </div>
             </div>
 
-            <!-- Quick Navigation Tiles (Jump to Registers) -->
             <div class="glass-card p-5 rounded-2xl shadow-xl flex flex-col justify-between space-y-4">
                 <div>
                     <h3 class="text-sm font-bold text-amber-100 heading-font mb-2">⚡ Quick Register Access</h3>
@@ -136,25 +151,24 @@
                     <div class="flex items-center space-x-3">
                         <span class="text-2xl">🍺</span>
                         <div>
-                            <h4 class="text-xs font-bold text-amber-400 group-hover:text-amber-300">Beer Register</h4>
+                            <h4 class="text-xs font-bold text-amber-400">Beer Register</h4>
                             <p class="text-[10px] text-zinc-400">Manage all beer stock</p>
                         </div>
                     </div>
-                    <span class="text-amber-400 text-sm font-bold group-hover:translate-x-1 transition-transform">→</span>
+                    <span class="text-amber-400 text-sm font-bold">→</span>
                 </a>
 
                 <a href="liquor.html" class="bg-zinc-900/90 border border-blue-500/40 hover:border-blue-400 p-4 rounded-xl flex items-center justify-between group transition-all">
                     <div class="flex items-center space-x-3">
                         <span class="text-2xl">🍾</span>
                         <div>
-                            <h4 class="text-xs font-bold text-blue-400 group-hover:text-blue-300">Liquor Master (115 Brands)</h4>
+                            <h4 class="text-xs font-bold text-blue-400">Liquor Master (115 Brands)</h4>
                             <p class="text-[10px] text-zinc-400">Size-wise brand register</p>
                         </div>
                     </div>
-                    <span class="text-blue-400 text-sm font-bold group-hover:translate-x-1 transition-transform">→</span>
+                    <span class="text-blue-400 text-sm font-bold">→</span>
                 </a>
             </div>
-
         </div>
 
     </main>
@@ -164,44 +178,23 @@
         <p>Abhishek Enterprises &copy; 2026 | Lucknow Bypass Unit — Secure POS & Inventory System</p>
     </footer>
 
-    <!-- Chart.js Script for Live Graph -->
     <script>
-        // Set today's date automatically
         document.getElementById('dash_date').valueAsDate = new Date();
 
-        // Render Professional Chart
         const ctx = document.getElementById('performanceChart').getContext('2d');
-        const performanceChart = new Chart(ctx, {
+        new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
                 datasets: [
-                    {
-                        label: 'Sales (₹)',
-                        data: [12400, 15800, 14200, 18900, 22100, 31000, 28500],
-                        backgroundColor: 'rgba(245, 158, 11, 0.8)',
-                        borderColor: '#f59e0b',
-                        borderWidth: 1,
-                        borderRadius: 6
-                    },
-                    {
-                        label: 'Purchase (₹)',
-                        data: [0, 8000, 0, 15000, 0, 25000, 0],
-                        backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                        borderColor: '#3b82f6',
-                        borderWidth: 1,
-                        borderRadius: 6
-                    }
+                    { label: 'Sales (₹)', data: [12400, 15800, 14200, 18900, 22100, 31000, 28500], backgroundColor: 'rgba(245, 158, 11, 0.8)', borderRadius: 6 },
+                    { label: 'Purchase (₹)', data: [0, 8000, 0, 15000, 0, 25000, 0], backgroundColor: 'rgba(59, 130, 246, 0.8)', borderRadius: 6 }
                 ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        labels: { color: '#d1d5db', font: { size: 11, family: 'Inter' } }
-                    }
-                },
+                plugins: { legend: { labels: { color: '#d1d5db', font: { size: 11 } } } },
                 scales: {
                     x: { ticks: { color: '#9ca3af', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
                     y: { ticks: { color: '#9ca3af', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } }
