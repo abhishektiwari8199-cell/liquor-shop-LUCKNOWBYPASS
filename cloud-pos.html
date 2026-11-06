@@ -70,7 +70,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
  <section id="inventory" class="page">
   <div class="section-head"><div><h3>Product catalogue</h3><p>Search products and maintain wholesale prices</p></div><span class="tag" id="inventoryCount">0 PRODUCTS</span></div>
   <div class="panel glass"><div class="form-grid"><label>Category<select id="cat" onchange="drawProducts()"><option value="all">All categories</option><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label><label class="span2">Search product<input id="search" oninput="drawProducts()" placeholder="Search brand or size…"></label><label>Sort by<select id="sort" onchange="drawProducts()"><option value="brand">Brand name</option><option value="category">Category</option></select></label></div></div>
-  <div class="table-wrap"><table><thead><tr><th>Category</th><th>Brand / Product</th><th>Size</th><th>Opening stock</th><th>MRP</th><th>Wholesale price</th><th>Action</th></tr></thead><tbody id="products"><tr><td colspan="7" class="empty">Loading inventory…</td></tr></tbody></table></div>
+  <div class="toolbar" style="margin:12px 0"><span class="muted" id="stockSummary">Stock totals will appear after loading.</span><label style="max-width:190px">Low-stock threshold<input id="lowThreshold" type="number" min="0" step="1" value="5" onchange="drawProducts()"></label></div><div class="status">Opening stock is saved in Supabase. Purchased and sold quantities are calculated from purchase and sale entries. Available stock = Opening + Purchased − Sold. Save each product after editing.</div><div class="table-wrap"><table><thead><tr><th>Category</th><th>Brand / Product</th><th>Size</th><th>Opening stock</th><th>Purchased</th><th>Sold</th><th>Available</th><th>MRP</th><th>Wholesale price</th><th>Stock at MRP</th><th>Action</th></tr></thead><tbody id="products"><tr><td colspan="7" class="empty">Loading inventory…</td></tr></tbody></table></div>
  </section>
 
  <section id="sale" class="page">
@@ -102,6 +102,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
 const SUPABASE_URL="https://abulaaaezuajnuobzsdj.supabase.co";
 const SUPABASE_KEY="sb_publishable_ae6FQ3C13ru6drINn53jDA_THBBArV5";
 let db=null,user=null,products=[],saleCart=[],purchaseCart=[];
+let stockPurchased={},stockSold={},stockMovementError="";
 const $=id=>document.getElementById(id),num=v=>Number(v)||0;
 const money=v=>"₹"+num(v).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
 const today=()=>{const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)};
@@ -113,9 +114,96 @@ async function logout(){if(db)await db.auth.signOut();user=null;location.reload(
 async function openApp(){$("loginView").style.display="none";$("appView").style.display="block";$("who").textContent=user?.email||"Signed in";["sd","pd","cd"].forEach(id=>$(id).value=today());await loadProducts();await refresh();fillSelects()}
 function showPage(id,button){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));$(id).classList.add("active");document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===id));const titles={home:["Business overview","Your store performance at a glance"],inventory:["Product inventory","Your liquor and beer product catalogue"],sale:["New sale","Create and record a customer sale"],purchase:["Purchases","Record supplier invoices and stock"],cash:["Daily cash","Daily collection and expense register"],history:["Sales history","Review recent recorded transactions"]};$("pageTitle").textContent=titles[id][0];$("pageSubtitle").textContent=titles[id][1];if(id==="sale"||id==="purchase")fillSelects()}
 function setCategory(cat){showPage("inventory");$("cat").value=cat;drawProducts()}
-async function loadProducts(){setMsg("dashMsg","Loading inventory from cloud…");const {data,error}=await db.from("inventory_products").select("id,category,brand_name,size,opening_stock,mrp,wholesale_price").order("brand_name");if(error){setMsg("dashMsg","Inventory read error: "+error.message);return}products=data||[];$("count").textContent=products.length;$("inventoryCount").textContent=products.length+" PRODUCTS";drawProducts();fillSelects();setMsg("dashMsg","Cloud sync complete · "+products.length+" products loaded.")}
-function drawProducts(){const cat=$("cat").value,q=$("search").value.toLowerCase(),sort=$("sort").value;let rows=products.filter(p=>(cat==="all"||String(p.category).toLowerCase()===cat)&&(`${p.brand_name||""} ${p.size||""}`).toLowerCase().includes(q));rows.sort((a,b)=>String(a[sort==="category"?"category":"brand_name"]).localeCompare(String(b[sort==="category"?"category":"brand_name"])));$("inventoryCount").textContent=rows.length+" PRODUCTS";$("products").innerHTML=rows.length?rows.map(p=>`<tr><td><span class="tag">${safe(p.category)}</span></td><td><b>${safe(p.brand_name)}</b></td><td>${safe(p.size)}</td><td>${num(p.opening_stock)}</td><td>${money(p.mrp)}</td><td><input id="wh_${safe(p.id)}" type="number" min="0" step=".01" value="${num(p.wholesale_price)}"></td><td><button class="btn" onclick="saveWholesale('${safe(p.id)}')">Save</button></td></tr>`).join(""):`<tr><td colspan="7" class="empty">No matching products found.</td></tr>`}
-async function saveWholesale(id){const input=$("wh_"+id);if(!input)return;const value=num(input.value);const {error}=await db.from("inventory_products").update({wholesale_price:value}).eq("id",id);if(error){alert("Could not save wholesale price: "+error.message);return}const p=products.find(x=>String(x.id)===String(id));if(p)p.wholesale_price=value;alert("Wholesale price updated.")}
+async function loadProducts(){
+  setMsg("dashMsg","Loading inventory from cloud…");
+  const {data,error}=await db.from("inventory_products")
+    .select("id,category,brand_name,size,opening_stock,mrp,wholesale_price")
+    .order("brand_name");
+  if(error){setMsg("dashMsg","Inventory read error: "+error.message);return}
+  products=data||[];
+  $("count").textContent=products.length;
+  await loadStockMovements();
+  $("inventoryCount").textContent=products.length+" PRODUCTS";
+  drawProducts();fillSelects();
+  setMsg("dashMsg","Cloud sync complete · "+products.length+" products loaded.");
+}
+async function loadStockMovements(){
+  stockPurchased={};stockSold={};
+  const [purchases,sales]=await Promise.all([
+    db.from("purchase_items").select("product_id,quantity"),
+    db.from("sale_items").select("product_id,quantity")
+  ]);
+  if(purchases.error || sales.error){
+    stockMovementError=(purchases.error||sales.error).message;
+    return;
+  }
+  stockMovementError="";
+  for(const row of (purchases.data||[])){
+    const key=String(row.product_id);
+    stockPurchased[key]=(stockPurchased[key]||0)+num(row.quantity);
+  }
+  for(const row of (sales.data||[])){
+    const key=String(row.product_id);
+    stockSold[key]=(stockSold[key]||0)+num(row.quantity);
+  }
+}
+function stockFor(p){
+  const key=String(p.id);
+  const opening=num(p.opening_stock);
+  const purchased=stockPurchased[key]||0;
+  const sold=stockSold[key]||0;
+  return {opening,purchased,sold,available:opening+purchased-sold,mrpValue:(opening+purchased-sold)*num(p.mrp)};
+}
+function drawProducts(){
+  const cat=$("cat").value,q=$("search").value.toLowerCase(),sort=$("sort").value;
+  let rows=products.filter(p=>(cat==="all"||String(p.category).toLowerCase()===cat)&&(`${p.brand_name||""} ${p.size||""}`).toLowerCase().includes(q));
+  rows.sort((a,b)=>String(a[sort==="category"?"category":"brand_name"]).localeCompare(String(b[sort==="category"?"category":"brand_name"])));
+  $("inventoryCount").textContent=rows.length+" PRODUCTS";
+  const threshold=Math.max(0,num($("lowThreshold")?.value??5));
+  const totalUnits=products.reduce((a,p)=>a+stockFor(p).available,0);
+  const totalMrp=products.reduce((a,p)=>a+stockFor(p).mrpValue,0);
+  $("stockSummary").textContent=`Total available: ${totalUnits.toLocaleString("en-IN")} units · Stock value at MRP: ${money(totalMrp)}${stockMovementError?" · Movement data error: "+stockMovementError:""}`;
+  $("products").innerHTML=rows.length?rows.map(p=>{
+    const s=stockFor(p),low=s.available<=threshold;
+    return `<tr>
+      <td><span class="tag">${safe(p.category)}</span></td>
+      <td><b>${safe(p.brand_name)}</b>${low?'<div class="tag" style="background:#ff727c20;color:#ff9ca3;margin-top:5px">LOW STOCK</div>':''}</td>
+      <td>${safe(p.size)}</td>
+      <td><input id="stock_${safe(p.id)}" type="number" min="0" step=".01" value="${num(p.opening_stock)}"></td>
+      <td>${s.purchased}</td><td>${s.sold}</td>
+      <td><b>${s.available}</b></td>
+      <td><input id="mrp_${safe(p.id)}" type="number" min="0" step=".01" value="${num(p.mrp)}"></td>
+      <td><input id="wh_${safe(p.id)}" type="number" min="0" step=".01" value="${num(p.wholesale_price)}"></td>
+      <td>${money(s.mrpValue)}</td>
+      <td><button class="btn" onclick="saveProduct('${safe(p.id)}',this)">Save all</button></td>
+    </tr>`;
+  }).join(""):`<tr><td colspan="11" class="empty">No matching products found.</td></tr>`;
+}
+async function saveProduct(id,button){
+  const stockInput=$("stock_"+id),mrpInput=$("mrp_"+id),whInput=$("wh_"+id);
+  if(!stockInput||!mrpInput||!whInput)return;
+  const opening_stock=num(stockInput.value),mrp=num(mrpInput.value),wholesale_price=num(whInput.value);
+  if([opening_stock,mrp,wholesale_price].some(v=>!Number.isFinite(v)||v<0)){
+    alert("Stock, MRP and wholesale price must be valid non-negative numbers.");return;
+  }
+  if(button){button.disabled=true;button.textContent="Saving…";}
+  try{
+    const {data,error}=await db.from("inventory_products")
+      .update({opening_stock,mrp,wholesale_price})
+      .eq("id",id)
+      .select("id,opening_stock,mrp,wholesale_price")
+      .single();
+    if(error)throw error;
+    const p=products.find(x=>String(x.id)===String(id));
+    if(p){p.opening_stock=data.opening_stock;p.mrp=data.mrp;p.wholesale_price=data.wholesale_price;}
+    drawProducts();
+    if(button)alert("Saved permanently to cloud database.");
+  }catch(e){
+    alert("Save failed. Nothing was confirmed as saved: "+(e.message||String(e)));
+  }finally{
+    if(button){button.disabled=false;button.textContent="Save all";}
+  }
+}
 function fillSelects(){if(!db||!products.length)return;for(const [id,cat] of [["sp",$("sc").value],["pp",$("pc").value]]){const list=products.filter(p=>String(p.category).toLowerCase()===cat);$(id).innerHTML=list.map(p=>`<option value="${safe(p.id)}">${safe(p.brand_name)} · ${safe(p.size)}</option>`).join("")||'<option value="">No products found</option>'}const s=products.find(p=>String(p.id)===$("sp").value),p=products.find(p=>String(p.id)===$("pp").value);$("sr").value=s?.mrp||0;$("pr").value=p?.wholesale_price||0}
 $("sp").addEventListener("change",()=>$("sr").value=products.find(p=>String(p.id)===$("sp").value)?.mrp||0);
 $("pp").addEventListener("change",()=>$("pr").value=products.find(p=>String(p.id)===$("pp").value)?.wholesale_price||0);
@@ -132,5 +220,3 @@ async function refresh(){if(!db||!user)return;const d=today();const {data:s,erro
 </script>
 </body>
 </html>
-
-================ END OF COMPLETE HTML CODE ================
