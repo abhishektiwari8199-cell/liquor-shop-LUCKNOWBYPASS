@@ -1,403 +1,122 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="hi">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#101827">
-<title>Beer Inventory Pro | Abhishek Composite</title>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Beer Inventory Register</title>
 <style>
-:root{
-  --bg:#f3f6fb;--surface:#fff;--surface2:#f8fafc;--ink:#172033;--muted:#64748b;
-  --line:#e2e8f0;--primary:#b45309;--primary2:#d97706;--navy:#101827;
-  --green:#15803d;--red:#b91c1c;--blue:#1d4ed8;--shadow:0 8px 28px rgba(15,23,42,.07);
-  --radius:16px
-}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-button,input,select{font:inherit}
-button{cursor:pointer}
-.topbar{background:linear-gradient(120deg,#101827,#1e293b);color:#fff;padding:17px max(16px,calc((100% - 1180px)/2));box-shadow:var(--shadow)}
-.topline{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.brand{display:flex;align-items:center;gap:12px}
-.brand-icon{width:44px;height:44px;border-radius:13px;background:#ffffff18;display:grid;place-items:center;font-size:25px}
-.brand h1{font-size:19px;margin:0;letter-spacing:.2px}
-.brand p{margin:3px 0 0;color:#cbd5e1;font-size:12px}
-.top-date{color:#fbbf24;font-size:13px;font-weight:700}
-.shell{max-width:1180px;margin:auto;padding:18px 16px 38px}
-.nav{display:flex;gap:8px;overflow:auto;padding:5px 0 14px;scrollbar-width:thin}
-.nav button{white-space:nowrap;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:10px 16px;border-radius:11px;font-weight:650}
-.nav button.active{background:var(--primary);border-color:var(--primary);color:#fff}
-.page-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin:7px 0 16px}
-.page-head h2{margin:0;font-size:24px}
-.page-head p{margin:5px 0 0;color:var(--muted);font-size:13px}
-.actions{display:flex;gap:8px;flex-wrap:wrap}
-.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:9px 13px;border-radius:10px;font-weight:650}
-.btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
-.btn.soft{background:#fff7ed;border-color:#fed7aa;color:#9a3412}
-.btn.danger{color:var(--red);border-color:#fecaca;background:#fff}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin-bottom:14px}
-.panel h3{margin:0 0 12px;font-size:15px}
-.datebar{display:grid;grid-template-columns:44px minmax(150px,1fr) 44px auto;gap:8px;align-items:center}
-.datebar input{width:100%}
-input,select{min-width:0;border:1px solid #d7deea;background:#fff;color:var(--ink);border-radius:9px;padding:10px 11px;outline:none}
-input:focus,select:focus{border-color:#d97706;box-shadow:0 0 0 3px #f59e0b22}
-input[type=number]{font-variant-numeric:tabular-nums}
-.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
-.kpi{background:var(--surface2);border:1px solid var(--line);border-radius:13px;padding:14px}
-.kpi span{display:block;color:var(--muted);font-size:12px;font-weight:650}
-.kpi strong{display:block;font-size:21px;margin-top:7px;font-variant-numeric:tabular-nums}
-.kpi small{display:block;color:var(--muted);font-size:11px;margin-top:3px}
-.gold{color:var(--primary)}.green{color:var(--green)}.red{color:var(--red)}.blue{color:var(--blue)}
-.table-wrap{overflow:auto}
-table{border-collapse:collapse;width:100%;min-width:670px}
-th,td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
-th{font-size:11px;text-transform:uppercase;letter-spacing:.45px;color:var(--muted);background:#f8fafc;position:sticky;top:0}
-th:first-child,td:first-child{text-align:left}
-td input{width:88px;text-align:right;padding:8px}
-td.brand-name{white-space:normal;min-width:190px;font-weight:650}
-.brand-name small{display:block;color:var(--muted);font-weight:500;font-size:11px}
-.stock-low{color:var(--red);font-weight:800}
-.stock-good{color:var(--green);font-weight:700}
-.field-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-.field label{display:block;font-size:12px;color:var(--muted);font-weight:700;margin-bottom:5px}
-.field input{width:100%}
-.expense-row{display:grid;grid-template-columns:minmax(0,1fr) 130px 42px;gap:8px;margin:8px 0}
-.muted{color:var(--muted)}
-.section{display:none}.section.active{display:block}
-.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.stock-list{display:grid;gap:8px}
-.stock-line{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)}
-.stock-line:last-child{border:0}
-.pill{display:inline-block;padding:3px 8px;border-radius:999px;background:#f1f5f9;color:#475569;font-size:11px;font-weight:750}
-.notice{background:#fff7ed;border:1px solid #fed7aa;color:#7c2d12;border-radius:12px;padding:12px 14px;font-size:12px;line-height:1.55;margin-top:14px}
-.empty{padding:20px;text-align:center;color:var(--muted)}
-footer{text-align:center;color:var(--muted);font-size:11px;padding:16px}
-@media(max-width:760px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.two-col{grid-template-columns:1fr}.field-grid{grid-template-columns:1fr 1fr}.page-head h2{font-size:21px}}
-@media(max-width:430px){.shell{padding:12px 10px 28px}.panel{padding:12px}.kpi strong{font-size:18px}.field-grid{grid-template-columns:1fr}.datebar{grid-template-columns:40px minmax(100px,1fr) 40px}.datebar .today-btn{grid-column:1/-1}.brand h1{font-size:16px}}
-</style>
-</head>
-<body>
-<header class="topbar">
-  <div class="topline">
-    <div class="brand"><div class="brand-icon">🍺</div><div><h1>BEER INVENTORY PRO</h1><p>ABHISHEK COMPOSITE · LUCKNOW BYPASS UNIT</p></div></div>
-    <div class="top-date" id="headerDate"></div>
-  </div>
-</header>
+:root{font-family:Arial,sans-serif;color:#172033;background:#f3f6fb}*{box-sizing:border-box}
+body{margin:0;padding:18px}.top{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+h1{font-size:22px;margin:0 18px 0 0}.tabs button,.action{border:0;border-radius:8px;padding:10px 15px;background:#e1e8f2;cursor:pointer;font-weight:700}
+.tabs button.active{background:#163b68;color:white}.action{background:#b45309;color:white}
+.panel{background:white;border-radius:12px;padding:14px;box-shadow:0 2px 12px #17203312;margin-bottom:14px}
+.controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.controls input{padding:9px;border:1px solid #cbd5e1;border-radius:7px}
+.scroller{overflow:auto;max-height:72vh;border:1px solid #d9e1ec;border-radius:8px}
+table{border-collapse:separate;border-spacing:0;min-width:2600px;width:max-content;font-size:12px}
+th,td{border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:5px;text-align:center;white-space:nowrap}
+thead th{position:sticky;z-index:3;background:#eaf0f7;color:#183653}
+thead tr:first-child th{top:0;background:#dce7f3;font-size:12px}
+thead tr:nth-child(2) th{top:30px}
+th.brand,td.brand{position:sticky;left:0;z-index:4;background:#fff;text-align:left;min-width:235px;font-weight:700}
+thead th.brand{z-index:6;background:#dce7f3}
+td input{width:68px;padding:6px 4px;border:1px solid #cbd5e1;border-radius:5px;text-align:right}
+td.calc{background:#f8fafc;color:#334155;min-width:70px}
+td.brand{min-width:235px}td.sno{position:sticky;left:0;background:#fff;z-index:4}
+tfoot td{font-weight:700;background:#eaf0f7}
+.small{color:#64748b;font-size:12px}.summary{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0}.pill{background:#eef4fb;border-radius:8px;padding:9px 12px}
+.hidden{display:none}
+</style></head><body>
+<div class="top"><h1>Beer Inventory Register</h1><div class="tabs">
 
-<main class="shell">
-  <nav class="nav" id="nav">
-    <button class="active" data-page="entry">Daily Entry</button>
-    <button data-page="dashboard">Dashboard</button>
-    <button data-page="monthly">Monthly Report</button>
-    <button data-page="brands">Brand Master</button>
-    <button data-page="backup">Backup & Restore</button>
-  </nav>
 
-  <section class="section active" id="page-entry">
-    <div class="page-head"><div><h2>Daily Stock Entry</h2><p>Enter purchase and sale quantities brand-wise.</p></div><span class="pill" id="entryStatus">Local data</span></div>
-    <div class="panel datebar">
-      <button class="btn" id="prevDay" aria-label="Previous day">‹</button>
-      <input type="date" id="entryDate">
-      <button class="btn" id="nextDay" aria-label="Next day">›</button>
-      <button class="btn soft today-btn" id="goToday">Today</button>
-    </div>
-    <div class="panel">
-      <div class="page-head"><div><h3 style="margin:0">Inventory Register</h3><p>Closing stock = Opening + Purchase − Sale</p></div><span class="pill" id="brandCount"></span></div>
-      <div class="table-wrap"><table><thead><tr><th>Brand / MRP</th><th>Opening</th><th>Purchase</th><th>Sale</th><th>Closing</th><th>Stock Value</th></tr></thead><tbody id="entryRows"></tbody></table></div>
-    </div>
-    <div class="panel">
-      <h3>Daily Sales & Stock Summary</h3>
-      <div class="kpis" id="dailyKpis"></div>
-    </div>
-    <div class="panel">
-      <h3>Amount Received</h3>
-      <div class="field-grid">
-        <div class="field"><label for="cash">Night Cash (₹)</label><input id="cash" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0"></div>
-        <div class="field"><label for="online">Online (₹)</label><input id="online" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0"></div>
-        <div class="field"><label for="rokad">Rokad / Credit (₹)</label><input id="rokad" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0"></div>
-      </div>
-      <div style="margin-top:12px" class="kpi"><span>Total Received / Recorded</span><strong id="receivedTotal" class="green">₹0</strong><small>Cash + Online + Rokad; verify collections separately.</small></div>
-    </div>
-    <div class="panel">
-      <div class="page-head"><div><h3 style="margin:0">Daily Expenses</h3><p>Add each expense separately.</p></div><button class="btn primary" id="addExpense">＋ Add Expense</button></div>
-      <div id="expenseRows"></div>
-      <div class="kpi"><span>Total Expenses</span><strong id="expenseTotal" class="red">₹0</strong></div>
-    </div>
-    <div class="actions"><button class="btn primary" id="saveDay">Save Daily Entry</button><button class="btn" id="clearDay">Clear this day's entries</button></div>
-    <div class="notice"><b>Important:</b> Entries are stored in this browser on this device. They do not automatically sync to another phone or computer. Download backups regularly. Do not clear browser data before taking a backup.</div>
-  </section>
-
-  <section class="section" id="page-dashboard">
-    <div class="page-head"><div><h2>Business Dashboard</h2><p>Daily and month-to-date performance.</p></div><button class="btn" id="refreshDash">↻ Refresh</button></div>
-    <div class="panel datebar"><button class="btn" id="dashPrev">‹</button><input type="date" id="dashDate"><button class="btn" id="dashNext">›</button><button class="btn soft today-btn" id="dashToday">Today</button></div>
-    <div class="panel"><h3 id="dashTitle">Selected Day</h3><div class="kpis" id="dashKpis"></div></div>
-    <div class="panel"><h3 id="monthTitle">Month to Date</h3><div class="kpis" id="monthKpis"></div></div>
-    <div class="two-col">
-      <div class="panel"><h3>Low Stock Alerts (5 units or less)</h3><div id="lowStock" class="stock-list"></div></div>
-      <div class="panel"><h3>Stock Position</h3><div class="kpis" id="stockKpis"></div><p class="muted" style="font-size:12px;margin-bottom:0">Stock value uses the brand's entered MRP, not a verified accounting valuation.</p></div>
-    </div>
-  </section>
-
-  <section class="section" id="page-monthly">
-    <div class="page-head"><div><h2>Monthly Report</h2><p>Daily sales, margin estimate, collections and expenses.</p></div><div class="actions"><input type="month" id="reportMonth"><button class="btn primary" id="downloadCsv">Download CSV</button></div></div>
-    <div class="panel"><div class="kpis" id="reportKpis"></div></div>
-    <div class="panel"><div class="table-wrap"><table><thead><tr><th>Date</th><th>Sales</th><th>Est. Margin</th><th>Cash</th><th>Online</th><th>Rokad</th><th>Expense</th><th>Recorded Profit*</th></tr></thead><tbody id="monthRows"></tbody></table></div>
-    <p class="muted" style="font-size:11px;margin:10px 0 0">*Recorded profit is an estimate: sales margin less entered expenses. It excludes tax, fees, shrinkage and other unrecorded costs.</p></div>
-  </section>
-
-  <section class="section" id="page-brands">
-    <div class="page-head"><div><h2>Brand Master</h2><p>Maintain brand names, selling rates and purchase costs.</p></div><button class="btn primary" id="addBrand">＋ Add Brand</button></div>
-    <div class="panel"><div class="table-wrap"><table><thead><tr><th>Brand Name</th><th>Sale Rate ₹</th><th>Purchase Cost ₹</th><th>Action</th></tr></thead><tbody id="brandRows"></tbody></table></div></div>
-    <div class="notice">Purchase cost is an editable reference value used only for estimated margin reporting. Verify actual invoices and applicable taxes before using reports for accounting or tax filing.</div>
-  </section>
-  <section class="section" id="page-backup">
-    <div class="page-head"><div><h2>Backup & Restore</h2><p>Protect your business records before editing or changing devices.</p></div></div>
-    <div class="panel"><h3>Data Backup</h3><p class="muted">Download a JSON copy of all brands, opening stock and daily entries.</p><button class="btn primary" id="downloadBackup">Download Full Backup</button></div>
-    <div class="panel"><h3>Restore Backup</h3><p class="muted">Choose a backup JSON file created by this app. Restore replaces the current browser data.</p><label class="btn">Choose JSON Backup <input type="file" id="restoreFile" accept=".json,application/json" hidden></label></div>
-    <div class="panel"><h3>Set Opening Stock</h3><p class="muted">Opening stock is the starting quantity before the first recorded day. Only change this if you have verified the physical stock.</p><button class="btn" id="editOpening">Edit Opening Stock</button></div>
-    <div class="notice"><b>Storage note:</b> This is a browser-based offline register using localStorage. It has no server login, cloud backup or multi-user synchronization.</div>
-  </section>
-  <footer>Abhishek Composite · Beer Inventory Pro · Keep regular backups</footer>
-</main>
-
+<button onclick="switchTab('report')">Daily / Monthly Report</button></div>
+<button class="action" onclick="saveAll()">💾 Save All</button>
+<button onclick="exportBackup()">Backup JSON</button>
+<label class="action" style="background:#334155">Import Backup <input type="file" accept="application/json" onchange="importBackup(event)" hidden></label>
+</div>
+<section id="inventory" class="panel">
+<div class="controls"><b id="heading">Liquor Inventory Register</b><label>Date <input type="date" id="workDate" value="2026-11-06"></label><input id="search" placeholder="Brand search..." oninput="render()" style="min-width:220px"><span class="small">Horizontal scroll karke saare columns dekhein. Brand name left side fixed rahega.</span></div>
+<div class="summary" id="summary"></div><div class="scroller"><table id="grid"></table></div>
+</section>
+<section id="reports" class="panel hidden">
+<h3>Daily / Monthly Cash Report</h3><div class="controls">Date <input type="date" id="reportDate" value="2026-11-06"></div>
+<div class="summary" id="reportSummary"></div>
+<div class="controls" id="reportInputs"></div>
+<p class="small">Liquor Excel mein NIGHT CASH, ONLINE RECEIVED, ROKAD, TOTAL RECEIVED aur SHORT fields the. Beer Excel mein CASH RECEIVED, ONLINE RECEIVED, ROKAD, TOTAL RECEIVED, EXPENSES, 2% TCS aur PROFIT fields the. Yahan daily values manually enter/save hoti hain.</p>
+</section>
 <script>
-'use strict';
-const KEY='beerData';
-const $=s=>document.querySelector(s);
-const money=v=>'₹'+(Number(v)||0).toLocaleString('en-IN',{maximumFractionDigits:2});
-const num=v=>Number.isFinite(Number(v))?Number(v):0;
-const pad=v=>String(v).padStart(2,'0');
-const iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
-const today=iso(new Date());
-const shift=(s,n)=>{const d=new Date(s+'T00:00:00');d.setDate(d.getDate()+n);return iso(d)};
-const defaultBrands=[
-["KINGFISHER - 650 ML (BOTTLE)",190,165.89],["ULTRAMAX - 650 ML (BOTTLE)",210,185.04],
-["TUBORG - 650 ML (BOTTLE)",190,165.89],["ELEPHENT - 650 ML (BOTTLE)",210,185.08],
-["BROCODE - 375 ML (CAN)",150,139.06],["RIO GOLD",150,139.06],["ULTRAMAX - 500 ML (CAN)",160,140.73],
-["BUDWISER 650 ML (BOTTLE)",210,184.95],["ELEPHENT - 500 ML (CAN)",160,140.83],
-["BUDWISER 500 ML (CAN)",160,140.73],["KINGFISHER - 500 ML (CAN)",140,121.45],
-["TUBORG CLASSIC 500 ML (CAN)",160,140.73],["TUBORG STRONG 500 ML (CAN)",140,121.45],
-["SAB 500 ML (CAN)",140,121.4],["GOD FATHER 500 ML (CAN)",140,111.8],
-["HYWARDS 5000 - 500 ML (CAN)",120,104.91],["X7 CLASSICO 330ML",160,140.73],
-["ELIFHANTH SMOOCH PRE",100,0],["ELEFHANT 330 ML",110,0]
-];
-const seedOpen=[6,0,25,3,0,0,0,10,96,2,44,30,84,12,0,0,0,0,0];
-const seedDays={
-"2026-11-01":{p:Array(19).fill(0),s:[4,0,23,2,0,0,0,0,47,0,38,30,82,10,0,0,0,0,0],exp:[],cash:24000,online:7720,rokad:3850},
-"2026-11-02":{p:[12,0,12,12,0,0,0,0,48,48,120,24,120,0,0,0,0,0,0],s:[4,0,9,4,0,0,0,2,49,43,53,6,56,0,0,0,0,0],exp:[{n:"kharch",a:100}],cash:22000,online:9730,rokad:2840},
-"2026-11-03":{p:[0,0,24,0,0,0,0,0,48,48,72,0,72,0,0,0,0,0],s:[0,0,18,9,0,0,0,2,23,22,101,1,47,0,0,0,0,0],exp:[],cash:21000,online:9770,rokad:3040}
-};
-function blankDay(){return {p:[],s:[],exp:[],cash:0,online:0,rokad:0};}
-function loadData(){
-  try{
-    const raw=localStorage.getItem(KEY);
-    if(raw){const d=JSON.parse(raw);if(Array.isArray(d.brands)&&d.days&&typeof d.days==='object'){
-      d.open=Array.isArray(d.open)?d.open:[];
-      d.brands=d.brands.map(b=>({n:String(b.n||'Unnamed Brand'),r:num(b.r),pp:num(b.pp)}));
-      Object.keys(d.days).forEach(k=>{const x=d.days[k]||{};d.days[k]={p:Array.isArray(x.p)?x.p:[],s:Array.isArray(x.s)?x.s:[],exp:Array.isArray(x.exp)?x.exp:[],cash:num(x.cash),online:num(x.online),rokad:num(x.rokad)};});
-      return d;
-    }}
-  }catch(e){console.warn('Could not read saved beerData',e);}
-  return {brands:defaultBrands.map(b=>({n:b[0],r:b[1],pp:b[2]})),open:seedOpen.slice(),days:JSON.parse(JSON.stringify(seedDays))};
+const liquorMaster=[];
+const beerMaster=[{"sno": 1, "name": "KINGFISHER - 650 ML (BOTTLE)", "opening": 6, "saleRate": 190, "wholesale": 165.89}, {"sno": 2, "name": "ULTRAMAX - 650 ML (BOTTLE)", "opening": 0, "saleRate": 210, "wholesale": 185.04}, {"sno": 3, "name": "TUBORG -650 ML (BOTTLE)", "opening": 25, "saleRate": 190, "wholesale": 165.89}, {"sno": 4, "name": "ELEPHENT - 650 ML (BOTTLE)", "opening": 3, "saleRate": 210, "wholesale": 185.08}, {"sno": 5, "name": "BROCODE - 375 ML (CAN)", "opening": 0, "saleRate": 150, "wholesale": 139.06}, {"sno": 6, "name": "RIO GOLD", "opening": 0, "saleRate": 150, "wholesale": 139.06}, {"sno": 7, "name": "ULTRAMAX - 500 ML (CAN)", "opening": 0, "saleRate": 160, "wholesale": 140.73}, {"sno": 8, "name": "BUDWISER 650 ML (BOTTLE)", "opening": 10, "saleRate": 210, "wholesale": 184.95000000000002}, {"sno": 9, "name": "ELEPHENT - 500 ML (CAN)", "opening": 96, "saleRate": 160, "wholesale": 140.83}, {"sno": 10, "name": "BUDWISER 500 ML (CAN)", "opening": 2, "saleRate": 160, "wholesale": 140.73}, {"sno": 11, "name": "KINGFISHER - 500 ML (CAN)", "opening": 44, "saleRate": 140, "wholesale": 121.45}, {"sno": 12, "name": "TUBORG CLASSIC 500 ML (CAN)", "opening": 30, "saleRate": 160, "wholesale": 140.73}, {"sno": 13, "name": "TUBORG STRONG 500 ML (CAN)", "opening": 84, "saleRate": 140, "wholesale": 121.45}, {"sno": 14, "name": "SAB 500 ML (CAN)", "opening": 12, "saleRate": 140, "wholesale": 121.4}, {"sno": 15, "name": "GOD FATHER 500 ML (CAN)", "opening": 0, "saleRate": 140, "wholesale": 111.8}, {"sno": 16, "name": "HYWARDS 5000 - 500 ML (CAN)", "opening": 0, "saleRate": 120, "wholesale": 104.91}, {"sno": 17, "name": "X7 CLASSICO 330ML", "opening": 0, "saleRate": 160, "wholesale": 140.73}, {"sno": 18, "name": "ELIFHANTH SMOOCH PRE", "opening": 0, "saleRate": 100, "wholesale": 0}, {"sno": 19, "name": "ELEFHANT 330 ML", "opening": 0, "saleRate": 110, "wholesale": 0}];
+const sizes=['750ML','375ML','180ML','90ML'];
+const KEY='liquorBeerExcelRegister_v1';
+let db=JSON.parse(localStorage.getItem(KEY)||'null')||{liquor:{},beer:{},reports:{}};
+let tab='beer';
+function key(date,id){return date+'|'+id}
+function entry(kind,date,id,master){
+ let k=key(date,id), x=db[kind][k];
+ if(!x){x={purchase:[0,0,0,0],sales:[0,0,0,0],opening:Array.isArray(master.opening)?master.opening.slice():Number(master.opening)||0,
+ mrp:Array.isArray(master.mrp)?master.mrp.slice():[Number(master.saleRate)||0,0,0,0],
+ wholesale:Array.isArray(master.wholesale)?master.wholesale.slice():[Number(master.wholesale)||0,0,0,0],saleRate:master.saleRate||0};db[kind][k]=x}
+ return x;
 }
-let D=loadData();
-let selectedDate=today;
-function day(s){return D.days[s]||blankDay();}
-function dayWrite(s){if(!D.days[s])D.days[s]=blankDay();return D.days[s];}
-function openingFor(s){
-  const result=D.brands.map((_,i)=>num(D.open[i]));
-  Object.keys(D.days).sort().forEach(k=>{if(k<s){const d=D.days[k];result.forEach((v,i)=>result[i]=v+num(d.p[i])-num(d.s[i]));}});
-  return result;
+function switchTab(t){tab=t;document.getElementById('liqTab').classList.toggle('active',t==='liquor');document.getElementById('beerTab').classList.toggle('active',t==='beer');document.getElementById('inventory').classList.toggle('hidden',t==='report');document.getElementById('reports').classList.toggle('hidden',t!=='report');if(t!=='report')render();else renderReport()}
+function inputCell(kind,date,id,field,i,value){return `<input type="number" step="0.01" value="${Number(value)||0}" onchange="setVal('${kind}','${date}','${id}','${field}',${i},this.value)">`}
+function render(){
+ let kind='beer', date=document.getElementById('workDate').value||'2026-11-06';
+ let masters=beerMaster, q=document.getElementById('search').value.toLowerCase();
+ document.getElementById('heading').textContent=kind==='liquor'?'Liquor Inventory Register':'Beer Inventory Register';
+ let groups=kind==='liquor'?[
+ ['OPENING STOCK','opening'],['PURCHASE QTY','purchase'],['MRP','mrp'],['TOTAL STOCK','total'],['SALES QTY','sales'],['SALE AMOUNT','saleAmount'],['BALANCE STOCK','balance'],['STOCK BALANCE VALUE','balanceValue'],['WHOLESALE PRICE','wholesale'],['PER BOTTLE MARGIN','margin'],['PROFIT ON SALE','profit']
+ ]:[
+ ['OPENING QTY','opening'],['PURCHASE QTY','purchase'],['SALE RATE / MRP','mrp'],['TOTAL AMOUNT','totalAmount'],['SALES QTY','sales'],['SALE AMOUNT','saleAmount'],['CLOSING STOCK','balance'],['STOCK VALUE','balanceValue'],['P. PRICE','wholesale'],['MARGIN','margin'],['PROFIT','profit']
+ ];
+ let html='<thead><tr><th class="brand" rowspan="2">S.NO. / BRAND NAME</th>'+groups.map(g=>`<th colspan="${kind==='liquor'?4:1}">${g[0]}</th>`).join('')+'</tr><tr>'+groups.map(g=>(kind==='liquor'?sizes:['PRODUCT QTY']).map(s=>`<th>${s}</th>`).join('')).join('')+'</tr></thead><tbody>';
+ let sums={sales:0,purchase:0,amount:0,profit:0};
+ masters.forEach((m,idx)=>{
+  if(!m.name.toLowerCase().includes(q))return;
+  let x=entry(kind,date,m.sno,m), n=kind==='liquor'?4:1;
+  let opening=n===4?x.opening:[Number(x.opening)||0], purchase=n===4?x.purchase:[Number(x.purchase[0])||0], sales=n===4?x.sales:[Number(x.sales[0])||0], mrp=n===4?x.mrp:[Number(x.mrp[0])||x.saleRate||0], wp=n===4?x.wholesale:[Number(x.wholesale[0])||0];
+  let cells='';
+  cells+=opening.map((v,i)=>`<td>${inputCell(kind,date,m.sno,'opening',i,v)}</td>`).join('');
+  cells+=purchase.map((v,i)=>`<td>${inputCell(kind,date,m.sno,'purchase',i,v)}</td>`).join('');
+  cells+=mrp.map((v,i)=>`<td>${inputCell(kind,date,m.sno,'mrp',i,v)}</td>`).join('');
+  let total=opening.map((v,i)=>Number(v||0)+Number(purchase[i]||0));
+  cells+=total.map(v=>`<td class="calc">${v}</td>`).join('');
+  cells+=sales.map((v,i)=>`<td>${inputCell(kind,date,m.sno,'sales',i,v)}</td>`).join('');
+  let saleAmount=sales.map((v,i)=>Number(v||0)*Number(mrp[i]||0));
+  cells+=saleAmount.map(v=>`<td class="calc">₹${v.toFixed(2)}</td>`).join('');
+  let balance=total.map((v,i)=>v-Number(sales[i]||0));
+  cells+=balance.map(v=>`<td class="calc">${v}</td>`).join('');
+  cells+=balance.map((v,i)=>`<td class="calc">₹${(v*Number(wp[i]||0)).toFixed(2)}</td>`).join('');
+  cells+=wp.map((v,i)=>`<td>${inputCell(kind,date,m.sno,'wholesale',i,v)}</td>`).join('');
+  let margin=mrp.map((v,i)=>Number(v||0)-Number(wp[i]||0));
+  cells+=margin.map(v=>`<td class="calc">₹${v.toFixed(2)}</td>`).join('');
+  let profit=sales.map((v,i)=>Number(v||0)*margin[i]);
+  cells+=profit.map(v=>`<td class="calc">₹${v.toFixed(2)}</td>`).join('');
+  sums.sales+=saleAmount.reduce((a,b)=>a+b,0);sums.purchase+=purchase.reduce((a,b)=>a+b,0);sums.amount+=total.reduce((a,b)=>a+b,0);sums.profit+=profit.reduce((a,b)=>a+b,0);
+  html+=`<tr><td class="brand">${m.sno}. ${m.name}</td>${cells}</tr>`;
+ });
+ html+='</tbody>';document.getElementById('grid').innerHTML=html;
+ document.getElementById('summary').innerHTML=`<span class="pill">Sale Amount: ₹${sums.sales.toFixed(2)}</span><span class="pill">Purchase Qty: ${sums.purchase}</span><span class="pill">Calculated Profit: ₹${sums.profit.toFixed(2)}</span>`;
 }
-function stats(s){
-  const d=day(s),opening=openingFor(s);let sale=0,margin=0,purchaseCost=0,purchaseMrp=0,stockValue=0,soldQty=0,purchasedQty=0;
-  const closing=D.brands.map((b,i)=>{
-    const p=num(d.p[i]),q=num(d.s[i]);purchasedQty+=p;soldQty+=q;
-    sale+=q*num(b.r);margin+=q*(num(b.r)-num(b.pp));purchaseCost+=p*num(b.pp);purchaseMrp+=p*num(b.r);
-    const c=opening[i]+p-q;stockValue+=c*num(b.r);return c;
-  });
-  const expenses=d.exp.reduce((a,e)=>a+num(e.a),0);
-  const received=num(d.cash)+num(d.online)+num(d.rokad);
-  return {opening,closing,sale,margin,purchaseCost,purchaseMrp,stockValue,soldQty,purchasedQty,expenses,received,estimatedProfit:margin-expenses};
+function setVal(kind,date,id,field,i,val){
+ let m=(kind==='liquor'?liquorMaster:beerMaster).find(x=>String(x.sno)===String(id));
+ let x=entry(kind,date,id,m);let v=Number(val)||0;
+ if(kind==='beer' && ['opening','purchase','sales','mrp','wholesale'].includes(field)){if(field==='opening')x.opening=v;else if(field==='mrp')x.mrp[0]=v;else if(field==='wholesale')x.wholesale[0]=v;else x[field][0]=v;}
+ else x[field][i]=v;
+ render();
 }
-function monthStats(month){
-  const result={sale:0,margin:0,expenses:0,received:0,estimatedProfit:0,cash:0,online:0,rokad:0,days:[]};
-  Object.keys(D.days).sort().filter(k=>k.startsWith(month)).forEach(k=>{
-    const x=stats(k),d=day(k);result.days.push({date:k,x,d});
-    ['sale','margin','expenses','received','estimatedProfit'].forEach(a=>result[a]+=x[a]);
-    result.cash+=num(d.cash);result.online+=num(d.online);result.rokad+=num(d.rokad);
-  });
-  return result;
+function saveAll(){localStorage.setItem(KEY,JSON.stringify(db));alert('Saved on this device. Backup JSON bhi download kar lena.')}
+function exportBackup(){let b=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='liquor-beer-inventory-backup.json';a.click();URL.revokeObjectURL(a.href)}
+function importBackup(e){let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{db=JSON.parse(r.result);saveAll();render()}catch(err){alert('Invalid backup file')}};r.readAsText(f)}
+const reportFields=['purchase','purchaseMRP','sale','margin','cashReceived','onlineReceived','rokad','expenses','nightCash','short','tcs'];
+function renderReport(){
+ let d=document.getElementById('reportDate').value||'2026-11-06',r=db.reports[d]||{};
+ document.getElementById('reportInputs').innerHTML=reportFields.map(f=>`<label>${f}<input type="number" step="0.01" value="${r[f]||0}" onchange="setReport('${d}','${f}',this.value)"></label>`).join('');
+ let total=(Number(r.cashReceived)||0)+(Number(r.onlineReceived)||0)+(Number(r.rokad)||0);
+ document.getElementById('reportSummary').innerHTML=`<span class="pill">Total Received: ₹${total.toFixed(2)}</span><span class="pill">Short (Sale − Received): ₹${(Number(r.sale||0)-total).toFixed(2)}</span><span class="pill">2% TCS: ₹${(Number(r.purchase||0)*.02).toFixed(2)}</span>`;
 }
-function syncExecutiveDashboard(){
-  // Summary is for the current calendar day, not the last edited historical date.
-  const x=stats(today),d=day(today),m=monthStats(today.slice(0,7));
-  localStorage.setItem('beerSummary',JSON.stringify({
-    date:today,sale:Math.round(x.sale),margin:Math.round(x.margin),profit:Math.round(x.estimatedProfit),
-    stock:Math.round(x.stockValue),cash:x.received,online:num(d.online),rokad:num(d.rokad),
-    exp:x.expenses,mSale:Math.round(m.sale),mProfit:Math.round(m.estimatedProfit),updated:Date.now()
-  }));
-  // These keys are consumed by the existing Executive Dashboard.
-  localStorage.setItem('live_sale',String(Math.round(x.sale)));
-  localStorage.setItem('live_purchase',String(Math.round(x.purchaseCost)));
-  localStorage.setItem('live_expense',String(Math.round(x.expenses)));
-  localStorage.setItem('live_net_cash',String(Math.round(x.received-x.expenses)));
-  localStorage.setItem('live_sold_qty',String(x.soldQty));
-}
-function saveData(){
-  localStorage.setItem(KEY,JSON.stringify(D));
-  syncExecutiveDashboard();
-  $('#entryStatus').textContent='Saved on this device';
-}
-function setPage(page){
-  document.querySelectorAll('.section').forEach(el=>el.classList.toggle('active',el.id==='page-'+page));
-  document.querySelectorAll('.nav button').forEach(el=>el.classList.toggle('active',el.dataset.page===page));
-  if(page==='entry')renderEntry();
-  if(page==='dashboard')renderDashboard();
-  if(page==='monthly')renderMonthly();
-  if(page==='brands')renderBrands();
-}
-function kpi(label,value,cls='',sub=''){return `<div class="kpi"><span>${label}</span><strong class="${cls}">${value}</strong>${sub?`<small>${sub}</small>`:''}</div>`;}
-function renderEntry(){
-  const d=day(selectedDate),x=stats(selectedDate);
-  $('#entryDate').value=selectedDate;$('#brandCount').textContent=D.brands.length+' brands';
-  $('#entryRows').innerHTML=D.brands.map((b,i)=>`<tr>
-    <td class="brand-name">${escapeHtml(b.n)}<small>Sale rate ${money(b.r)}</small></td>
-    <td>${x.opening[i]}</td>
-    <td><input aria-label="Purchase ${escapeHtml(b.n)}" type="number" min="0" step="1" inputmode="numeric" data-qty="p" data-i="${i}" value="${num(d.p[i])||''}"></td>
-    <td><input aria-label="Sale ${escapeHtml(b.n)}" type="number" min="0" step="1" inputmode="numeric" data-qty="s" data-i="${i}" value="${num(d.s[i])||''}"></td>
-    <td class="${x.closing[i]<=5?'stock-low':'stock-good'}" id="close-${i}">${x.closing[i]}</td>
-    <td>${money(x.closing[i]*num(b.r))}</td></tr>`).join('');
-  ['cash','online','rokad'].forEach(k=>{$('#'+k).value=num(d[k])||'';});
-  renderExpenses();renderEntryTotals();
-}
-function renderEntryTotals(){
-  const x=stats(selectedDate);
-  $('#dailyKpis').innerHTML=
-    kpi('Sales Value',money(x.sale),'gold')+
-    kpi('Estimated Margin',money(x.margin),'green')+
-    kpi('Purchase Cost',money(x.purchaseCost),'blue')+
-    kpi('Closing Stock Value',money(x.stockValue))+
-    kpi('Units Purchased',x.purchasedQty)+
-    kpi('Units Sold',x.soldQty)+
-    kpi('Expenses',money(x.expenses),'red')+
-    kpi('Estimated Profit',money(x.estimatedProfit),x.estimatedProfit<0?'red':'green');
-  $('#receivedTotal').textContent=money(x.received);$('#expenseTotal').textContent=money(x.expenses);
-}
-function renderExpenses(){
-  const d=day(selectedDate);
-  $('#expenseRows').innerHTML=d.exp.map((e,i)=>`<div class="expense-row">
-    <input type="text" data-exp="n" data-i="${i}" placeholder="Expense description" value="${escapeAttr(e.n||'')}">
-    <input type="number" data-exp="a" data-i="${i}" min="0" step="0.01" inputmode="decimal" placeholder="Amount ₹" value="${num(e.a)||''}">
-    <button class="btn" data-remove-exp="${i}" aria-label="Remove expense">×</button></div>`).join('')||'<div class="empty">No expenses entered for this date.</div>';
-}
-function renderDashboard(){
-  const date=$('#dashDate').value||today;$('#dashDate').value=date;
-  const x=stats(date),d=day(date),m=monthStats(date.slice(0,7));
-  $('#dashTitle').textContent='Daily Overview · '+date;
-  $('#dashKpis').innerHTML=kpi('Sales',money(x.sale),'gold')+kpi('Purchase Cost',money(x.purchaseCost),'blue')+
-    kpi('Expenses',money(x.expenses),'red')+kpi('Estimated Profit',money(x.estimatedProfit),x.estimatedProfit<0?'red':'green')+
-    kpi('Cash',money(d.cash))+kpi('Online',money(d.online))+kpi('Rokad',money(d.rokad))+kpi('Total Recorded',money(x.received));
-  $('#monthTitle').textContent='Month Summary · '+date.slice(0,7);
-  $('#monthKpis').innerHTML=kpi('Month Sales',money(m.sale),'gold')+kpi('Month Margin',money(m.margin),'green')+
-    kpi('Month Expenses',money(m.expenses),'red')+kpi('Month Est. Profit',money(m.estimatedProfit),m.estimatedProfit<0?'red':'green');
-  const low=x.closing.map((qty,i)=>({qty,name:D.brands[i].n})).filter(v=>v.qty<=5).sort((a,b)=>a.qty-b.qty);
-  $('#lowStock').innerHTML=low.length?low.map(v=>`<div class="stock-line"><span>${escapeHtml(v.name)}</span><b class="${v.qty<=0?'red':'gold'}">${v.qty} units</b></div>`).join(''):'<div class="empty">No low-stock brands for this date.</div>';
-  $('#stockKpis').innerHTML=kpi('Total Units',x.closing.reduce((a,v)=>a+v,0))+kpi('Stock at Sale Rate',money(x.stockValue),'gold');
-}
-function renderMonthly(){
-  const month=$('#reportMonth').value||today.slice(0,7),m=monthStats(month);
-  $('#reportKpis').innerHTML=kpi('Sales',money(m.sale),'gold')+kpi('Estimated Margin',money(m.margin),'green')+
-    kpi('Expenses',money(m.expenses),'red')+kpi('Estimated Profit',money(m.estimatedProfit),m.estimatedProfit<0?'red':'green');
-  $('#monthRows').innerHTML=m.days.length?m.days.map(({date,x,d})=>`<tr><td>${date}</td><td>${money(x.sale)}</td><td>${money(x.margin)}</td><td>${money(d.cash)}</td><td>${money(d.online)}</td><td>${money(d.rokad)}</td><td>${money(x.expenses)}</td><td class="${x.estimatedProfit<0?'red':'green'}">${money(x.estimatedProfit)}</td></tr>`).join(''):'<tr><td colspan="8" class="empty">No entries for this month.</td></tr>';
-}
-function renderBrands(){
-  $('#brandRows').innerHTML=D.brands.map((b,i)=>`<tr><td><input style="min-width:190px;width:100%" data-brand="n" data-i="${i}" value="${escapeAttr(b.n)}"></td>
-    <td><input type="number" min="0" step=".01" data-brand="r" data-i="${i}" value="${b.r}"></td>
-    <td><input type="number" min="0" step=".01" data-brand="pp" data-i="${i}" value="${b.pp}"></td>
-    <td><button class="btn" data-delete-brand="${i}">Delete</button></td></tr>`).join('');
-}
-function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function escapeAttr(s){return escapeHtml(s);}
-function downloadFile(name,content,type){
-  const blob=new Blob([content],{type}),url=URL.createObjectURL(blob),a=document.createElement('a');
-  a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
-}
-function csvCell(v){const s=String(v??'');return '"'+s.replace(/"/g,'""')+'"';}
-function downloadCsv(){
-  const month=$('#reportMonth').value||today.slice(0,7),m=monthStats(month);
-  const rows=[['Date','Sales','Estimated Margin','Cash','Online','Rokad','Total Recorded','Expenses','Estimated Profit']];
-  m.days.forEach(({date,x,d})=>rows.push([date,x.sale,x.margin,d.cash,d.online,d.rokad,x.received,x.expenses,x.estimatedProfit]));
-  downloadFile('beer-report-'+month+'.csv','\uFEFF'+rows.map(r=>r.map(csvCell).join(',')).join('\n'),'text/csv;charset=utf-8');
-}
-function exportBackup(){downloadFile('beer-inventory-backup-'+today+'.json',JSON.stringify(D,null,2),'application/json');}
-function restoreBackup(file){
-  const reader=new FileReader();reader.onload=()=>{
-    try{const d=JSON.parse(reader.result);if(!Array.isArray(d.brands)||!d.days||typeof d.days!=='object')throw new Error('Invalid backup');
-      if(!confirm('Restore this backup? Current browser data will be replaced.'))return;
-      D=d;D.open=Array.isArray(D.open)?D.open:[];D.brands=D.brands.map(b=>({n:String(b.n||'Brand'),r:num(b.r),pp:num(b.pp)}));
-      Object.keys(D.days).forEach(k=>{const v=D.days[k]||{};D.days[k]={p:Array.isArray(v.p)?v.p:[],s:Array.isArray(v.s)?v.s:[],exp:Array.isArray(v.exp)?v.exp:[],cash:num(v.cash),online:num(v.online),rokad:num(v.rokad)};});
-      saveData();renderEntry();alert('Backup restored successfully.');
-    }catch(e){alert('This backup file is invalid or damaged.');}
-  };reader.readAsText(file);
-}
-$('#nav').addEventListener('click',e=>{const b=e.target.closest('button[data-page]');if(b)setPage(b.dataset.page);});
-$('#entryDate').addEventListener('change',e=>{selectedDate=e.target.value||today;renderEntry();});
-$('#prevDay').onclick=()=>{selectedDate=shift(selectedDate,-1);renderEntry();};
-$('#nextDay').onclick=()=>{selectedDate=shift(selectedDate,1);renderEntry();};
-$('#goToday').onclick=()=>{selectedDate=today;renderEntry();};
-$('#entryRows').addEventListener('input',e=>{
-  const t=e.target;if(!t.dataset.qty)return;const i=Number(t.dataset.i),k=t.dataset.qty;
-  if(!Number.isInteger(i)||i<0||i>=D.brands.length)return;
-  dayWrite(selectedDate)[k][i]=Math.max(0,Math.floor(num(t.value)));saveData();renderEntryTotals();
-  const x=stats(selectedDate),cell=$('#close-'+i);if(cell){cell.textContent=x.closing[i];cell.className=x.closing[i]<=5?'stock-low':'stock-good';}
-});
-['cash','online','rokad'].forEach(k=>$('#'+k).addEventListener('input',e=>{dayWrite(selectedDate)[k]=Math.max(0,num(e.target.value));saveData();renderEntryTotals();}));
-$('#expenseRows').addEventListener('input',e=>{
-  const t=e.target;if(!t.dataset.exp)return;const i=Number(t.dataset.i),d=dayWrite(selectedDate),field=t.dataset.exp;
-  if(!d.exp[i])return;d.exp[i][field]=field==='a'?Math.max(0,num(t.value)):t.value;saveData();renderEntryTotals();
-});
-$('#expenseRows').addEventListener('click',e=>{
-  const b=e.target.closest('[data-remove-exp]');if(!b)return;
-  dayWrite(selectedDate).exp.splice(Number(b.dataset.removeExp),1);saveData();renderExpenses();renderEntryTotals();
-});
-$('#addExpense').onclick=()=>{dayWrite(selectedDate).exp.push({n:'',a:0});saveData();renderExpenses();};
-$('#saveDay').onclick=()=>{saveData();renderEntry();alert('Daily entry saved on this device.');};
-$('#clearDay').onclick=()=>{
-  if(!confirm('Clear purchase, sale, cash, online, rokad and expenses for '+selectedDate+'?'))return;
-  D.days[selectedDate]=blankDay();saveData();renderEntry();
-};
-$('#dashDate').value=today;
-$('#dashDate').onchange=renderDashboard;
-$('#dashPrev').onclick=()=>{$('#dashDate').value=shift($('#dashDate').value||today,-1);renderDashboard();};
-$('#dashNext').onclick=()=>{$('#dashDate').value=shift($('#dashDate').value||today,1);renderDashboard();};
-$('#dashToday').onclick=()=>{$('#dashDate').value=today;renderDashboard();};
-$('#refreshDash').onclick=renderDashboard;
-$('#reportMonth').value=today.slice(0,7);$('#reportMonth').onchange=renderMonthly;
-$('#downloadCsv').onclick=downloadCsv;
-$('#downloadBackup').onclick=exportBackup;
-$('#restoreFile').onchange=e=>{if(e.target.files[0])restoreBackup(e.target.files[0]);e.target.value='';};
-$('#addBrand').onclick=()=>{D.brands.push({n:'New Brand',r:0,pp:0});D.open.push(0);saveData();renderBrands();};
-$('#brandRows').addEventListener('input',e=>{
-  const t=e.target;if(!t.dataset.brand)return;const i=Number(t.dataset.i),f=t.dataset.brand;if(!D.brands[i])return;
-  D.brands[i][f]=f==='n'?t.value:Math.max(0,num(t.value));saveData();
-});
-$('#brandRows').addEventListener('click',e=>{
-  const b=e.target.closest('[data-delete-brand]');if(!b)return;
-  const i=Number(b.dataset.deleteBrand);
-  if(!confirm('Delete this brand from the brand list? Historical quantities may no longer align. It is safer to mark it inactive by renaming it instead.'))return;
-  D.brands.splice(i,1);D.open.splice(i,1);Object.values(D.days).forEach(d=>{d.p.splice(i,1);d.s.splice(i,1);});saveData();renderBrands();
-});
-$('#editOpening').onclick=()=>{
-  const values=D.brands.map((b,i)=>b.n+': '+num(D.open[i])).join('\n');
-  const answer=prompt('Enter opening quantities separated by commas, in this brand order:\n'+D.brands.map((b,i)=>(i+1)+'. '+b.n).join('\n')+'\n\nCurrent: '+values);
-  if(answer===null)return;const parts=answer.split(',').map(v=>Math.max(0,Math.floor(num(v))));
-  if(parts.length!==D.brands.length){alert('Please enter exactly '+D.brands.length+' comma-separated quantities.');return;}
-  D.open=parts;saveData();alert('Opening stock updated.');renderEntry();
-};
-$('#headerDate').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});
-// Initial save normalizes old data and publishes today's figures for the Executive Dashboard.
-saveData();renderEntry();
-</script>
-</body>
-</html>
+function setReport(d,f,v){db.reports[d]=db.reports[d]||{};db.reports[d][f]=Number(v)||0;renderReport()}
+document.getElementById('reportDate').addEventListener('change',renderReport);
+document.getElementById('workDate').addEventListener('change',render);
+render();
+</script></body></html>
