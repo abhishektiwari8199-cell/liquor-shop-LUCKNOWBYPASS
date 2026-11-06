@@ -1,0 +1,102 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Abhishek Composite - Cloud Test</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+body{font-family:Arial;background:#0b1120;color:white;padding:25px}
+.card{max-width:500px;margin:40px auto;background:#17243a;padding:25px;border-radius:15px}
+input,button{width:100%;padding:12px;margin:8px 0;box-sizing:border-box;border-radius:7px}
+input{background:#0b1120;color:white;border:1px solid #475569}
+button{background:#f5b942;border:0;font-weight:bold;cursor:pointer}
+#status{white-space:pre-wrap;background:#0b1120;padding:15px;border-radius:8px;margin-top:15px}
+</style>
+</head>
+<body>
+<div class="card">
+<h2>☁️ Abhishek Composite</h2>
+<p>Supabase Cloud Connection Test</p>
+
+<label>Email</label>
+<input id="email" type="email" placeholder="Supabase registered email">
+
+<label>Password</label>
+<input id="password" type="password" placeholder="Supabase password">
+
+<button onclick="login()">LOGIN & TEST DATABASE</button>
+<button onclick="logout()">LOGOUT</button>
+
+<div id="status">Status: Waiting for login...</div>
+</div>
+
+<script>
+const SUPABASE_URL =
+"https://abulaaaezuajnuobzsdj.supabase.co";
+
+const SUPABASE_KEY =
+"sb_publishable_ae6FQ3C13ru6drINn53jDA_THBBArV5";
+
+const db = window.supabase.createClient(
+SUPABASE_URL,
+SUPABASE_KEY
+);
+
+const statusBox = document.getElementById("status");
+
+async function login(){
+
+const email = document.getElementById("email").value.trim();
+const password = document.getElementById("password").value;
+
+if(!email || !password){
+statusBox.textContent = "Email aur password enter karo.";
+return;
+}
+
+statusBox.textContent = "Connecting to Supabase...";
+
+const {data,error} = await db.auth.signInWithPassword({
+email:email,
+password:password
+});
+
+if(error){
+statusBox.textContent = "LOGIN ERROR:\n" + error.message;
+return;
+}
+
+statusBox.textContent = "Login successful.\nChecking inventory database...";
+
+const result = await db
+.from("inventory_products")
+.select("id,category,brand_name,size")
+.limit(5);
+
+if(result.error){
+statusBox.textContent =
+"LOGIN SUCCESSFUL\n\nDATABASE ACCESS ERROR:\n" +
+result.error.message;
+return;
+}
+
+statusBox.textContent =
+"CONNECTED SUCCESSFULLY!\n\n" +
+"User ID: " + data.user.id + "\n" +
+"Products visible: " + result.data.length + "\n\n" +
+"Supabase login and database read test passed.";
+}
+
+async function logout(){
+
+const {error} = await db.auth.signOut();
+
+statusBox.textContent = error
+? "Logout error: " + error.message
+: "Successfully logged out.";
+}
+</script>
+</body>
+</html>
