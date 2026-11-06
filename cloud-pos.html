@@ -22,7 +22,7 @@
 <section id="history" class="page"><h2>Recent Sales</h2><div class="table"><table><thead><tr><th>Date</th><th>Bill</th><th>Category</th><th>Payment</th><th>ID</th></tr></thead><tbody id="hist"></tbody></table></div></section>
 </section></main>
 <script>
-const URL="https://abulaaaezuajnuobzsdj.supabase.co";
+const SUPABASE_URL="https://abulaaaezuajnuobzsdj.supabase.co";
 const KEY="sb_publishable_ae6FQ3C13ru6drINn53jDA_THBBArV5";
 const db=window.supabase.createClient(URL,KEY);let user=null,items=[],scart=[],pcart=[];
 const $=x=>document.getElementById(x),n=x=>Number(x)||0,fmt=x=>"₹"+n(x).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2}),today=()=>new Date().toLocaleDateString("en-CA");
