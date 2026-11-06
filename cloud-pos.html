@@ -24,7 +24,7 @@
 <script>
 const SUPABASE_URL="https://abulaaaezuajnuobzsdj.supabase.co";
 const KEY="sb_publishable_ae6FQ3C13ru6drINn53jDA_THBBArV5";
-const db=window.supabase.createClient(URL,KEY);let user=null,items=[],scart=[],pcart=[];
+const db=window.supabase.createClient(SUPABASE_URL,KEY);let user=null,items=[],scart=[],pcart=[];
 const $=x=>document.getElementById(x),n=x=>Number(x)||0,fmt=x=>"₹"+n(x).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2}),today=()=>new Date().toLocaleDateString("en-CA");
 function msg(id,s){$(id).textContent=s}function page(id,b){document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));$(id).classList.add("active");document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("active"));b.classList.add("active")}
 async function login(){msg("loginMsg","Signing in...");let {data,error}=await db.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});if(error){msg("loginMsg",error.message);return}user=data.user;await boot()}
