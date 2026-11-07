@@ -424,7 +424,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
    <div class="status" id="exciseFetchStatus" style="display:none"></div>
    <div class="table-wrap" id="excisePreviewWrap" style="display:none">
     <table style="min-width:760px"><thead><tr><th>Pass brand</th><th>Size</th><th>Inventory product</th><th>Dispatched bottles</th><th>Purchase rate ₹</th></tr></thead><tbody id="excisePreviewRows"></tbody></table>
-    <div class="toolbar" style="padding:10px"><span class="muted" id="excisePreviewSummary">Verify rows before adding.</span><button class="btn" type="button" onclick="addExcisePreviewToPurchase()">Add to purchase</button></div>
+    <div class="toolbar" style="padding:10px"><span class="muted" id="excisePreviewSummary">Verify rows before adding.</span><button class="btn" type="button" id="exciseConfirmBtn" onclick="confirmExcisePurchase()">✓ Confirm Purchase</button></div>
    </div>
   </div>
   <div class="panel glass"><div class="form-grid"><label class="span2">Select product<select id="pp"></select></label><label>Quantity<input id="pq" type="number" min=".01" step=".01" value="1"></label><label>Purchase rate<input id="pr" type="number" min="0" step=".01"></label></div><div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="btn" onclick="addItem('purchase')">＋ Add purchase item</button></div></div>
@@ -1013,6 +1013,39 @@ function showExciseRows(rows){
  $("excisePreviewWrap").style.display="block";
  $("excisePreviewRows").innerHTML=excisePreviewItems.map((x,i)=>`<tr><td style="white-space:normal">${safe(x.brand)}</td><td>${safe(x.size||"—")}</td><td><select id="exciseMatch_${i}" style="min-width:210px"><option value="">Select matching product</option>${products.map(p=>`<option value="${safe(p.id)}" ${x.product&&String(p.id)===String(x.product.id)?"selected":""}>${safe(p.brand_name)} · ${safe(p.size)}</option>`).join("")}</select></td><td><input id="exciseQty_${i}" type="number" min="0.01" step="1" value="${x.quantity}" style="width:95px"></td><td><input id="exciseRate_${i}" type="number" min="0" step=".01" value="${x.rate}" style="width:110px"></td></tr>`).join("");
  $("excisePreviewSummary").textContent=rows.length+" row(s) detected. Confirm product and dispatched bottles.";
+}
+async function confirmExcisePurchase(){
+ if(!excisePreviewItems.length){setExciseStatus("Purchase draft ready nahi hai. Pehle QR scan aur pass details fetch honi chahiye.");return;}
+ if(!$("inv").value.trim()){setExciseStatus("Transport pass invoice number missing hai.");return;}
+ if(!$("supplier").value.trim()||!$("pd").value){
+  setExciseStatus("Purchase draft ready hai. Confirm se pehle upar Supplier name aur Invoice date fill karein.");
+  $("supplier").scrollIntoView({behavior:"smooth",block:"center"});
+  return;
+ }
+ const selected=[];
+ for(let i=0;i<excisePreviewItems.length;i++){
+  const id=$("exciseMatch_"+i)?.value,qty=Number($("exciseQty_"+i)?.value),rate=Number($("exciseRate_"+i)?.value),p=products.find(x=>String(x.id)===String(id));
+  if(!p||!Number.isFinite(qty)||qty<=0||!Number.isFinite(rate)||rate<0){
+   setExciseStatus("Confirm nahi hua: har row mein correct product, dispatched quantity aur rate verify karein.");return;
+  }
+  selected.push({product_id:p.id,name:p.brand_name+" "+p.size,quantity:qty,rate});
+ }
+ // Build the purchase cart only after the user explicitly confirms the reviewed draft.
+ purchaseCart=selected;
+ drawCart("purchase");
+ setExciseStatus("Purchase confirm ho rahi hai. Supabase mein invoice aur stock movement save kiya ja raha hai…");
+ const btn=$("exciseConfirmBtn");if(btn){btn.disabled=true;btn.textContent="Saving…";}
+ try{
+  await savePurchase(null);
+  const msg=$("purchaseMsg")?.textContent||"";
+  if(/saved successfully/i.test(msg)){
+   excisePreviewItems=[];
+   $("excisePreviewWrap").style.display="none";
+   setExciseStatus("Purchase successfully confirmed and saved. Inventory refresh ho gayi hai.");
+  }else{
+   setExciseStatus("Purchase save nahi hui. Neeche Purchase message check karein; draft preview abhi available hai.");
+  }
+ }finally{if(btn){btn.disabled=false;btn.textContent="✓ Confirm Purchase";}}
 }
 function addExcisePreviewToPurchase(){
  if(!excisePreviewItems.length){setExciseStatus("Pehle valid pass details fetch honi chahiye.");return;}
