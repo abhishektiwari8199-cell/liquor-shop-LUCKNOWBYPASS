@@ -392,7 +392,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
    <label class="span2">Search brand<input id="search" oninput="drawProducts()" placeholder="Search brand name…"></label>
    <div style="display:flex;align-items:end"><button class="btn" type="button" onclick="applyInventoryFilters()">Apply filters</button></div>
   </div></div>
-  <div class="toolbar" style="margin:12px 0"><span class="muted" id="stockSummary">Select a date to view stock.</span><button class="btn" onclick="saveOpeningStock(this)">Save all opening stock</button><button class="btn secondary" onclick="saveInventoryMovements(this)">Save purchase &amp; sale quantities</button></div>
+  <div class="toolbar" style="margin:12px 0"><span class="muted" id="stockSummary">Select a date to view stock.</span><button class="btn" type="button" onclick="saveFinalInventory(this)">Final Save — Save All Inventory</button></div>
   <div class="status" id="inventoryDateStatus">Opening stock means stock at the start of 02 Nov 2026. Purchase and sale quantities are accumulated from 02 Nov through the selected date. Older entries are excluded.</div>
   <div id="liquorInventoryWrap" class="table-wrap"><table class="inventory-register liquor-register"><colgroup><col style="width:230px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"></colgroup><thead>
    <tr><th rowspan="2">S.No. / Brand</th><th colspan="4">Opening Stock (02 Nov)</th><th colspan="4">Purchase</th><th colspan="4">Total Stock</th><th colspan="4">Sale</th><th colspan="4">Balance Stock</th><th colspan="4">Balance Stock Value (₹)</th></tr>
@@ -788,6 +788,58 @@ function inventoryEnterNext(event){
   }
   if(target){target.focus();target.select();}
 }
+async function saveFinalInventory(button){
+  if(!db||!user){alert("Pehle login karein.");return;}
+  const date=$("inventoryDate").value||STOCK_START_DATE;
+  if(date<STOCK_START_DATE){alert("02 Nov 2026 se pehle entry allowed nahi hai.");return;}
+  const saveOpening=(date===STOCK_START_DATE);
+  const openingUpdates=[],movementRows=[];
+  for(const p of products){
+    const id=String(p.id),openingEl=$("opening_"+id),purchaseEl=$("reg_purchase_"+id),saleEl=$("reg_sale_"+id);
+    if(saveOpening&&openingEl){
+      const value=Number(openingEl.value);
+      if(!Number.isFinite(value)||value<0){alert("Opening stock valid non-negative number hona chahiye: "+p.brand_name+" "+(p.size||""));return;}
+      openingUpdates.push({product:p,value});
+    }
+    if(purchaseEl||saleEl){
+      const purchase_qty=Number(purchaseEl?.value||0),sale_qty=Number(saleEl?.value||0);
+      if(!Number.isFinite(purchase_qty)||purchase_qty<0||!Number.isFinite(sale_qty)||sale_qty<0){alert("Purchase aur sale quantity zero ya positive number honi chahiye: "+p.brand_name+" "+(p.size||""));return;}
+      movementRows.push({user_id:user.id,product_id:p.id,entry_date:date,purchase_qty,sale_qty});
+    }
+  }
+  if(!openingUpdates.length&&!movementRows.length){alert("Save karne ke liye koi visible inventory input nahi mila.");return;}
+  if(button){button.disabled=true;button.textContent="Saving to Supabase…";}
+  try{
+    const tasks=[];
+    if(openingUpdates.length){
+      tasks.push(Promise.all(openingUpdates.map(async item=>{
+        const {data,error}=await db.from("inventory_products").update({opening_stock:item.value}).eq("id",item.product.id).select("id,opening_stock").single();
+        if(error)throw error;
+        return {item,data};
+      })).then(results=>{results.forEach(({item,data})=>{item.product.opening_stock=data.opening_stock;});}));
+    }
+    if(movementRows.length){
+      tasks.push(db.from("inventory_register_entries").upsert(movementRows,{onConflict:"user_id,product_id,entry_date"}).then(({error})=>{if(error)throw error;}));
+    }
+    await Promise.all(tasks);
+    for(const row of movementRows){
+      const id=String(row.product_id),old=inventoryManualCurrent[id]||{purchase:0,sale:0},tot=inventoryManualTotals[id]||{purchase:0,sale:0};
+      inventoryPurchased[id]=(inventoryPurchased[id]||0)-num(old.purchase)+row.purchase_qty;
+      inventorySold[id]=(inventorySold[id]||0)-num(old.sale)+row.sale_qty;
+      inventoryManualTotals[id]={purchase:num(tot.purchase)-num(old.purchase)+row.purchase_qty,sale:num(tot.sale)-num(old.sale)+row.sale_qty};
+      inventoryManualCurrent[id]={purchase:row.purchase_qty,sale:row.sale_qty};
+    }
+    recalculateInventoryLive();
+    setMsg("inventoryDateStatus",saveOpening?"Opening stock, purchase aur sale quantities Supabase mein save ho gayi hain.":"Purchase aur sale quantities Supabase mein save ho gayi hain. Opening stock sirf 02 Nov 2026 par save hota hai.");
+    alert(saveOpening?"Final Save successful: Opening Stock + Purchase + Sale Supabase mein save ho gaye.":"Final Save successful: Purchase + Sale Supabase mein save ho gaye. Opening Stock 02 Nov date par hi edit/save hota hai.");
+  }catch(e){
+    alert("Save error: "+(e.message||String(e))+". Supabase mein kuch requests save ho chuki ho sakti hain; date reload karke values verify karein.");
+    console.error("Final inventory save failed",e);
+  }finally{
+    if(button){button.disabled=false;button.textContent="Final Save — Save All Inventory";}
+  }
+}
+
 async function saveOpeningStock(button){
   const date=$("inventoryDate").value||STOCK_START_DATE;
   if(date!==STOCK_START_DATE){alert("Opening stock sirf 02 November 2026 ke opening balance ke liye enter karein. Date selector ko 02 Nov par set karke save karein.");return;}
