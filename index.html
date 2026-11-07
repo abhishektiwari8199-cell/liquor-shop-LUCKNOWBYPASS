@@ -47,6 +47,30 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
 .inventory-register tbody tr:hover td{background:#fff6d6 !important}
 .inventory-register tbody tr:hover td.calc{background:#dceaff !important}
 
+
+/* FINAL STANDARD INVENTORY TABLE THEME — scoped, high-specificity overrides */
+#appView #inventory .table-wrap{background:#ffffff !important;border:1px solid #cbd5e1 !important;border-radius:12px !important;}
+#appView #inventory table.inventory-register{background:#ffffff !important;border-collapse:separate !important;border-spacing:0 !important;color:#172b4d !important;}
+#appView #inventory table.inventory-register thead th{background:#173b63 !important;color:#ffffff !important;border-bottom:1px solid #d5deea !important;font-weight:800 !important;text-align:center !important;}
+#appView #inventory table.inventory-register thead tr:first-child th{background:#123456 !important;color:#ffffff !important;font-size:12px !important;letter-spacing:.55px !important;}
+#appView #inventory table.inventory-register thead tr:first-child th:not(:first-child){border-top:4px solid #f5c542 !important;}
+#appView #inventory table.inventory-register thead th:first-child{background:#123456 !important;color:#ffffff !important;text-align:left !important;}
+#appView #inventory table.inventory-register tbody tr td{background:#ffffff !important;color:#24364b !important;border-bottom:1px solid #e2e8f0 !important;font-weight:600 !important;text-align:center !important;}
+#appView #inventory table.inventory-register tbody tr:nth-child(even) td{background:#f3f6fa !important;color:#24364b !important;}
+#appView #inventory table.inventory-register tbody tr td:first-child{position:sticky !important;left:0 !important;z-index:4 !important;background:#e8eef6 !important;color:#102f50 !important;text-align:left !important;font-weight:800 !important;min-width:245px !important;}
+#appView #inventory table.inventory-register tbody tr:nth-child(even) td:first-child{background:#dce6f1 !important;color:#102f50 !important;}
+#appView #inventory table.inventory-register tbody tr td.calc{background:#edf3fa !important;color:#183b60 !important;font-weight:800 !important;}
+#appView #inventory table.inventory-register tbody tr:nth-child(even) td.calc{background:#e4edf7 !important;color:#183b60 !important;}
+#appView #inventory table.inventory-register tbody tr td.value{background:#fff4cf !important;color:#563d00 !important;font-weight:800 !important;}
+#appView #inventory table.inventory-register tbody tr:nth-child(even) td.value{background:#ffedb0 !important;color:#563d00 !important;}
+#appView #inventory table.inventory-register input{background:#ffffff !important;color:#172b4d !important;border:1px solid #9aadc2 !important;border-radius:7px !important;font-weight:700 !important;box-shadow:none !important;}
+#appView #inventory table.inventory-register input:focus{border:2px solid #d39b00 !important;outline:2px solid #f5c54255 !important;background:#fffdf2 !important;}
+#appView #inventory table.inventory-register tbody tr:hover td,
+#appView #inventory table.inventory-register tbody tr:hover td:first-child,
+#appView #inventory table.inventory-register tbody tr:hover td.calc,
+#appView #inventory table.inventory-register tbody tr:hover td.value{background:#e5f0fb !important;color:#102f50 !important;}
+#appView #inventory .status,#appView #inventory #stockSummary{color:#24364b !important;}
+
 </style>
 </head>
 <body>
@@ -106,7 +130,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
    <label>Category<select id="cat" onchange="drawProducts()"><option value="all">All categories</option><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label>
    <label class="span2">Search brand<input id="search" oninput="drawProducts()" placeholder="Search brand name…"></label>
   </div></div>
-  <div class="toolbar" style="margin:12px 0"><span class="muted" id="stockSummary">Select a date to view stock.</span><button class="btn" onclick="saveOpeningStock(this)">Save all opening stock</button></div>
+  <div class="toolbar" style="margin:12px 0"><span class="muted" id="stockSummary">Select a date to view stock.</span><button class="btn" onclick="saveOpeningStock(this)">Save all opening stock</button><button class="btn secondary" onclick="saveInventoryMovements(this)">Save purchase &amp; sale quantities</button></div>
   <div class="status" id="inventoryDateStatus">Opening stock means stock at the start of 02 Nov 2026. Purchase and sale quantities are accumulated from 02 Nov through the selected date. Older entries are excluded.</div>
   <div class="table-wrap"><table class="inventory-register"><thead>
    <tr><th rowspan="2">S.No. / Brand</th><th colspan="4">Opening Stock (02 Nov)</th><th colspan="4">Purchase</th><th colspan="4">Total Stock</th><th colspan="4">Sale</th><th colspan="4">Balance Stock</th><th colspan="4">Balance Stock Value (₹)</th></tr>
@@ -175,6 +199,7 @@ let db=null,user=null,products=[],saleCart=[],purchaseCart=[];
 const EXCEL_BRAND_ORDER=["BLENDER RESERVE BLUE", "BLENDER PRIDE", "BLENDER 4 ELEMENT", "ANTIQUTI BLUE", "SIGNATURE PREMIUM", "ROYAL THAMBOARE", "ROYAL STAG DOUBLE DARK", "ROYAL STAG", "ROYAL CHALLENGE", "OFFICEAR CHOICE BLUE", "OFICIER CHOICE", "IMPERIAL BLUE", "MACDOWEL NO.1", "MACDOWEL DOUBLE BARELL", "ROYAL STAG BARELL", "EXCLAMATION WHISKEY", "R.G 8 JAMUN", "8 PM BLACK", "8 PM GOLD", "8 PM WHISKEY", "STRELLING B7", "ROYAL GREEN", "WHITE & BLUE", "ALL SEASON SARTAAJ", "GOLFER SHOT 18", "ICONIC WINTER", "GOLFER SHOT A.K", "OCANE GLOW", "ROCKFORD RESERVE", "RED RUSSIAN APPLE", "OCTAINE", "MAGIC MOMENT JAMUN", "AMRUT PESTING WHISKEY", "OAK SMITH", "DOUBLE BLUE", "WHISLER BAREL", "ICONIC WHISKEY", "AFTER DARK", "BATCH 9", "SRISTY FINEST", "AMERICAN PRIDE", "MOUNTAIN OAK", "BX HIPPI", "SINGAL", "MARPHOS X&O BRANDY", "MARPHOUS BLUE BRANDY", "MATSYA", "THE CRAFTRES", "BOHO", "ALL SEASON", "DHURANDHAR", "SIWAS REGAL", "GODAOON", "JONNY WALKER GOLD LEBAL", "JONNY WALKER BLACK LEBAL", "JONNY WALKER DOUBLE BLACK", "JONNY WALKER RED LEBAL", "100 PIPER (12 YEARS)", "100 PIPER", "BLACK DOG TRIPLE GOLD", "BLACK DOG CENETERY", "TEACHERS 50", "TEACHER HIGHLAND", "VAT 69", "BLACK & WHITE", "INDREE", "JAG MISTER", "JACK DANIAEL", "GLAN MORANJI", "BOMBEY SUFFAIR", "DEWARS", "MACDOWEL", "SIMRAN OF CRAFT", "SIMRAN MINTY JAMUN", "SIMRAN MANGO MIRCHI", "SIMRAN JESTY LEMON", "MAGIC VERB LEMON", "MAGIC VERB", "MAGIC MOMENT LEMON", "MAGIC MOMENT APPLE", "MAGIC MOMENT PINK", "MAGIC MOMENT", "1 GL BUNTY", "G R 8 APPLE", "ONE MORE NEXT CANBERRY", "ONE MORE APPLE", "ONE MORE PLANE", "AMAZING PLANE", "MOON WALK APPLE", "MOON WALK ORANGE", "SNOSKI JAMUN VODKA", "SNOSKI SADA VODKA", "CULTER RUM", "ORTHIK CANBERRY", "LIPTOP PLANE", "MAGIC MOMENT AAM PANA", "BUNTY JAMUN", "BAKARDI WHITE", "BAKARDI MANGO CHILLI", "BAKARDI LEMON", "BAKARDI ORANGE", "BAKARDI BLACK", "OLD MONK LEGEND", "BERRY OLD MONK RESERVED'", "OLD MONK COFFEE", "MACDOWELL DARK RUM", "CAPTAIN MORGAIN", "1965 XXX RUM", "BUM LEMON RUM", "LEMON DEDDY RUM", "HIGH IMPACT", "MACDAWELL CITRONN RUM"];
 let stockPurchased={},stockSold={},stockMovementError="";
 let inventoryPurchased={},inventorySold={},inventoryMovementError="";
+let inventoryManualCurrent={},inventoryManualTotals={};
 const $=id=>document.getElementById(id),num=v=>Number(v)||0;
 const money=v=>"₹"+num(v).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
 const today=()=>{const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)};
@@ -239,13 +264,14 @@ async function loadInventoryForDate(){
   const date=$("inventoryDate").value||STOCK_START_DATE;
   if(date<STOCK_START_DATE){$("inventoryDate").value=STOCK_START_DATE;setMsg("inventoryDateStatus","Inventory date 02 November 2026 se pehle nahi ho sakti.");return;}
   $("inventoryDateStatus").textContent="Loading date-wise stock from 02 Nov 2026 through "+date+"…";
-  inventoryPurchased={};inventorySold={};inventoryMovementError="";
+  inventoryPurchased={};inventorySold={};inventoryManualCurrent={};inventoryManualTotals={};inventoryMovementError="";
   try{
-    const [ph,sh]=await Promise.all([
+    const [ph,sh,mh]=await Promise.all([
       db.from("purchase_invoices").select("id").gte("invoice_date",STOCK_START_DATE).lte("invoice_date",date),
-      db.from("sales").select("id").gte("sale_date",STOCK_START_DATE).lte("sale_date",date)
+      db.from("sales").select("id").gte("sale_date",STOCK_START_DATE).lte("sale_date",date),
+      db.from("inventory_register_entries").select("product_id,entry_date,purchase_qty,sale_qty").gte("entry_date",STOCK_START_DATE).lte("entry_date",date)
     ]);
-    if(ph.error||sh.error)throw (ph.error||sh.error);
+    if(ph.error||sh.error||mh.error)throw (ph.error||sh.error||mh.error);
     const pids=(ph.data||[]).map(x=>x.id),sids=(sh.data||[]).map(x=>x.id);
     const [pi,si]=await Promise.all([
       pids.length?db.from("purchase_items").select("product_id,quantity").in("invoice_id",pids):Promise.resolve({data:[],error:null}),
@@ -254,10 +280,13 @@ async function loadInventoryForDate(){
     if(pi.error||si.error)throw (pi.error||si.error);
     for(const x of pi.data||[]){const k=String(x.product_id);inventoryPurchased[k]=(inventoryPurchased[k]||0)+num(x.quantity);}
     for(const x of si.data||[]){const k=String(x.product_id);inventorySold[k]=(inventorySold[k]||0)+num(x.quantity);}
-    $("inventoryDateStatus").textContent="Showing cumulative stock from 02 Nov 2026 through "+date+". Opening stock can be entered/edited in the first four columns and saved below.";
+    for(const x of mh.data||[]){const k=String(x.product_id);inventoryManualTotals[k] ||= {purchase:0,sale:0};inventoryManualTotals[k].purchase+=num(x.purchase_qty);inventoryManualTotals[k].sale+=num(x.sale_qty);if(x.entry_date===date)inventoryManualCurrent[k]={purchase:num(x.purchase_qty),sale:num(x.sale_qty)};}
+    for(const [k,v] of Object.entries(inventoryManualTotals)){inventoryPurchased[k]=(inventoryPurchased[k]||0)+v.purchase;inventorySold[k]=(inventorySold[k]||0)+v.sale;}
+    $("inventoryDateStatus").textContent="Showing cumulative stock from 02 Nov 2026 through "+date+". Opening, purchase and sale quantities can be entered here; balance and value calculate automatically.";
   }catch(e){inventoryMovementError=e.message||String(e);$("inventoryDateStatus").textContent="Date-wise stock load error: "+inventoryMovementError;}
   drawProducts();
 }
+
 function orderedBrandGroups(rows){
   const byKey=new Map();
   for(const p of rows){const k=brandKey(p.brand_name);if(!byKey.has(k))byKey.set(k,[]);byKey.get(k).push(p);}
@@ -284,9 +313,11 @@ function drawProducts(){
     const value=balance.map((v,i)=>v*num(map[i]?.wholesale_price));
     for(let i=0;i<4;i++){totals.opening+=opening[i];totals.purchase+=purchase[i];totals.total+=total[i];totals.sale+=sale[i];totals.balance+=balance[i];totals.value+=value[i];}
     const openCells=map.map((p,i)=>`<td>${p?`<input aria-label="${safe(g.name)} ${['750','375','180','90'][i]} opening stock" id="opening_${safe(p.id)}" type="number" min="0" step=".01" value="${opening[i]}">`:'—'}</td>`).join('');
+    const purchaseCells=map.map((p,i)=>{const v=p?(inventoryManualCurrent[String(p.id)]?.purchase||0):0;return `<td>${p?`<input aria-label="${safe(g.name)} ${['750','375','180','90'][i]} purchase quantity" id="reg_purchase_${safe(p.id)}" type="number" min="0" step=".01" value="${v}">`:'—'}</td>`;}).join('');
+    const saleCells=map.map((p,i)=>{const v=p?(inventoryManualCurrent[String(p.id)]?.sale||0):0;return `<td>${p?`<input aria-label="${safe(g.name)} ${['750','375','180','90'][i]} sale quantity" id="reg_sale_${safe(p.id)}" type="number" min="0" step=".01" value="${v}">`:'—'}</td>`;}).join('');
     const cells=arr=>arr.map(v=>`<td class="calc">${Number(v||0).toLocaleString('en-IN',{maximumFractionDigits:2})}</td>`).join('');
     const values=value.map(v=>`<td class="value">${money(v)}</td>`).join('');
-    return `<tr><td>${idx+1}. ${safe(g.name)}</td>${openCells}${cells(purchase)}${cells(total)}${cells(sale)}${cells(balance)}${values}</tr>`;
+    return `<tr><td>${idx+1}. ${safe(g.name)}</td>${openCells}${purchaseCells}${cells(total)}${saleCells}${cells(balance)}${values}</tr>`;
   }).join('');
   $("inventoryRegisterRows").innerHTML=html||'<tr><td colspan="25" class="empty">No matching brands found.</td></tr>';
   $("stockSummary").textContent=`As on ${$("inventoryDate").value||STOCK_START_DATE} · Opening ${totals.opening} · Purchase ${totals.purchase} · Total ${totals.total} · Sale ${totals.sale} · Balance ${totals.balance} · Balance stock value ${money(totals.value)}${inventoryMovementError?" · "+inventoryMovementError:""}`;
@@ -304,6 +335,25 @@ async function saveOpeningStock(button){
   }catch(e){alert("Save error: "+(e.message||String(e))+". Kuch entries save ho chuki ho sakti hain; dobara load karke check karein.");}
   finally{if(button){button.disabled=false;button.textContent="Save all opening stock";}}
 }
+async function saveInventoryMovements(button){
+  const date=$("inventoryDate").value||STOCK_START_DATE;
+  if(date<STOCK_START_DATE){alert("02 Nov 2026 se pehle entry allowed nahi hai.");return;}
+  const rows=[];
+  for(const p of products){
+    const pi=$("reg_purchase_"+p.id),si=$("reg_sale_"+p.id);
+    if(!pi&&!si)continue;
+    const purchase_qty=Number(pi?.value||0),sale_qty=Number(si?.value||0);
+    if(!Number.isFinite(purchase_qty)||purchase_qty<0||!Number.isFinite(sale_qty)||sale_qty<0){alert("Purchase aur sale quantity zero ya positive number honi chahiye: "+p.brand_name+" "+p.size);return;}
+    rows.push({user_id:user.id,product_id:p.id,entry_date:date,purchase_qty,sale_qty});
+  }
+  if(button){button.disabled=true;button.textContent="Saving…";}
+  try{
+    for(const row of rows){const {error}=await db.from("inventory_register_entries").upsert(row,{onConflict:"user_id,product_id,entry_date"});if(error)throw error;}
+    await loadInventoryForDate();alert("Selected date ki purchase aur sale quantities save ho gayi hain. Balance stock aur value automatically update ho gaye.");
+  }catch(e){alert("Save error: "+(e.message||String(e))+". Pehle diye gaye SQL ko Supabase SQL Editor mein run karein.");}
+  finally{if(button){button.disabled=false;button.textContent="Save purchase & sale quantities";}}
+}
+
 async function saveProduct(id,button){
   const stockInput=$("stock_"+id),mrpInput=$("mrp_"+id),whInput=$("wh_"+id);
   if(!stockInput||!mrpInput||!whInput)return;
