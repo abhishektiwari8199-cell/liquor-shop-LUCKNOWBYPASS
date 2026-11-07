@@ -72,20 +72,33 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
 #appView #inventory .status,#appView #inventory #stockSummary{color:#24364b !important;}
 
 
-/* INVENTORY LAYOUT FIX: compact brand column, no frozen panes */
-#appView #inventory .table-wrap{overflow:auto !important; max-width:100% !important;}
-#appView #inventory table.inventory-register{width:2486px !important;min-width:2486px !important;max-width:none !important;table-layout:fixed !important;border-collapse:separate !important;border-spacing:0 !important;}
+/* INVENTORY REGISTER: explicit column sizing via colgroup prevents browser colspan width expansion */
+#appView #inventory .table-wrap{overflow:auto !important;max-width:100% !important;}
+#appView #inventory table.inventory-register{
+  width:2486px !important;min-width:2486px !important;max-width:2486px !important;
+  table-layout:fixed !important;border-collapse:separate !important;border-spacing:0 !important;
+}
+#appView #inventory table.inventory-register col:first-child{width:230px !important;}
+#appView #inventory table.inventory-register col:not(:first-child){width:94px !important;}
 #appView #inventory table.inventory-register th,
-#appView #inventory table.inventory-register td{position:static !important;width:94px !important;min-width:94px !important;max-width:94px !important;box-sizing:border-box !important;}
-/* Only the actual brand header (rowspan=2) and brand cells get the wider column.
-   Do NOT apply first-child width to row 2: its first cell is the 750 ML size. */
-#appView #inventory table.inventory-register thead th[rowspan="2"],
-#appView #inventory table.inventory-register tbody td:first-child{position:static !important;left:auto !important;width:230px !important;min-width:230px !important;max-width:230px !important;white-space:normal !important;text-align:left !important;}
-#appView #inventory table.inventory-register tbody td:first-child{padding:12px 10px !important;}
-#appView #inventory table.inventory-register input{display:block !important;width:78px !important;min-width:78px !important;max-width:78px !important;height:40px !important;min-height:40px !important;max-height:40px !important;box-sizing:border-box !important;text-align:center !important;margin:0 auto !important;padding:7px 8px !important;}
+#appView #inventory table.inventory-register td{
+  box-sizing:border-box !important;position:static !important;
+  min-width:0 !important;max-width:none !important;
+}
 #appView #inventory table.inventory-register thead th{position:static !important;top:auto !important;}
-#appView #inventory table.inventory-register thead tr:nth-child(2) th{width:94px !important;min-width:94px !important;max-width:94px !important;}
-#appView #inventory table.inventory-register thead tr:nth-child(2) th:first-child{width:94px !important;min-width:94px !important;max-width:94px !important;}
+#appView #inventory table.inventory-register thead th[rowspan="2"]{
+  width:230px !important;min-width:230px !important;max-width:230px !important;
+  text-align:left !important;
+}
+#appView #inventory table.inventory-register tbody td:first-child{
+  width:230px !important;min-width:230px !important;max-width:230px !important;
+  padding:12px 10px !important;text-align:left !important;white-space:normal !important;
+}
+#appView #inventory table.inventory-register input{
+  display:block !important;width:78px !important;min-width:78px !important;max-width:78px !important;
+  height:40px !important;min-height:40px !important;max-height:40px !important;
+  box-sizing:border-box !important;text-align:center !important;margin:0 auto !important;padding:7px 8px !important;
+}
 
 </style>
 </head>
@@ -148,7 +161,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
   </div></div>
   <div class="toolbar" style="margin:12px 0"><span class="muted" id="stockSummary">Select a date to view stock.</span><button class="btn" onclick="saveOpeningStock(this)">Save all opening stock</button><button class="btn secondary" onclick="saveInventoryMovements(this)">Save purchase &amp; sale quantities</button></div>
   <div class="status" id="inventoryDateStatus">Opening stock means stock at the start of 02 Nov 2026. Purchase and sale quantities are accumulated from 02 Nov through the selected date. Older entries are excluded.</div>
-  <div class="table-wrap"><table class="inventory-register"><thead>
+  <div class="table-wrap"><table class="inventory-register"><colgroup><col style="width:230px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"></colgroup><thead>
    <tr><th rowspan="2">S.No. / Brand</th><th colspan="4">Opening Stock (02 Nov)</th><th colspan="4">Purchase</th><th colspan="4">Total Stock</th><th colspan="4">Sale</th><th colspan="4">Balance Stock</th><th colspan="4">Balance Stock Value (₹)</th></tr>
    <tr><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th></tr>
   </thead><tbody id="inventoryRegisterRows"><tr><td colspan="25" class="empty">Loading inventory…</td></tr></tbody></table></div>
