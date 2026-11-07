@@ -985,30 +985,91 @@ function findExciseProduct(brand,size,category){
  }
  return bestScore>=0.55?best:null;
 }
+function exciseTextFromHtml(html){
+ const doc=new DOMParser().parseFromString(String(html||""),"text/html");
+ return doc;
+}
+function parseExciseRowsFromRaw(raw){
+ if(!raw)return [];
+ // Accept JSON-encoded response bodies as well as HTML/text returned by the Edge Function.
+ let value=raw;
+ if(typeof value==="string"){
+  const trimmed=value.trim();
+  if((trimmed.startsWith("{")&&trimmed.endsWith("}"))||(trimmed.startsWith("[")&&trimmed.endsWith("]"))){
+   try{value=JSON.parse(trimmed);}catch(e){}
+  }
+ }
+ if(Array.isArray(value))return value;
+ if(value&&typeof value==="object"){
+  const nested=value.rows||value.items||value.products||value.data?.rows||value.data?.items||value.data?.products;
+  if(Array.isArray(nested))return nested;
+  raw=value.html||value.pageHtml||value.body||value.content||value.pageText||value.text||"";
+ }
+ if(typeof raw!=="string"||!raw.trim())return [];
+ const doc=exciseTextFromHtml(raw);
+ const tables=[...doc.querySelectorAll("table")];
+ const out=[];
+ for(const table of tables){
+  const trs=[...table.querySelectorAll("tr")];
+  if(trs.length<2)continue;
+  const matrix=trs.map(tr=>[...tr.querySelectorAll("th,td")].map(td=>(td.innerText||td.textContent||"").replace(/\s+/g," ").trim()));
+  const headerIndex=matrix.findIndex(row=>row.some(c=>/brand/i.test(c))&&row.some(c=>/packaging\s*size|size/i.test(c))&&row.some(c=>/bottles?\s*dispatched|dispatched\s*bottles/i.test(c)));
+  if(headerIndex<0)continue;
+  const headers=matrix[headerIndex].map(x=>x.toLowerCase());
+  const findCol=patterns=>headers.findIndex(h=>patterns.some(p=>p.test(h)));
+  const brandCol=findCol([/brand/]);
+  const sizeCol=findCol([/packaging\s*size/,/^size$/]);
+  const qtyCol=findCol([/no\.?\s*of\s*bottles\s*dispatched/,/bottles?\s*dispatched/,/dispatched\s*bottles/]);
+  const caseCol=findCol([/cases?.*dispatched/,/dispatched.*cases?/]);
+  for(const row of matrix.slice(headerIndex+1)){
+   if(!row.length)continue;
+   const brand=row[brandCol]||"";
+   const size=row[sizeCol]||"";
+   const quantity=Number(String(row[qtyCol]||"").replace(/,/g,"").match(/\d+(?:\.\d+)?/)?.[0]||0);
+   const cases=Number(String(row[caseCol]||"").replace(/,/g,"").match(/\d+(?:\.\d+)?/)?.[0]||0);
+   if(brand&&size&&quantity>0)out.push({brand,size,quantity,cases});
+  }
+  if(out.length)return out;
+ }
+ // Text-only fallback: only accept rows where all three values are present on one line.
+ const lines=raw.replace(/<[^>]+>/g," ").replace(/&nbsp;/gi," ").replace(/&amp;/gi,"&").split(/\r?\n/).map(x=>x.replace(/\s+/g," ").trim()).filter(Boolean);
+ for(const line of lines){
+  const m=line.match(/^(.{4,100}?)\s+(Beer|Liquor)\s+(Strong|Mild|[A-Za-z -]+)\s+(\d{2,4}\s*ML)\s+([A-Za-z ]+)\s+[\d,]+\s+[\d,]+\s+[\d,]+\s+([\d,]+)\s+[\d,.]+$/i);
+  if(m)out.push({brand:m[1],size:m[4],quantity:Number(m[6].replace(/,/g,""))});
+ }
+ return out;
+}
 async function fetchExcisePassDetails(pass){
- setExciseFetchStatus("QR read ho gaya. Supabase Edge Function ke through UP Excise pass details fetch ho rahi hain…");
+ setExciseFetchStatus("QR read ho gaya. Supabase Edge Function se official Excise response aur dispatched product rows fetch ho rahi hain…");
  try{
-  // Server-side fetch is required because the Excise portal blocks browser CORS reads.
-  // The function must return { success:true, rows:[{brand,size,quantity,rate?}], pass?:{...} }.
   const {data,error}=await db.functions.invoke("excise-transport-pass",{body:{tpnum:pass.tpnum,tptype:pass.tptype||"FG",tpyear:pass.tpyear||"2026",sourceUrl:pass.url}});
   if(error)throw new Error(error.message||"Supabase Edge Function request failed");
   const payload=data||{};
   if(payload.success===false)throw new Error(payload.message||payload.error||("Excise portal fetch failed"+(payload.httpStatus?" (HTTP "+payload.httpStatus+")":"")));
   let rows=Array.isArray(payload.rows)?payload.rows:(Array.isArray(payload.items)?payload.items:(Array.isArray(payload.products)?payload.products:[]));
-  if(!rows.length && payload.data && Array.isArray(payload.data.rows))rows=payload.data.rows;
-  if(!rows.length)throw new Error(payload.message||"Function ne product rows return nahi ki. Edge Function ko parsed rows dene ke liye update karna hoga.");
-  const normalized=rows.map(r=>({brand:r.brand||r.brandName||r.product_name||r.productName||r.name||"",size:r.size||r.packaging_size||r.packagingSize||"",quantity:Number(r.quantity??r.dispatched_bottles??r.bottles_dispatched??r.bottles??r.qty??0),rate:Number(r.rate??r.purchase_rate??r.wholesale_price??0)})).filter(r=>r.brand&&r.quantity>0);
-  if(!normalized.length)throw new Error("Function response mila, lekin dispatched product quantity wali rows nahi mili.");
-  showExciseRows(normalized);
-  if(payload.pass){
-   if(payload.pass.consignor && !$('supplier').value)$('supplier').value=payload.pass.consignor;
-   if(payload.pass.issueDate && !$('pd').value){const d=new Date(payload.pass.issueDate);if(!isNaN(d))$('pd').value=d.toISOString().slice(0,10);}
+  if(!rows.length&&payload.data)rows=parseExciseRowsFromRaw(payload.data);
+  if(!rows.length)rows=parseExciseRowsFromRaw(payload.html||payload.pageHtml||payload.body||payload.content||payload.pageText||payload.text||payload.raw||payload.response);
+  const normalized=rows.map(r=>({
+   brand:r.brand||r.brandName||r.product_name||r.productName||r.name||r.product||"",
+   size:r.size||r.packaging_size||r.packagingSize||r.pack_size||"",
+   quantity:Number(r.quantity??r.dispatched_bottles??r.bottles_dispatched??r.no_of_bottles_dispatched??r.noOfBottlesDispatched??r.bottles??r.qty??0),
+   rate:Number(r.rate??r.purchase_rate??r.wholesale_price??0)
+  })).filter(r=>r.brand&&r.size&&Number.isFinite(r.quantity)&&r.quantity>0);
+  if(!normalized.length){
+   const status=payload.httpStatus||payload.status||"unknown";
+   const length=payload.contentLength||String(payload.pageText||payload.html||payload.body||"").length||0;
+   throw new Error("Portal ne response diya, lekin dispatched product table parse nahi hui (HTTP "+status+", response length "+length+"). Edge Function ko raw HTML/body return karna hoga; bina product rows ke purchase draft nahi banayi.");
   }
-  setExciseFetchStatus("✓ Excise pass se "+normalized.length+" product rows fetch hui. Brand, size, quantity aur rate verify karein. Abhi purchase save nahi hui hai.");
+  showExciseRows(normalized);
+  const passInfo=payload.pass||payload.details||{};
+  if((passInfo.consignor||passInfo.supplier)&&!$("supplier").value)$("supplier").value=passInfo.consignor||passInfo.supplier;
+  const issue=passInfo.issueDate||passInfo.issue_date;
+  if(issue&&!$("pd").value){const d=new Date(issue);if(!isNaN(d))$("pd").value=d.toISOString().slice(0,10);}
+  setExciseFetchStatus("✓ "+normalized.length+" dispatched product rows fetch hui. Har brand, size aur bottle quantity verify karein. Purchase abhi save nahi hui hai.");
   $("excisePreviewWrap").scrollIntoView({behavior:"smooth",block:"center"});
  }catch(e){
   const msg=String(e&&e.message||e||"Unknown error");
-  setExciseFetchStatus("QR scan ho gaya, lekin pass details fetch nahi hui: "+msg+". Koi external Excise tab open nahi kiya gaya aur koi purchase save nahi hui.");
+  setExciseFetchStatus("QR scan successful, lekin automatic product fetch fail hua: "+msg+". Koi external Excise tab open nahi hua aur koi purchase save nahi hui.");
  }
 }
 function showExciseRows(rows){
