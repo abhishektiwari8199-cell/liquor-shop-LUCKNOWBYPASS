@@ -927,39 +927,44 @@ async function ensureExciseQrLibrary(){
 async function startExciseQrScanner(){
  const panel=$("exciseScannerPanel"),host=$("exciseQrReader");
  if(panel)panel.style.display="block";
- if(!window.isSecureContext){setExciseStatus("Camera ke liye secure HTTPS connection zaroori hai. Website ko https:// se kholein.");return;}
- const loaded=await ensureExciseQrLibrary();
- if(!loaded){setExciseStatus("QR scanner library load nahi hui. Internet connection check karke page refresh karein.");return;}
+ if(!window.isSecureContext){setExciseStatus("Camera ke liye HTTPS zaroori hai. Website ko https:// se kholein.");return;}
+ if(!window.Html5Qrcode){setExciseStatus("QR scanner library load nahi hui. Page refresh karke dobara try karein.");return;}
+ if(!host){setExciseStatus("QR camera panel nahi mila. Page refresh karein.");return;}
  host.style.display="block";
  try{
-  // Restore the original, previously working camera-selection flow:
-  // enumerate cameras, prefer a camera whose label says back/rear/environment,
-  // otherwise use the browser's first available camera.
   if(exciseQrScanner){
    try{if(exciseQrScanner.isScanning)await exciseQrScanner.stop();}catch(e){}
    try{exciseQrScanner.clear();}catch(e){}
-   exciseQrScanner=null;
   }
   exciseQrScanner=new Html5Qrcode("exciseQrReader");
-  const cameras=await Html5Qrcode.getCameras();
-  if(!cameras||!cameras.length)throw new Error("Camera nahi mila. Browser camera permission allow karein.");
-  const cam=cameras.find(x=>/back|rear|environment/i.test(x.label||""))||cameras[0];
-  const config={fps:10,qrbox:{width:240,height:240},formatsToSupport:[Html5QrcodeSupportedFormats.QR_CODE]};
+  const config={fps:10,qrbox:{width:240,height:240},formatsToSupport:[Html5QrcodeSupportedFormats.QR_CODE],aspectRatio:1.0};
+  let handled=false;
   const onSuccess=async decoded=>{
+   if(handled)return;handled=true;
    const pass=parseExciseQr(decoded);
-   if(!pass){setExciseStatus("QR read hua, lekin valid UP Excise pass QR nahi hai.");return;}
+   if(!pass){handled=false;setExciseStatus("QR read hua, lekin valid UP Excise transport pass QR nahi hai.");return;}
    $("inv").value=pass.tpnum;
-   setExciseStatus("QR successfully scan ho gaya ✓ Pass number invoice mein fill hua.");
+   setExciseStatus("QR successfully scan ho gaya ✓ Pass details load ho rahi hain…");
    await stopExciseQrScanner();
    await fetchExcisePassDetails(pass);
   };
-  await exciseQrScanner.start(cam.id,config,onSuccess,()=>{});
-  setExciseStatus("Camera active hai. Excise pass ka QR frame ke andar rakhein.");
+  // Ask the browser explicitly for the device's rear-facing camera first.
+  try{
+   await exciseQrScanner.start({facingMode:"environment"},config,onSuccess,()=>{});
+  }catch(primaryError){
+   // Some Android devices require an explicit camera ID. Never silently switch to selfie camera.
+   try{if(exciseQrScanner.isScanning)await exciseQrScanner.stop();}catch(e){}
+   const cameras=await Html5Qrcode.getCameras();
+   const rear=cameras.find(c=>/back|rear|environment|tr[a]?s?e?r?a?/i.test(c.label||""));
+   if(!rear)throw new Error("Rear camera detect nahi hua. Chrome mein camera permission allow karke page reload karein.");
+   await exciseQrScanner.start(rear.id,config,onSuccess,()=>{});
+  }
+  setExciseStatus("Rear camera active hai. Excise pass ka QR frame ke andar rakhein.");
  }catch(e){
   const msg=String(e&&e.message||e||"");
-  if(/permission|denied|notallowed/i.test(msg))setExciseStatus("Camera permission blocked hai. Chrome address bar ke site settings → Camera → Allow karein, phir page reload karein.");
-  else if(/notfound|no camera|device/i.test(msg))setExciseStatus("Is device par camera detect nahi hua. Browser camera permission check karein.");
-  else setExciseStatus("Camera start nahi hua: "+msg+". Chrome mein site camera permission Allow karke reload karein.");
+  if(/permission|denied|notallowed/i.test(msg))setExciseStatus("Camera permission blocked hai. Chrome Site settings → Camera → Allow karein.");
+  else if(/rear camera|notfound|no camera|device/i.test(msg))setExciseStatus("Rear camera start nahi hua. Phone ke Chrome ko camera permission dein aur doosri camera app band karein.");
+  else setExciseStatus("Rear camera start nahi hua: "+msg);
   host.style.display="block";
  }
 }
