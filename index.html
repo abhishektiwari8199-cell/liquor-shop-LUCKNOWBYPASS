@@ -322,6 +322,38 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
   text-align:left !important;padding-left:12px !important;
 }
 
+
+/* FINAL BEER TABLE ALIGNMENT: exact 10-column grid; horizontal scrolling keeps every cell aligned */
+#appView #inventoryWork #beerInventoryWrap{
+  width:100% !important;max-width:100% !important;overflow-x:auto !important;overflow-y:visible !important;
+  -webkit-overflow-scrolling:touch;scrollbar-gutter:stable;
+}
+#appView #inventoryWork #beerInventoryWrap table.inventory-register.beer-register{
+  display:table !important;width:1048px !important;min-width:1048px !important;max-width:none !important;
+  table-layout:fixed !important;border-collapse:separate !important;border-spacing:0 !important;
+}
+#appView #inventoryWork #beerInventoryWrap table.beer-register col:nth-child(1){width:48px !important}
+#appView #inventoryWork #beerInventoryWrap table.beer-register col:nth-child(2){width:238px !important}
+#appView #inventoryWork #beerInventoryWrap table.beer-register col:nth-child(3),
+#appView #inventoryWork #beerInventoryWrap table.beer-register col:nth-child(5),
+#appView #inventoryWork #beerInventoryWrap table.beer-register col:nth-child(6){width:82px !important}
+#appView #inventoryWork #beerInventoryWrap table.beer-register col:nth-child(4),
+#appView #inventoryWork #beerInventoryWrap table.beer-register col:nth-child(7),
+#appView #inventoryWork #beerInventoryWrap table.beer-register col:nth-child(9){width:108px !important}
+#appView #inventoryWork #beerInventoryWrap table.beer-register col:nth-child(8),
+#appView #inventoryWork #beerInventoryWrap table.beer-register col:nth-child(10){width:96px !important}
+#appView #inventoryWork #beerInventoryWrap table.beer-register th,
+#appView #inventoryWork #beerInventoryWrap table.beer-register td{
+  box-sizing:border-box !important;overflow:hidden !important;text-overflow:clip !important;
+  vertical-align:middle !important;
+}
+#appView #inventoryWork #beerInventoryWrap table.beer-register td.beer-brand{
+  white-space:normal !important;overflow-wrap:anywhere !important;
+}
+#appView #inventoryWork #beerInventoryWrap table.beer-register input[type=number]{
+  width:64px !important;min-width:0 !important;max-width:100% !important;box-sizing:border-box !important;
+}
+
 </style>
 <style id="daily-counter-additions">.dashboard-link{cursor:pointer;transition:transform .15s,box-shadow .15s}.dashboard-link:hover{transform:translateY(-2px);box-shadow:0 8px 22px #0002}.dashboard-link:focus{outline:2px solid #d6a900;outline-offset:2px}#inventoryDayCounter .kpi{min-width:0}#inventoryDayCounter input{max-width:100%}</style>
 </head>
@@ -751,7 +783,7 @@ function recalculateInventoryLive(){
     beerTotals.o+=z.opening;beerTotals.ov+=z.openingValue;beerTotals.p+=z.purchase;beerTotals.s+=z.sale;beerTotals.sv+=z.saleValue;beerTotals.c+=z.balance;beerTotals.cv+=z.stockValue;beerTotals.profit+=z.profit;
   });
   const beerSubtotal=$("beerInventoryRows")?.querySelector(".inventory-subtotal-row");
-  if(beerSubtotal){const a=[fmtQty(beerTotals.o),money(beerTotals.ov),fmtQty(beerTotals.p),fmtQty(beerTotals.s),money(beerTotals.sv),fmtQty(beerTotals.c),money(beerTotals.cv),money(beerTotals.profit)];a.forEach((v,i)=>{if(beerSubtotal.cells[i+2])beerSubtotal.cells[i+2].textContent=v;});}
+  if(beerSubtotal){const a=[fmtQty(beerTotals.o),money(beerTotals.ov),fmtQty(beerTotals.p),fmtQty(beerTotals.s),money(beerTotals.sv),fmtQty(beerTotals.c),money(beerTotals.cv),money(beerTotals.profit)];a.forEach((v,i)=>{if(beerSubtotal.cells[i+1])beerSubtotal.cells[i+1].textContent=v;});}
   const liquorSum=Object.fromEntries(["opening","purchase","sale","balance"].map(k=>[k,products.filter(x=>String(x.category).toLowerCase()==="liquor").reduce((a,x)=>a+(current[String(x.id)]?.[k]||0),0)]));
   $("stockSummary").textContent=`As on ${$("inventoryDate").value||STOCK_START_DATE} · Liquor opening ${fmtQty(liquorSum.opening)} · Liquor purchase ${fmtQty(liquorSum.purchase)} · Liquor sale ${fmtQty(liquorSum.sale)} · Beer closing ${fmtQty(beerTotals.c)} · Beer stock value ${money(beerTotals.cv)}`;
 }
