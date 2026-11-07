@@ -410,13 +410,13 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
  </section>
 
  <section id="purchase" class="page">
-  <div class="section-head" style="align-items:center;gap:12px"><div><h3>Purchase entry</h3><p>Record incoming stock against supplier invoices</p></div><div class="row" style="justify-content:flex-end;align-items:center;gap:10px;flex-wrap:wrap"><button class="btn" type="button" onclick="toggleExciseScanner()">📷 Scan QR for Purchase</button><button class="btn secondary" onclick="showPage('purchaseHistory')">▤ Purchase history</button></div></div>
+  <div class="section-head" style="align-items:center;gap:12px"><div><h3>Purchase entry</h3><p>Record incoming stock against supplier invoices</p></div><div class="row" style="justify-content:flex-end;align-items:center;gap:10px;flex-wrap:wrap"><button class="btn" type="button" onclick="startExciseQrScanner()">📷 Scan QR for Purchase</button><button class="btn secondary" onclick="showPage('purchaseHistory')">▤ Purchase history</button></div></div>
   <div class="panel glass"><div class="section-head" style="margin-top:0"><div><h3>Brand wholesale rates</h3><p>Update each product's purchase cost once; sale margin uses this rate</p></div></div><div class="row"><label>Search brand<input id="whSearch" placeholder="Search brand / size" oninput="drawWholesaleRates()"></label><label>Category<select id="whCategory" onchange="drawWholesaleRates()"><option value="all">All</option><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label></div><div class="table-wrap"><table><thead><tr><th>Category</th><th>Brand</th><th>Size</th><th>Wholesale rate</th><th>MRP</th><th>Margin / bottle</th><th>Action</th></tr></thead><tbody id="wholesaleRateRows"></tbody></table></div></div>
   <div class="panel glass"><div class="form-grid"><label>Invoice number<input id="inv" placeholder="Supplier invoice no."></label><label>Supplier name<input id="supplier" placeholder="Supplier / distributor"></label><label>Invoice date<input id="pd" type="date" min="2026-11-02"></label><label>Category<select id="pc" onchange="fillSelects()"><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label></div></div>
   <div class="panel glass" id="exciseScannerPanel" style="display:none;padding:12px 14px;margin:8px 0">
    <div class="toolbar" style="justify-content:flex-start;gap:12px">
     <strong style="font:800 14px Manrope">📷 Scan QR for Purchase</strong>
-    <button class="btn" type="button" style="padding:9px 15px" onclick="startExciseQrScanner()">Scan QR</button>
+    
     <button class="btn secondary" type="button" style="padding:9px 12px" onclick="stopExciseQrScanner()">Stop</button>
     <span class="muted" id="exciseScanStatus" style="font-size:11px">Excise transport pass ka QR scan karein.</span>
    </div>
@@ -904,26 +904,62 @@ function parseExciseQr(raw){
  if(m)return {tpnum:m[0],url:"https://cms.upexciseonline.co/transport-pass-tracking/?tpnum="+encodeURIComponent(m[0])+"&tptype=FG&tpyear=2026",tptype:"FG",tpyear:"2026"};
  return null;
 }
+async function ensureExciseQrLibrary(){
+ if(window.Html5Qrcode)return true;
+ const urls=[
+  "https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js",
+  "https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"
+ ];
+ for(const url of urls){
+  try{
+   await new Promise((resolve,reject)=>{
+    const old=document.querySelector('script[data-excise-qr="1"]');if(old)old.remove();
+    const sc=document.createElement("script");sc.src=url;sc.async=true;sc.dataset.exciseQr="1";
+    sc.onload=()=>window.Html5Qrcode?resolve():reject(new Error("QR library global missing"));
+    sc.onerror=()=>reject(new Error("QR library CDN unavailable"));
+    document.head.appendChild(sc);
+   });
+   if(window.Html5Qrcode)return true;
+  }catch(e){}
+ }
+ return false;
+}
 async function startExciseQrScanner(){
- const host=$("exciseQrReader");
- if(!window.Html5Qrcode){setExciseStatus("QR library load nahi hui. Page refresh karein.");return;}
+ const panel=$("exciseScannerPanel"),host=$("exciseQrReader");
+ if(panel)panel.style.display="block";
+ if(!window.isSecureContext){setExciseStatus("Camera ke liye secure HTTPS connection zaroori hai. Website ko https:// se kholein.");return;}
+ setExciseStatus("Camera permission check ho rahi hai…");
+ const loaded=await ensureExciseQrLibrary();
+ if(!loaded){setExciseStatus("QR scanner library load nahi hui. Internet connection check karke page refresh karein.");return;}
  host.style.display="block";
+ host.innerHTML="";
  try{
-  if(!exciseQrScanner)exciseQrScanner=new Html5Qrcode("exciseQrReader");
-  const cameras=await Html5Qrcode.getCameras();
-  if(!cameras.length)throw new Error("Camera nahi mila. Browser camera permission allow karein.");
-  const cam=cameras.find(x=>/back|rear|environment/i.test(x.label))||cameras[0];
-  await exciseQrScanner.start(cam.id,{fps:10,qrbox:{width:220,height:220}},async decoded=>{
+  if(exciseQrScanner){try{if(exciseQrScanner.isScanning)await exciseQrScanner.stop();}catch(e){} exciseQrScanner.clear().catch(()=>{});exciseQrScanner=null;}
+  exciseQrScanner=new Html5Qrcode("exciseQrReader",{verbose:false});
+  const config={fps:12,qrbox:(w,h)=>{const side=Math.floor(Math.min(w,h)*0.78);return {width:side,height:side};},aspectRatio:1.0,formatsToSupport:[Html5QrcodeSupportedFormats.QR_CODE]};
+  const onSuccess=async decoded=>{
    const pass=parseExciseQr(decoded);
-   if(!pass){setExciseStatus("QR read hua, lekin valid Excise transport pass number nahi mila.");return;}
-   excisePassUrl=pass.url;
+   if(!pass){setExciseStatus("QR read hua, lekin valid UP Excise pass QR nahi hai.");return;}
    $("inv").value=pass.tpnum;
-   setExciseStatus("QR scanned ✓ Pass number purchase invoice mein fill kar diya.");
+   setExciseStatus("QR successfully scan ho gaya ✓ Pass number invoice mein fill hua.");
    await stopExciseQrScanner();
    await fetchExcisePassDetails(pass);
-  },()=>{});
-  setExciseStatus("Camera active — QR code ko frame ke andar rakhein.");
- }catch(e){setExciseStatus("Camera start nahi hua: "+(e.message||e));}
+  };
+  try{
+   await exciseQrScanner.start({facingMode:"environment"},config,onSuccess,()=>{});
+  }catch(backErr){
+   const cams=await Html5Qrcode.getCameras();
+   if(!cams.length)throw backErr;
+   await exciseQrScanner.start(cams[0].id,config,onSuccess,()=>{});
+  }
+  setExciseStatus("Camera ON hai. Excise pass ka QR code camera ke frame mein rakhein.");
+ }catch(e){
+  const msg=String(e&&e.message||e||"");
+  if(/permission|denied|notallowed/i.test(msg))setExciseStatus("Camera permission blocked hai. Chrome address bar ke lock/site settings icon → Camera → Allow karein, phir page reload karein.");
+  else if(/notfound|no camera|device/i.test(msg))setExciseStatus("Is device par camera detect nahi hua. Webcam connect karein ya mobile se website kholein.");
+  else setExciseStatus("Camera start nahi hua: "+msg+". Chrome mein site camera permission Allow karke reload karein.");
+  host.style.display="block";
+ }
 }
 async function stopExciseQrScanner(){
  if(exciseQrScanner){try{if(exciseQrScanner.isScanning)await exciseQrScanner.stop();}catch(e){}}
