@@ -203,6 +203,17 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
   background:#f5c542 !important;color:#102f50 !important;
 }
 
+
+#appView #inventory .beer-register{min-width:1250px;table-layout:fixed}
+#appView #inventory .beer-register th{background:#173b63!important;color:#fff!important}
+#appView #inventory .beer-register td{padding:9px 10px!important;text-align:center}
+#appView #inventory .beer-register td.beer-brand{text-align:left;font-weight:800;white-space:normal;min-width:260px}
+#appView #inventory .beer-register tbody td:nth-child(3){background:#edf6ff!important}
+#appView #inventory .beer-register tbody td:nth-child(5){background:#fff3e8!important}
+#appView #inventory .beer-register tbody td:nth-child(6){background:#eaf8ee!important}
+#appView #inventory .beer-register input{width:88px;height:38px;text-align:center;background:#fff!important;color:#173b63!important;border:1px solid #9aadc2!important}
+#appView #inventory .beer-register tbody tr.inventory-subtotal-row td{background:#fff2c7!important;color:#563d00!important;font-weight:900!important}
+
 </style>
 </head>
 <body>
@@ -264,10 +275,13 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
   </div></div>
   <div class="toolbar" style="margin:12px 0"><span class="muted" id="stockSummary">Select a date to view stock.</span><button class="btn" onclick="saveOpeningStock(this)">Save all opening stock</button><button class="btn secondary" onclick="saveInventoryMovements(this)">Save purchase &amp; sale quantities</button></div>
   <div class="status" id="inventoryDateStatus">Opening stock means stock at the start of 02 Nov 2026. Purchase and sale quantities are accumulated from 02 Nov through the selected date. Older entries are excluded.</div>
-  <div class="table-wrap"><table class="inventory-register"><colgroup><col style="width:230px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"></colgroup><thead>
+  <div id="liquorInventoryWrap" class="table-wrap"><table class="inventory-register liquor-register"><colgroup><col style="width:230px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"></colgroup><thead>
    <tr><th rowspan="2">S.No. / Brand</th><th colspan="4">Opening Stock (02 Nov)</th><th colspan="4">Purchase</th><th colspan="4">Total Stock</th><th colspan="4">Sale</th><th colspan="4">Balance Stock</th><th colspan="4">Balance Stock Value (₹)</th></tr>
    <tr><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th></tr>
-  </thead><tbody id="inventoryRegisterRows"><tr><td colspan="25" class="empty">Loading inventory…</td></tr></tbody></table></div>
+  </thead><tbody id="liquorInventoryRows"><tr><td colspan="25" class="empty">Loading inventory…</td></tr></tbody></table></div>
+  <div id="beerInventoryWrap" class="table-wrap"><table class="inventory-register beer-register"><colgroup><col style="width:55px"><col style="width:260px"><col style="width:115px"><col style="width:115px"><col style="width:115px"><col style="width:115px"><col style="width:115px"><col style="width:115px"><col style="width:115px"><col style="width:115px"></colgroup><thead>
+   <tr><th>QTY</th><th>Brand Name</th><th>Opening Qty</th><th>Opening Total ₹</th><th>Purchase</th><th>Sale</th><th>Sale Total ₹</th><th>Closing Stock</th><th>Stock Value ₹</th><th>Profit ₹</th></tr>
+  </thead><tbody id="beerInventoryRows"><tr><td colspan="10" class="empty">Loading beer inventory…</td></tr></tbody></table></div>
  </section>
 
  <section id="sale" class="page">
@@ -390,7 +404,14 @@ function stockFor(p){
   const sold=stockSold[key]||0;
   return {opening,purchased,sold,available:opening+purchased-sold,mrpValue:(opening+purchased-sold)*num(p.mrp)};
 }
-function sizeIndex(value){const digits=String(value||"").replace(/[^0-9]/g,"");return ({"750":0,"375":1,"180":2,"90":3})[digits]??-1;}
+function sizeIndex(value){
+  const raw=String(value||"").toUpperCase().replace(/,/g,".").trim();
+  const liter=raw.match(/(0?\.?(?:75|375|18|09))\s*L(?:ITRE|ITER)?\b/);
+  if(liter){const n=liter[1].replace(/^0?\.?/,"");const ml=({"75":"750","375":"375","18":"180","09":"90"})[n];if(ml)return ({"750":0,"375":1,"180":2,"90":3})[ml];}
+  const digits=raw.replace(/[^0-9]/g,"");
+  const normalized=digits.length>3?digits.slice(0,3):digits;
+  return ({"750":0,"375":1,"180":2,"90":3})[normalized]??-1;
+}
 function brandKey(value){return String(value||"").toUpperCase().replace(/[^A-Z0-9]/g,"");}
 async function loadInventoryForDate(){
   const date=$("inventoryDate").value||STOCK_START_DATE;
@@ -430,53 +451,51 @@ function orderedBrandGroups(rows){
 }
 function drawProducts(){
   const cat=$("cat").value,q=$("search").value.toLowerCase();
-  const rows=products.filter(p=>(cat==="all"||String(p.category).toLowerCase()===cat)&&(`${p.brand_name||""}`).toLowerCase().includes(q));
-  const groups=orderedBrandGroups(rows);
-  const liquorGroups=groups.filter(g=>String(g.products[0]?.category||"").toLowerCase()==="liquor");
-  const beerGroups=groups.filter(g=>String(g.products[0]?.category||"").toLowerCase()==="beer");
-  const otherGroups=groups.filter(g=>!["liquor","beer"].includes(String(g.products[0]?.category||"").toLowerCase()));
-  $("inventoryCount").textContent=groups.length+" BRANDS · "+rows.length+" SIZES";
-  let grand={opening:0,purchase:0,total:0,sale:0,balance:0,value:0};
-  const htmlRows=[];
-  const sizes=["750","375","180","90"];
-  const fmt=arr=>arr.map(v=>`<td class="calc">${Number(v||0).toLocaleString('en-IN',{maximumFractionDigits:2})}</td>`).join('');
-  const fmtMoney=arr=>arr.map(v=>`<td class="value">${money(v)}</td>`).join('');
-  function renderCategorySection(label,icon,categoryGroups,sectionClass){
-    if(!categoryGroups.length)return;
-    const subtotal={opening:[0,0,0,0],purchase:[0,0,0,0],total:[0,0,0,0],sale:[0,0,0,0],balance:[0,0,0,0],value:[0,0,0,0]};
-    htmlRows.push(`<tr class="inventory-category-row ${sectionClass}"><td colspan="25">${icon} ${label} INVENTORY <span>${categoryGroups.length} BRANDS</span></td></tr>`);
-    categoryGroups.forEach((g,idx)=>{
-      const map=[null,null,null,null];
-      for(const p of g.products){const i=sizeIndex(p.size);if(i>=0)map[i]=p;}
-      const opening=map.map(p=>p?num(p.opening_stock):0);
-      const purchase=map.map(p=>p?(inventoryPurchased[String(p.id)]||0):0);
-      const sale=map.map(p=>p?(inventorySold[String(p.id)]||0):0);
-      const total=opening.map((v,i)=>v+purchase[i]);
-      const balance=total.map((v,i)=>v-sale[i]);
-      const value=balance.map((v,i)=>v*num(map[i]?.wholesale_price));
-      for(let i=0;i<4;i++){
-        subtotal.opening[i]+=opening[i];subtotal.purchase[i]+=purchase[i];subtotal.total[i]+=total[i];
-        subtotal.sale[i]+=sale[i];subtotal.balance[i]+=balance[i];subtotal.value[i]+=value[i];
-        grand.opening+=opening[i];grand.purchase+=purchase[i];grand.total+=total[i];
-        grand.sale+=sale[i];grand.balance+=balance[i];grand.value+=value[i];
-      }
-      const openCells=map.map((p,i)=>`<td>${p?`<input aria-label="${safe(g.name)} ${sizes[i]} opening stock" id="opening_${safe(p.id)}" type="number" min="0" step=".01" value="${opening[i]}" onkeydown="inventoryEnterNext(event)">`:'—'}</td>`).join('');
-      const purchaseCells=map.map((p,i)=>{const v=p?(inventoryManualCurrent[String(p.id)]?.purchase||0):0;return `<td>${p?`<input aria-label="${safe(g.name)} ${sizes[i]} purchase quantity" id="reg_purchase_${safe(p.id)}" type="number" min="0" step=".01" value="${v}" onkeydown="inventoryEnterNext(event)">`:'—'}</td>`;}).join('');
-      const saleCells=map.map((p,i)=>{const v=p?(inventoryManualCurrent[String(p.id)]?.sale||0):0;return `<td>${p?`<input aria-label="${safe(g.name)} ${sizes[i]} sale quantity" id="reg_sale_${safe(p.id)}" type="number" min="0" step=".01" value="${v}" onkeydown="inventoryEnterNext(event)">`:'—'}</td>`;}).join('');
-      htmlRows.push(`<tr><td>${idx+1}. ${safe(g.name)}</td>${openCells}${purchaseCells}${fmt(total)}${saleCells}${fmt(balance)}${fmtMoney(value)}</tr>`);
-    });
-    htmlRows.push(`<tr class="inventory-subtotal-row ${sectionClass}-subtotal"><td>TOTAL ${label}</td>${fmt(subtotal.opening)}${fmt(subtotal.purchase)}${fmt(subtotal.total)}${fmt(subtotal.sale)}${fmt(subtotal.balance)}${fmtMoney(subtotal.value)}</tr>`);
+  const rows=products.filter(p=>(cat==="all"||String(p.category).toLowerCase()===cat)&&(`${p.brand_name||""} ${p.size||""}`).toLowerCase().includes(q));
+  const liquor=orderedBrandGroups(rows.filter(p=>String(p.category).toLowerCase()==="liquor"));
+  const beer=rows.filter(p=>String(p.category).toLowerCase()==="beer");
+  const other=rows.filter(p=>!["liquor","beer"].includes(String(p.category).toLowerCase()));
+  $("inventoryCount").textContent=(liquor.length+beer.length+other.length)+" BRANDS · "+rows.length+" SIZES";
+  $("liquorInventoryWrap").style.display=cat==="beer"?"none":"block";
+  $("beerInventoryWrap").style.display=cat==="liquor"?"none":"block";
+  const grand={opening:0,purchase:0,total:0,sale:0,balance:0,value:0};
+  const L=[],sizes=["750","375","180","90"];
+  const fmt=a=>a.map(v=>`<td class="calc">${Number(v||0).toLocaleString("en-IN",{maximumFractionDigits:2})}</td>`).join("");
+  const fmtM=a=>a.map(v=>`<td class="value">${money(v)}</td>`).join("");
+  const liqTotals={o:[0,0,0,0],p:[0,0,0,0],t:[0,0,0,0],s:[0,0,0,0],b:[0,0,0,0],v:[0,0,0,0]};
+  // Subtotals are calculated from EVERY liquor brand, not only the currently visible search results.
+  const allLiquorGroups=orderedBrandGroups(products.filter(x=>String(x.category).toLowerCase()==="liquor"));
+  for(const g of allLiquorGroups){
+    const map=[null,null,null,null];g.products.forEach(x=>{const k=sizeIndex(x.size);if(k>=0)map[k]=x;});
+    const o=map.map(x=>x?num(x.opening_stock):0),p=map.map(x=>x?num(inventoryPurchased[String(x.id)]):0),sale=map.map(x=>x?num(inventorySold[String(x.id)]):0),t=o.map((v,k)=>v+p[k]),b=t.map((v,k)=>v-sale[k]),v=b.map((x,k)=>x*num(map[k]?.wholesale_price));
+    [o,p,t,sale,b,v].forEach((a,ai)=>a.forEach((n,k)=>{[liqTotals.o,liqTotals.p,liqTotals.t,liqTotals.s,liqTotals.b,liqTotals.v][ai][k]+=n;}));
   }
-  renderCategorySection("LIQUOR","🥃",liquorGroups,"liquor");
-  renderCategorySection("BEER","🍺",beerGroups,"beer");
-  renderCategorySection("OTHER","📦",otherGroups,"other");
-  $("inventoryRegisterRows").innerHTML=htmlRows.join("")||'<tr><td colspan="25" class="empty">No matching brands found.</td></tr>';
-  $("stockSummary").textContent=`As on ${$("inventoryDate").value||STOCK_START_DATE} · Opening ${grand.opening} · Purchase ${grand.purchase} · Total ${grand.total} · Sale ${grand.sale} · Balance ${grand.balance} · Balance stock value ${money(grand.value)}${inventoryMovementError?" · "+inventoryMovementError:""}`;
+  liquor.forEach((g,idx)=>{
+    const map=[null,null,null,null];g.products.forEach(p=>{const k=sizeIndex(p.size);if(k>=0)map[k]=p;});
+    const o=map.map(p=>p?num(p.opening_stock):0),p=map.map(x=>x?num(inventoryPurchased[String(x.id)]):0),s=map.map(x=>x?num(inventorySold[String(x.id)]):0),t=o.map((v,k)=>v+p[k]),b=t.map((v,k)=>v-s[k]),v=b.map((x,k)=>x*num(map[k]?.wholesale_price));
+    for(let k=0;k<4;k++){grand.opening+=o[k];grand.purchase+=p[k];grand.total+=t[k];grand.sale+=s[k];grand.balance+=b[k];grand.value+=v[k];}
+    const inputs=(arr,prefix,label)=>map.map((x,k)=>`<td>${x?`<input aria-label="${safe(g.name)} ${sizes[k]} ${label}" id="${prefix}_${safe(x.id)}" type="number" min="0" step=".01" value="${arr[k]}" onkeydown="inventoryEnterNext(event)">`:"—"}</td>`).join("");
+    L.push(`<tr><td>${idx+1}. ${safe(g.name)}</td>${inputs(o,"opening","opening stock")}${inputs(map.map(x=>x?(inventoryManualCurrent[String(x.id)]?.purchase||0):0),"reg_purchase","purchase")}${fmt(t)}${inputs(map.map(x=>x?(inventoryManualCurrent[String(x.id)]?.sale||0):0),"reg_sale","sale")}${fmt(b)}${fmtM(v)}</tr>`);
+  });
+  if(allLiquorGroups.length)L.push(`<tr class="inventory-subtotal-row liquor-total-row"><td>TOTAL ALL LIQUOR BRANDS</td>${fmt(liqTotals.o)}${fmt(liqTotals.p)}${fmt(liqTotals.t)}${fmt(liqTotals.s)}${fmt(liqTotals.b)}${fmtM(liqTotals.v)}</tr>`);
+  $("liquorInventoryRows").innerHTML=L.join("")||'<tr><td colspan="25" class="empty">No liquor brands found.</td></tr>';
+  const B=[];let bt={o:0,ov:0,p:0,s:0,sv:0,c:0,cv:0,profit:0};
+  beer.forEach((x,idx)=>{
+    const opening=num(x.opening_stock),purchase=num(inventoryPurchased[String(x.id)]),sale=num(inventorySold[String(x.id)]);
+    const openingValue=opening*num(x.wholesale_price),available=opening+purchase,saleValue=sale*num(x.mrp),closing=available-sale,stockValue=closing*num(x.wholesale_price),profit=sale*(num(x.mrp)-num(x.wholesale_price));
+    bt.o+=opening;bt.ov+=openingValue;bt.p+=purchase;bt.s+=sale;bt.sv+=saleValue;bt.c+=closing;bt.cv+=stockValue;bt.profit+=profit;
+    for(const [k,n] of Object.entries({opening,purchase,sale,available,closing,openingValue,saleValue,stockValue,profit}))grand[k]=(grand[k]||0)+n;
+    const entry=inventoryManualCurrent[String(x.id)]||{};
+    B.push(`<tr><td>${idx+1}</td><td class="beer-brand">${safe(x.brand_name)}${x.size?" - "+safe(x.size):""}</td><td><input id="opening_${safe(x.id)}" type="number" min="0" step=".01" value="${opening}" onkeydown="inventoryEnterNext(event)"></td><td class="calc">${money(openingValue)}</td><td><input id="reg_purchase_${safe(x.id)}" type="number" min="0" step=".01" value="${num(entry.purchase)}" onkeydown="inventoryEnterNext(event)"></td><td><input id="reg_sale_${safe(x.id)}" type="number" min="0" step=".01" value="${num(entry.sale)}" onkeydown="inventoryEnterNext(event)"></td><td class="calc">${money(saleValue)}</td><td class="calc">${closing}</td><td class="value">${money(stockValue)}</td><td class="value">${money(profit)}</td></tr>`);
+  });
+  if(beer.length)B.push(`<tr class="inventory-subtotal-row"><td colspan="2">TOTAL BEER</td><td>${bt.o}</td><td>${money(bt.ov)}</td><td>${bt.p}</td><td>${bt.s}</td><td>${money(bt.sv)}</td><td>${bt.c}</td><td>${money(bt.cv)}</td><td>${money(bt.profit)}</td></tr>`);
+  $("beerInventoryRows").innerHTML=B.join("")||'<tr><td colspan="10" class="empty">No beer brands found.</td></tr>';
+  $("stockSummary").textContent=`As on ${$("inventoryDate").value||STOCK_START_DATE} · Liquor opening ${grand.opening} · Liquor purchase ${grand.purchase} · Liquor sale ${grand.sale} · Beer closing ${bt.c} · Beer stock value ${money(bt.cv)}`;
 }
 function inventoryEnterNext(event){
   const key=event.key;
   const fieldsInRow=()=>[...event.currentTarget.closest("tr").querySelectorAll('input[type="number"]')];
-  const allRows=[...$("inventoryRegisterRows").querySelectorAll("tr")];
+  const allRows=[...document.querySelectorAll("#liquorInventoryRows tr, #beerInventoryRows tr")];
   const row=event.currentTarget.closest("tr");
   const rowIndex=allRows.indexOf(row);
   const rowFields=fieldsInRow();
