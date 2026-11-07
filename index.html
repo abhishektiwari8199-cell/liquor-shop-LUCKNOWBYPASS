@@ -105,7 +105,7 @@ let db=null,user=null,products=[],saleCart=[],purchaseCart=[];
 let stockPurchased={},stockSold={},stockMovementError="";
 const $=id=>document.getElementById(id),num=v=>Number(v)||0;
 const money=v=>"₹"+num(v).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
-const today=()=>{const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)};
+const STOCK_START_DATE="2026-11-02";return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)};
 function setMsg(id,text){$(id).textContent=text}
 function safe(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function initDb(){if(!window.supabase)throw new Error("Supabase library could not load. Check internet connection and refresh.");if(!db)db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);return db}
