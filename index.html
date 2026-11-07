@@ -561,6 +561,42 @@ async function loadInventoryForDate(){
   drawProducts();
 }
 
+const BEER_SEQUENCE_PATTERNS=[
+  /kingfisher.*650.*bottle/,
+  /ultramax.*650.*bottle/,
+  /tuborg(?!.*classic|.*strong).*650.*bottle/,
+  /eleph?e?nt.*650.*bottle|elephant.*650.*bottle/,
+  /brocode.*375.*can/,
+  /rio.*gold/,
+  /ultramax.*500.*can/,
+  /budw[ie]s?er.*650.*bottle|budweiser.*650.*bottle/,
+  /eleph?e?nt.*500.*can|elephant.*500.*can/,
+  /budw[ie]s?er.*500.*can|budweiser.*500.*can/,
+  /kingfisher.*500.*can/,
+  /tuborg.*classic.*500.*can/,
+  /tuborg.*strong.*500.*can/,
+  /sab.*500.*can/,
+  /god.*father.*500.*can/,
+  /hyw?ards?.*5000.*500.*can|haywards?.*5000.*500.*can/,
+  /x7.*classico.*330/,
+  /elif?hanth?.*smooch.*pre|elephant.*smooch.*pre/,
+  /eleph?e?nt.*330|elephant.*330/
+];
+function beerSequenceIndex(p){
+  const text=(`${p.brand_name||""} ${p.size||""}`).toLowerCase()
+    .replace(/[^a-z0-9]+/g," ").replace(/\s+/g," ").trim();
+  const idx=BEER_SEQUENCE_PATTERNS.findIndex(re=>re.test(text));
+  return idx<0?999:idx;
+}
+function orderedBeerProducts(rows){
+  return [...rows].sort((a,b)=>{
+    const ai=beerSequenceIndex(a),bi=beerSequenceIndex(b);
+    if(ai!==bi)return ai-bi;
+    if(ai===999)return String(a.brand_name||"").localeCompare(String(b.brand_name||""));
+    return String(a.size||"").localeCompare(String(b.size||""));
+  });
+}
+
 function orderedBrandGroups(rows){
   const byKey=new Map();
   for(const p of rows){const k=brandKey(p.brand_name);if(!byKey.has(k))byKey.set(k,[]);byKey.get(k).push(p);}
@@ -574,7 +610,7 @@ function drawProducts(){
   const cat=$("cat").value,q=$("search").value.toLowerCase();
   const rows=products.filter(p=>(cat==="all"||String(p.category).toLowerCase()===cat)&&(`${p.brand_name||""} ${p.size||""}`).toLowerCase().includes(q));
   const liquor=orderedBrandGroups(rows.filter(p=>String(p.category).toLowerCase()==="liquor"));
-  const beer=rows.filter(p=>String(p.category).toLowerCase()==="beer");
+  const beer=orderedBeerProducts(rows.filter(p=>String(p.category).toLowerCase()==="beer"));
   const other=rows.filter(p=>!["liquor","beer"].includes(String(p.category).toLowerCase()));
   $("inventoryCount").textContent=(liquor.length+beer.length+other.length)+" BRANDS · "+rows.length+" SIZES";
   $("liquorInventoryWrap").style.display=cat==="beer"?"none":"block";
@@ -648,7 +684,7 @@ function recalculateInventoryLive(){
   const subtotal=$("liquorInventoryRows")?.querySelector(".liquor-total-row");
   if(subtotal){let c=1;["o","p","t","s","b"].forEach(key=>totals[key].forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=fmtQty(n);}));totals.v.forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=money(n);});}
   let beerTotals={o:0,ov:0,p:0,s:0,sv:0,c:0,cv:0,profit:0};
-  const visibleBeer=products.filter(x=>String(x.category).toLowerCase()==="beer"&&(($("cat")?.value||"all")==="all"||$("cat").value==="beer")&&(`${x.brand_name||""} ${x.size||""}`).toLowerCase().includes(($("search")?.value||"").toLowerCase()));
+  const visibleBeer=orderedBeerProducts(products.filter(x=>String(x.category).toLowerCase()==="beer"&&(($("cat")?.value||"all")==="all"||$("cat").value==="beer")&&(`${x.brand_name||""} ${x.size||""}`).toLowerCase().includes(($("search")?.value||"").toLowerCase())));
   visibleBeer.forEach((x,idx)=>{
     const z=current[String(x.id)];if(!z)return;const tr=$("beerInventoryRows")?.rows[idx];
     if(tr){if(tr.cells[3])tr.cells[3].textContent=money(z.openingValue);if(tr.cells[6])tr.cells[6].textContent=money(z.saleValue);if(tr.cells[7])tr.cells[7].textContent=fmtQty(z.balance);if(tr.cells[8])tr.cells[8].textContent=money(z.stockValue);if(tr.cells[9])tr.cells[9].textContent=money(z.profit);}
