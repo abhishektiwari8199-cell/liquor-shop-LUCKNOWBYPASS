@@ -323,6 +323,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
 }
 
 </style>
+<style id="daily-counter-additions">.dashboard-link{cursor:pointer;transition:transform .15s,box-shadow .15s}.dashboard-link:hover{transform:translateY(-2px);box-shadow:0 8px 22px #0002}.dashboard-link:focus{outline:2px solid #d6a900;outline-offset:2px}#inventoryDayCounter .kpi{min-width:0}#inventoryDayCounter input{max-width:100%}</style>
 </head>
 <body>
 <section id="loginView">
@@ -352,13 +353,13 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
   <div class="hero"><div class="hero-copy"><div class="eyebrow">Your business. One dashboard.</div><h1>Welcome to your<br><span>store command centre.</span></h1><p>Manage liquor and beer operations from one place. Track products, record sales, manage purchases and stay on top of daily cash.</p><button class="btn" onclick="showPage('sale')">＋ Create new sale</button></div><div class="hero-art"><span>🥃</span><span>🍺</span></div></div>
   <div class="kpis">
    <div class="kpi glass"><span class="kpi-icon">▦</span><small>Total products</small><strong id="count">—</strong></div>
-   <div class="kpi glass"><span class="kpi-icon">↗</span><small>Today's sales</small><strong id="todaySales">₹0.00</strong></div>
-   <div class="kpi glass"><span class="kpi-icon">⇩</span><small>Today's purchases</small><strong id="todayPurchase">₹0.00</strong></div>
-   <div class="kpi glass"><span class="kpi-icon">◈</span><small>Total stock units</small><strong id="dashStock">—</strong></div>
-   <div class="kpi glass"><span class="kpi-icon">⚠</span><small>Low stock products</small><strong id="dashLow">—</strong></div>
-   <div class="kpi glass"><span class="kpi-icon">🍺</span><small>Beer stock</small><strong id="dashBeer">—</strong></div>
-   <div class="kpi glass"><span class="kpi-icon">🥃</span><small>Liquor stock</small><strong id="dashLiquor">—</strong></div>
-   <div class="kpi glass"><span class="kpi-icon">▤</span><small>Sales (30 days)</small><strong id="dash30Sales">₹0.00</strong></div>
+   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('sales')"><span class="kpi-icon">↗</span><small>Today's sales</small><strong id="todaySales">₹0.00</strong></div>
+   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('purchases')"><span class="kpi-icon">⇩</span><small>Today's purchases</small><strong id="todayPurchase">₹0.00</strong></div>
+   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('stock')"><span class="kpi-icon">◈</span><small>Total stock units</small><strong id="dashStock">—</strong></div>
+   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('low')"><span class="kpi-icon">⚠</span><small>Low stock products</small><strong id="dashLow">—</strong></div>
+   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('beer')"><span class="kpi-icon">🍺</span><small>Beer stock</small><strong id="dashBeer">—</strong></div>
+   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('liquor')"><span class="kpi-icon">🥃</span><small>Liquor stock</small><strong id="dashLiquor">—</strong></div>
+   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('history')"><span class="kpi-icon">▤</span><small>Sales (30 days)</small><strong id="dash30Sales">₹0.00</strong></div>
   </div>
   <div class="section-head"><div><h3>Sales performance</h3><p>Daily sales value for the last 7 days</p></div><span class="tag">LIVE REPORT</span></div>
   <div class="panel glass"><div style="height:280px;position:relative"><canvas id="salesChart" aria-label="Sales graph"></canvas></div></div>
@@ -400,6 +401,28 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
   <div id="beerInventoryWrap" class="table-wrap"><table class="inventory-register beer-register"><colgroup><col style="width:48px"><col style="width:238px"><col style="width:82px"><col style="width:108px"><col style="width:82px"><col style="width:82px"><col style="width:108px"><col style="width:96px"><col style="width:108px"><col style="width:96px"></colgroup><thead>
    <tr><th>QTY</th><th>Brand Name</th><th>Opening Qty</th><th>Opening Total ₹</th><th>Purchase</th><th>Sale</th><th>Sale Total ₹</th><th>Closing Stock</th><th>Stock Value ₹</th><th>Profit ₹</th></tr>
   </thead><tbody id="beerInventoryRows"><tr><td colspan="10" class="empty">Loading beer inventory…</td></tr></tbody></table></div>
+  <div class="panel glass" id="hiddenBrandsPanel" style="margin-top:16px"><div class="section-head"><div><h3>Hidden brands</h3><p>Hidden rows are only removed from this screen; product and sales records are not deleted.</p></div><button class="btn secondary" type="button" onclick="restoreAllInventoryBrands()">Restore all</button></div><div id="hiddenBrandsList" class="status">No hidden brands.</div></div>
+  <div class="panel glass" id="inventoryDayCounter" style="margin-top:18px">
+   <div class="section-head"><div><h3>Daily Counter & Cash Reconciliation</h3><p>Selected inventory department and date only. Cash and UPI are tracked separately.</p></div><span class="tag" id="dayCounterCategory">LIQUOR</span></div>
+   <div class="form-grid">
+    <label>Counter date<input id="dayCounterDate" type="date" min="2026-11-02" value="2026-11-07"></label>
+    <div style="display:flex;align-items:end"><button class="btn" type="button" onclick="loadInventoryDayCounter()">Load day</button></div>
+   </div>
+   <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(145px,1fr));margin:12px 0">
+    <div class="kpi glass"><small>Total sale</small><strong id="dcTotalSale">₹0.00</strong></div>
+    <div class="kpi glass"><small>Cash / Rokad sale</small><strong id="dcCashSale">₹0.00</strong></div>
+    <div class="kpi glass"><small>Online / UPI sale</small><strong id="dcOnlineSale">₹0.00</strong></div>
+    <div class="kpi glass"><small>Total expenses</small><strong id="dcExpenseTotal">₹0.00</strong></div>
+   </div>
+   <div class="form-grid">
+    <label>Actual cash received ₹<input id="dcCashReceived" type="number" min="0" step="0.01" value="0"></label>
+    <label>Actual online received ₹<input id="dcOnlineReceived" type="number" min="0" step="0.01" value="0"></label>
+    <label>Expense amount ₹<input id="dcExpenseAmount" type="number" min="0" step="0.01" value="0"></label>
+    <label>Expense description<input id="dcExpenseNote" placeholder="e.g. transport, staff tea"></label>
+   </div>
+   <div class="toolbar" style="margin-top:12px"><span class="muted" id="dcDifference">Cash difference ₹0.00 · Online difference ₹0.00</span><button class="btn" type="button" onclick="saveInventoryDayCounter()">Save daily counter</button></div>
+   <div class="status" id="dcStatus">Choose date and load the counter.</div>
+  </div>
  </section>
 
  <section id="sale" class="page">
@@ -462,7 +485,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
 
  <section id="history" class="page">
   <div class="section-head"><div><h3>Sales history</h3><p>Latest recorded sales · Backdate allowed from 02 Nov 2026</p></div><button class="btn secondary" onclick="refresh()">↻ Reload history</button></div>
-  <div class="panel glass"><div class="form-grid"><label>Sale date from<input id="saleFrom" type="date" onchange="refresh()" min="2026-11-02"></label><label>Sale date to<input id="saleTo" type="date" onchange="refresh()" min="2026-11-02"></label><label>Brand filter<select id="saleBrand" onchange="refresh()"><option value="all">All brands</option></select></label><label>Category<select id="saleCategory" onchange="refresh()"><option value="all">All</option><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label></div></div>
+  <div class="panel glass"><div class="form-grid"><label>Sale date from<input id="saleFrom" type="date" min="2026-11-02"></label><label>Sale date to<input id="saleTo" type="date" min="2026-11-02"></label><label>Brand filter<select id="saleBrand"><option value="all">All brands</option></select></label><label>Category<select id="saleCategory"><option value="all">All</option><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label><div style="align-self:end"><button class="btn" type="button" onclick="viewSalesHistory()">View</button> <button class="btn secondary" type="button" onclick="clearSalesHistoryFilters()">Clear</button></div></div><div class="status" id="saleHistoryStatus">Select start date and end date, then press View.</div></div>
   <div class="kpis">
    <div class="kpi glass"><small>Total sales amount</small><strong id="histTotal">₹0.00</strong></div>
    <div class="kpi glass"><small>Liquor sold</small><strong id="histLiquorQty">0</strong></div>
@@ -495,7 +518,7 @@ async function login(){const b=$("loginBtn");b.disabled=true;b.textContent="Sign
 async function logout(){if(db)await db.auth.signOut();user=null;location.reload()}
 async function openApp(){$("loginView").style.display="none";$("appView").style.display="block";$("who").textContent=user?.email||"Signed in";["sd","pd","cd"].forEach(id=>$(id).value=today());$("inventoryDate").value=today()<STOCK_START_DATE?STOCK_START_DATE:today();await loadProducts();await refresh();fillSelects();fillBrandFilters();drawWholesaleRates()}
 function showPage(id,button){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));$(id).classList.add("active");const navId=id==="inventoryWork"?"inventory":id;document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===navId));const titles={home:["Business overview","Your store performance at a glance"],inventory:["Choose inventory","Select Liquor or Beer to continue"],inventoryWork:["Inventory register","Manage the selected department"],sale:["New sale","Create and record a customer sale"],purchase:["Purchases","Record supplier invoices and stock"],purchaseHistory:["Purchase history","Edit or delete saved purchase invoices"],profit:["Profit & margin","Monthly profit, day-end closing and bottle-wise margin"],cash:["Daily cash","Daily collection and expense register"],history:["Sales history","Review recent recorded transactions"]};$("pageTitle").textContent=titles[id][0];$("pageSubtitle").textContent=titles[id][1];if(id==="sale"||id==="purchase")fillSelects();if(id==="purchaseHistory")loadPurchaseHistory();if(id==="history")refresh();if(id==="profit"){setProfitPeriod();loadProfitReport()}if(id==="cash")loadDailyClosing()}
-function setCategory(cat){$("cat").value=cat;$("search").value="";$("inventoryWorkTitle").textContent=cat==="liquor"?"Liquor Inventory":"Beer Inventory";$("inventoryWorkSubtitle").textContent=cat==="liquor"?"Manage all liquor brands and bottle sizes":"Manage beer brands and quantities";showPage("inventoryWork");drawProducts()}
+function setCategory(cat){$("cat").value=cat;$("search").value="";$("inventoryWorkTitle").textContent=cat==="liquor"?"Liquor Inventory":"Beer Inventory";$("inventoryWorkSubtitle").textContent=cat==="liquor"?"Manage all liquor brands and bottle sizes":"Manage beer brands and quantities";showPage("inventoryWork");drawProducts();if($("dayCounterDate")){$("dayCounterDate").value=$("inventoryDate").value||dateBack(0);loadInventoryDayCounter()}}
 async function loadProducts(){
   setMsg("dashMsg","Loading inventory from cloud…");
   const {data,error}=await db.from("inventory_products")
@@ -635,9 +658,17 @@ function orderedBrandGroups(rows){
   for(const [,list] of leftovers)out.push({name:list[0].brand_name,products:list});
   return out;
 }
+const HIDDEN_INVENTORY_KEY='abhishek_hidden_inventory_product_ids_v1';
+function getHiddenInventoryIds(){try{return new Set(JSON.parse(localStorage.getItem(HIDDEN_INVENTORY_KEY)||'[]').map(String))}catch(e){return new Set()}}
+function saveHiddenInventoryIds(ids){localStorage.setItem(HIDDEN_INVENTORY_KEY,JSON.stringify([...ids]));}
+function hideInventoryBrand(ids,label="Brand"){const hidden=getHiddenInventoryIds();ids.forEach(id=>hidden.add(String(id)));saveHiddenInventoryIds(hidden);drawProducts();setMsg('dcStatus',`${label} hidden from this screen. Database records are unchanged.`)}
+function restoreInventoryBrand(id){const hidden=getHiddenInventoryIds();hidden.delete(String(id));saveHiddenInventoryIds(hidden);drawProducts()}
+function restoreAllInventoryBrands(){saveHiddenInventoryIds(new Set());drawProducts()}
+function renderHiddenInventoryBrands(){const hidden=getHiddenInventoryIds(),items=products.filter(p=>hidden.has(String(p.id)));const el=$('hiddenBrandsList');if(!el)return;el.innerHTML=items.length?items.map(p=>`<span style="display:inline-flex;align-items:center;gap:7px;margin:4px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#173b63">${safe(cleanBeerBrandName(p.brand_name))}${p.size?' '+safe(p.size):''}<button class="btn secondary" style="padding:4px 7px" onclick="restoreInventoryBrand('${String(p.id)}')">Restore</button></span>`).join(''):'No hidden brands.'}
 function drawProducts(){
   const cat=$("cat").value,q=$("search").value.toLowerCase();
-  const rows=products.filter(p=>(cat==="all"||String(p.category).toLowerCase()===cat)&&(`${p.brand_name||""} ${p.size||""}`).toLowerCase().includes(q));
+  const hiddenIds=getHiddenInventoryIds();
+  const rows=products.filter(p=>!hiddenIds.has(String(p.id))&&(cat==="all"||String(p.category).toLowerCase()===cat)&&(`${p.brand_name||""} ${p.size||""}`).toLowerCase().includes(q));
   const liquor=orderedBrandGroups(rows.filter(p=>String(p.category).toLowerCase()==="liquor"));
   const beer=orderedBeerProducts(rows.filter(p=>String(p.category).toLowerCase()==="beer"));
   const other=rows.filter(p=>!["liquor","beer"].includes(String(p.category).toLowerCase()));
@@ -661,7 +692,7 @@ function drawProducts(){
     const o=map.map(p=>p?num(p.opening_stock):0),p=map.map(x=>x?num(inventoryPurchased[String(x.id)]):0),s=map.map(x=>x?num(inventorySold[String(x.id)]):0),t=o.map((v,k)=>v+p[k]),b=t.map((v,k)=>v-s[k]),v=b.map((x,k)=>x*num(map[k]?.wholesale_price));
     for(let k=0;k<4;k++){grand.opening+=o[k];grand.purchase+=p[k];grand.total+=t[k];grand.sale+=s[k];grand.balance+=b[k];grand.value+=v[k];}
     const inputs=(arr,prefix,label)=>map.map((x,k)=>`<td>${x?`<input aria-label="${safe(g.name)} ${sizes[k]} ${label}" id="${prefix}_${safe(x.id)}" type="number" min="0" step=".01" value="${arr[k]}" oninput="recalculateInventoryLive()" onkeydown="inventoryEnterNext(event)">`:"—"}</td>`).join("");
-    L.push(`<tr><td>${idx+1}. ${safe(g.name)}</td>${inputs(o,"opening","opening stock")}${inputs(map.map(x=>x?(inventoryManualCurrent[String(x.id)]?.purchase||0):0),"reg_purchase","purchase")}${fmt(t)}${inputs(map.map(x=>x?(inventoryManualCurrent[String(x.id)]?.sale||0):0),"reg_sale","sale")}${fmt(b)}${fmtM(v)}</tr>`);
+    L.push(`<tr><td>${idx+1}. ${safe(g.name)} <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='hideInventoryBrand(${JSON.stringify(g.products.map(x=>String(x.id)))})'>Hide</button></td>${inputs(o,"opening","opening stock")}${inputs(map.map(x=>x?(inventoryManualCurrent[String(x.id)]?.purchase||0):0),"reg_purchase","purchase")}${fmt(t)}${inputs(map.map(x=>x?(inventoryManualCurrent[String(x.id)]?.sale||0):0),"reg_sale","sale")}${fmt(b)}${fmtM(v)}</tr>`);
   });
   if(allLiquorGroups.length)L.push(`<tr class="inventory-subtotal-row liquor-total-row"><td>TOTAL ALL LIQUOR BRANDS</td>${fmt(liqTotals.o)}${fmt(liqTotals.p)}${fmt(liqTotals.t)}${fmt(liqTotals.s)}${fmt(liqTotals.b)}${fmtM(liqTotals.v)}</tr>`);
   $("liquorInventoryRows").innerHTML=L.join("")||'<tr><td colspan="25" class="empty">No liquor brands found.</td></tr>';
@@ -672,11 +703,11 @@ function drawProducts(){
     bt.o+=opening;bt.ov+=openingValue;bt.p+=purchase;bt.s+=sale;bt.sv+=saleValue;bt.c+=closing;bt.cv+=stockValue;bt.profit+=profit;
     for(const [k,n] of Object.entries({opening,purchase,sale,available,closing,openingValue,saleValue,stockValue,profit}))grand[k]=(grand[k]||0)+n;
     const entry=inventoryManualCurrent[String(x.id)]||{};
-    B.push(`<tr><td>${idx+1}</td><td class="beer-brand">${safe(cleanBeerBrandName(x.brand_name))}${x.size?" - "+safe(x.size):""}</td><td><input id="opening_${safe(x.id)}" type="number" min="0" step=".01" value="${opening}" oninput="recalculateInventoryLive()" onkeydown="inventoryEnterNext(event)"></td><td class="calc">${money(openingValue)}</td><td><input id="reg_purchase_${safe(x.id)}" type="number" min="0" step=".01" value="${num(entry.purchase)}" oninput="recalculateInventoryLive()" onkeydown="inventoryEnterNext(event)"></td><td><input id="reg_sale_${safe(x.id)}" type="number" min="0" step=".01" value="${num(entry.sale)}" oninput="recalculateInventoryLive()" onkeydown="inventoryEnterNext(event)"></td><td class="calc">${money(saleValue)}</td><td class="calc">${closing}</td><td class="value">${money(stockValue)}</td><td class="value">${money(profit)}</td></tr>`);
+    B.push(`<tr><td>${idx+1}</td><td class="beer-brand">${safe(cleanBeerBrandName(x.brand_name))}${x.size?" - "+safe(x.size):""} <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='hideInventoryBrand([${JSON.stringify(String(x.id))}])'>Hide</button></td><td><input id="opening_${safe(x.id)}" type="number" min="0" step=".01" value="${opening}" oninput="recalculateInventoryLive()" onkeydown="inventoryEnterNext(event)"></td><td class="calc">${money(openingValue)}</td><td><input id="reg_purchase_${safe(x.id)}" type="number" min="0" step=".01" value="${num(entry.purchase)}" oninput="recalculateInventoryLive()" onkeydown="inventoryEnterNext(event)"></td><td><input id="reg_sale_${safe(x.id)}" type="number" min="0" step=".01" value="${num(entry.sale)}" oninput="recalculateInventoryLive()" onkeydown="inventoryEnterNext(event)"></td><td class="calc">${money(saleValue)}</td><td class="calc">${closing}</td><td class="value">${money(stockValue)}</td><td class="value">${money(profit)}</td></tr>`);
   });
   if(beer.length)B.push(`<tr class="inventory-subtotal-row"><td colspan="2">TOTAL BEER</td><td>${bt.o}</td><td>${money(bt.ov)}</td><td>${bt.p}</td><td>${bt.s}</td><td>${money(bt.sv)}</td><td>${bt.c}</td><td>${money(bt.cv)}</td><td>${money(bt.profit)}</td></tr>`);
   $("beerInventoryRows").innerHTML=B.join("")||'<tr><td colspan="10" class="empty">No beer brands found.</td></tr>';
-  recalculateInventoryLive();
+  recalculateInventoryLive();renderHiddenInventoryBrands();
   $("stockSummary").textContent=`As on ${$("inventoryDate").value||STOCK_START_DATE} · Liquor opening ${grand.opening} · Liquor purchase ${grand.purchase} · Liquor sale ${grand.sale} · Beer closing ${bt.c} · Beer stock value ${money(bt.cv)}`;
 }
 function recalculateInventoryLive(){
@@ -1259,8 +1290,20 @@ async function loadDailyClosing(){if(!db||!user)return;const date=$("cd").value;
 async function addDailyExpense(){const date=$("cd").value,name=$("expenseName").value.trim(),amount=num($("expenseAmount").value),mode=$("expenseMode").value;if(!date||date<STOCK_START_DATE){setMsg("cashMsg","Date 2 November 2026 ya uske baad honi chahiye.");return}if(!name||amount<=0){setMsg("cashMsg","Expense name aur valid amount enter karein.");return}const {error}=await db.from("daily_expenses").insert({user_id:user.id,expense_date:date,expense_name:name,amount,payment_type:mode});if(error){setMsg("cashMsg","Expense save error: "+error.message);return}$("expenseName").value="";$("expenseAmount").value="";await loadDailyClosing()}
 async function deleteDailyExpense(id){if(!confirm("Delete this expense entry?"))return;const {error}=await db.from("daily_expenses").delete().eq("id",id).eq("user_id",user.id);if(error){setMsg("cashMsg","Delete error: "+error.message);return}await loadDailyClosing()}
 async function saveCash(){const date=$("cd").value;if(!date||date<STOCK_START_DATE){setMsg("cashMsg","Date 2 November 2026 ya uske baad honi chahiye.");return}const row={user_id:user.id,date,cash_received:num($("cashin").value),online_received:num($("online").value),rokad_received:num($("rokad").value),other_cash_in:num($("other").value),expenses:num($("closeExpenses").textContent.replace(/[^0-9.]/g,"")),notes:$("notes").value};const {error}=await db.from("daily_cash").upsert(row,{onConflict:"date"});setMsg("cashMsg",error?"Save error: "+error.message:"Night closing saved successfully.");cashPreview()}
+function dashboardGo(target){if(target==='sales'){showPage('cash');$('cd').value=dateBack(0);loadDailyClosing();return}if(target==='purchases'){showPage('purchaseHistory');return}if(target==='history'){showPage('history');return}if(target==='beer'||target==='liquor'){setCategory(target);return}if(target==='stock'||target==='low'){setCategory('liquor');return}}
+function dayCounterCategory(){return String($('cat')?.value||'liquor').toLowerCase()==='beer'?'beer':'liquor'}
+function dayCounterDiff(){const cashSale=num($('dcCashSale')?.dataset.value),onlineSale=num($('dcOnlineSale')?.dataset.value),cash=num($('dcCashReceived')?.value),online=num($('dcOnlineReceived')?.value);$('dcDifference').textContent=`Cash difference ${money(cash-cashSale)} · Online difference ${money(online-onlineSale)}`}
+async function loadInventoryDayCounter(){if(!db||!user)return;const date=$('dayCounterDate').value,category=dayCounterCategory();if(!date||date<STOCK_START_DATE){setMsg('dcStatus','Date 2 November 2026 ya uske baad select karein.');return}try{$('dayCounterCategory').textContent=category.toUpperCase();const {data:headers,error}=await db.from('sales').select('id,payment_mode').eq('sale_date',date).eq('category',category);if(error)throw error;const ids=(headers||[]).map(x=>x.id);let items=[];if(ids.length){const r=await db.from('sale_items').select('sale_id,quantity,sale_rate').in('sale_id',ids);if(r.error)throw r.error;items=r.data||[]}let cash=0,online=0;for(const h of headers||[]){const amount=items.filter(x=>String(x.sale_id)===String(h.id)).reduce((a,x)=>a+num(x.quantity)*num(x.sale_rate),0);const mode=String(h.payment_mode||'').toLowerCase();if(mode.includes('online')||mode.includes('upi'))online+=amount;else cash+=amount}const total=cash+online;$('dcTotalSale').textContent=money(total);$('dcCashSale').textContent=money(cash);$('dcCashSale').dataset.value=cash;$('dcOnlineSale').textContent=money(online);$('dcOnlineSale').dataset.value=online;const {data:summary,error:se}=await db.from('inventory_day_summary').select('*').eq('user_id',user.id).eq('record_date',date).eq('category',category).maybeSingle();if(se)throw se;$('dcCashReceived').value=summary?.cash_received??cash;$('dcOnlineReceived').value=summary?.online_received??online;$('dcExpenseAmount').value=summary?.expense_amount??0;$('dcExpenseNote').value=summary?.expense_note??'';$('dcExpenseTotal').textContent=money(summary?.expense_amount||0);dayCounterDiff();setMsg('dcStatus',`Loaded ${category} counter for ${date}. Sale headers: ${(headers||[]).length}.`)}catch(e){setMsg('dcStatus','Counter load error: '+e.message)}}
+async function saveInventoryDayCounter(){if(!db||!user)return;const date=$('dayCounterDate').value,category=dayCounterCategory(),cash=num($('dcCashReceived').value),online=num($('dcOnlineReceived').value),expense=num($('dcExpenseAmount').value),note=$('dcExpenseNote').value.trim();if(!date||date<STOCK_START_DATE){setMsg('dcStatus','Date 2 November 2026 ya uske baad honi chahiye.');return}const row={user_id:user.id,record_date:date,category,cash_received:cash,online_received:online,expense_amount:expense,expense_note:note};const {error}=await db.from('inventory_day_summary').upsert(row,{onConflict:'user_id,record_date,category'});if(error){setMsg('dcStatus','Save error: '+error.message);return}$('dcExpenseTotal').textContent=money(expense);dayCounterDiff();setMsg('dcStatus',`${category.toUpperCase()} daily counter saved for ${date}.`)}
 let salesChart=null;
 function dateBack(days){const d=new Date();d.setDate(d.getDate()-days);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)}
+function viewSalesHistory(){
+ const from=$("saleFrom").value,to=$("saleTo").value;
+ if(from&&to&&from>to){setMsg("saleHistoryStatus","Start date cannot be later than end date.");return;}
+ if(from&&from<STOCK_START_DATE||to&&to<STOCK_START_DATE){setMsg("saleHistoryStatus","Sales history date 02 Nov 2026 se pehle nahi ho sakti.");return;}
+ refresh();
+}
+function clearSalesHistoryFilters(){["saleFrom","saleTo"].forEach(id=>$(id).value="");$("saleBrand").value="all";$("saleCategory").value="all";refresh();}
 async function refresh(){
  if(!db||!user)return;
  setMsg("dashMsg","Refreshing dashboard and sales history…");
@@ -1268,7 +1311,7 @@ async function refresh(){
   const d=today(),from=dateBack(29),chartFrom=dateBack(6);
   const [todayHeaders,allHeaders,monthHeaders,chartHeaders]=await Promise.all([
    db.from("sales").select("id").eq("sale_date",d),
-   (()=>{let q=db.from("sales").select("id,sale_date,bill_number,category,payment_mode").order("sale_date",{ascending:false}).limit(500);if($("saleFrom").value)q=q.gte("sale_date",$("saleFrom").value);if($("saleTo").value)q=q.lte("sale_date",$("saleTo").value);if($("saleCategory").value!=="all")q=q.eq("category",$("saleCategory").value);return q})(),
+   (()=>{let q=db.from("sales").select("id,sale_date,bill_number,category,payment_mode").order("sale_date",{ascending:false});if($("saleFrom").value)q=q.gte("sale_date",$("saleFrom").value);if($("saleTo").value)q=q.lte("sale_date",$("saleTo").value);if($("saleCategory").value!=="all")q=q.ilike("category",$("saleCategory").value);return q})(),
    db.from("sales").select("id").gte("sale_date",from).lte("sale_date",d),
    db.from("sales").select("id,sale_date").gte("sale_date",chartFrom).lte("sale_date",d)
   ]);
@@ -1290,7 +1333,10 @@ async function refresh(){
   for(const sale of allHeaders.data||[]){const rows=idsBySale[sale.id]||[],qty=rows.reduce((a,x)=>a+num(x.quantity),0),amount=sum(rows);totalQty+=qty;if(String(sale.category).toLowerCase()==="beer"){beerQty+=qty;beerAmount+=amount}else if(String(sale.category).toLowerCase()==="liquor"){liquorQty+=qty;liquorAmount+=amount}}
   $("histTotal").textContent=money(sum(historyItems));$("histLiquorQty").textContent=liquorQty.toLocaleString("en-IN");$("histBeerQty").textContent=beerQty.toLocaleString("en-IN");$("histUnits").textContent=totalQty.toLocaleString("en-IN");
   $("histLiquorAmount").textContent=money(liquorAmount);$("histBeerAmount").textContent=money(beerAmount);$("histLiquorDetail").textContent=liquorQty.toLocaleString("en-IN")+" units sold";$("histBeerDetail").textContent=beerQty.toLocaleString("en-IN")+" units sold";
-  $("dashLiquorSale").textContent=money(liquorAmount);$("dashBeerSale").textContent=money(beerAmount);$("dashLiquorQty").textContent=liquorQty.toLocaleString("en-IN")+" units sold";$("dashBeerQty").textContent=beerQty.toLocaleString("en-IN")+" units sold";
+  let dashLiquorQty=0,dashBeerQty=0,dashLiquorAmount=0,dashBeerAmount=0;const monthIds=new Set((monthHeaders.data||[]).map(x=>x.id));
+  for(const sale of monthHeaders.data||[]){const rows=monthItems.filter(x=>String(x.sale_id)===String(sale.id)),qty=rows.reduce((a,x)=>a+num(x.quantity),0),amount=sum(rows);if(String(sale.category).toLowerCase()==="beer"){dashBeerQty+=qty;dashBeerAmount+=amount}else if(String(sale.category).toLowerCase()==="liquor"){dashLiquorQty+=qty;dashLiquorAmount+=amount}}
+  $("dashLiquorSale").textContent=money(dashLiquorAmount);$("dashBeerSale").textContent=money(dashBeerAmount);$("dashLiquorQty").textContent=dashLiquorQty.toLocaleString("en-IN")+" units sold";$("dashBeerQty").textContent=dashBeerQty.toLocaleString("en-IN")+" units sold";
+  if($("saleHistoryStatus"))$("saleHistoryStatus").textContent=`Showing ${(allHeaders.data||[]).length} sale bills${$("saleFrom").value?" from "+$("saleFrom").value:""}${$("saleTo").value?" to "+$("saleTo").value:""}.`;
   $("hist").innerHTML=(allHeaders.data||[]).filter(x=>$("saleBrand").value==="all"||(idsBySale[x.id]||[]).some(z=>String(z.product_id)===$("saleBrand").value)).map(x=>{const rows=idsBySale[x.id]||[],qty=rows.reduce((a,z)=>a+num(z.quantity),0),amount=sum(rows),details=rows.map(z=>{const p=products.find(q=>String(q.id)===String(z.product_id));return (p?.brand_name||"Product")+(p?.size?" "+p.size:"")+" × "+z.quantity}).join("<br>");return `<tr><td>${safe(x.sale_date)}</td><td>${safe(x.bill_number||"—")}</td><td><span class="tag">${safe(x.category)}</span></td><td>${safe(x.payment_mode)}</td><td>${qty.toLocaleString("en-IN")}</td><td><b>${money(amount)}</b></td><td style="white-space:normal;min-width:180px">${details||"—"}</td><td><button class="btn secondary" onclick="editSale('${x.id}')">Edit</button> <button class="btn danger" onclick="deleteSale('${x.id}')">Delete</button></td></tr>`}).join("")||'<tr><td colspan="8" class="empty">No sales recorded yet.</td></tr>';
   const labels=[],values=[];for(let i=6;i>=0;i--){const day=dateBack(i);labels.push(new Date(day+"T00:00:00").toLocaleDateString("en-IN",{day:"2-digit",month:"short"}));const dayIds=new Set((chartHeaders.data||[]).filter(x=>x.sale_date===day).map(x=>x.id));values.push(sum(chartItems.filter(x=>dayIds.has(x.sale_id))))}
   if(window.Chart&&$("salesChart")){if(salesChart)salesChart.destroy();salesChart=new Chart($("salesChart"),{type:"bar",data:{labels,datasets:[{label:"Sales amount",data:values,backgroundColor:"rgba(53,200,120,.72)",borderColor:"#42d39a",borderWidth:1,borderRadius:8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:"#dce8df"}},tooltip:{callbacks:{label:c=>" "+money(c.raw)}}},scales:{x:{ticks:{color:"#aab9af"},grid:{color:"rgba(255,255,255,.05)"}},y:{beginAtZero:true,ticks:{color:"#aab9af",callback:v=>"₹"+Number(v).toLocaleString("en-IN")},grid:{color:"rgba(255,255,255,.08)"}}}}})}
