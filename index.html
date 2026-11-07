@@ -404,7 +404,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
 
  <section id="sale" class="page">
   <div class="section-head"><div><h3>Create a sale</h3><p>Prepare a new liquor or beer sales entry</p></div><button class="btn secondary" onclick="showPage('history')">▤ Sale history</button></div>
-  <div class="panel glass"><div class="form-grid"><label>Sale date<input id="sd" type="date" min="2026-11-02"></label><label>Category<select id="sc" onchange="fillSelects()"><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label><label>Bill number<input id="bill" placeholder="Optional bill no."></label><label>Payment mode<select id="pay"><option>Cash</option><option>Online</option><option>Rokad</option><option>Credit</option></select></label></div></div>
+  <div class="panel glass"><div class="form-grid"><label>Sale date<input id="sd" type="date" min="2026-11-02"></label><label>Category<select id="sc" onchange="fillSelects()"><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label><label>Bill number<input id="bill" placeholder="Optional bill no."></label><label>Payment mode<select id="pay"><option>Cash</option><option>Online</option><option>Rokad</option></select></label></div></div>
   <div class="panel glass"><div class="form-grid"><label class="span2">Select product<select id="sp"></select></label><label>Quantity<input id="sq" type="number" min=".01" step=".01" value="1"></label><label>Sale rate<input id="sr" type="number" min="0" step=".01"></label></div><div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="btn" onclick="addItem('sale')">＋ Add to bill</button></div></div>
   <div class="panel glass"><div class="section-head" style="margin-top:0"><div><h3>Bill items</h3><p>Review products before saving</p></div></div><div class="table-wrap"><table><thead><tr><th>Product</th><th>Quantity</th><th>Rate</th><th>Amount</th><th>Action</th></tr></thead><tbody id="saleRows"><tr><td colspan="5" class="empty">No items added yet</td></tr></tbody></table></div><div class="total-line"><span class="muted">Bill total</span><strong id="saleSum">₹0.00</strong></div><button class="btn" onclick="saveSale()">Save sale entry</button><div id="saleMsg" class="status">Add products to begin.</div></div>
  </section>
@@ -668,7 +668,7 @@ function drawProducts(){
   const B=[];let bt={o:0,ov:0,p:0,s:0,sv:0,c:0,cv:0,profit:0};
   beer.forEach((x,idx)=>{
     const opening=num(x.opening_stock),purchase=num(inventoryPurchased[String(x.id)]),sale=num(inventorySold[String(x.id)]);
-    const openingValue=opening*num(x.wholesale_price),available=opening+purchase,saleValue=sale*num(x.mrp),closing=available-sale,stockValue=closing*num(x.wholesale_price),profit=sale*(num(x.mrp)-num(x.wholesale_price));
+    const openingValue=opening*num(x.mrp),available=opening+purchase,saleValue=sale*num(x.mrp),closing=available-sale,stockValue=closing*num(x.wholesale_price),profit=sale*(num(x.mrp)-num(x.wholesale_price));
     bt.o+=opening;bt.ov+=openingValue;bt.p+=purchase;bt.s+=sale;bt.sv+=saleValue;bt.c+=closing;bt.cv+=stockValue;bt.profit+=profit;
     for(const [k,n] of Object.entries({opening,purchase,sale,available,closing,openingValue,saleValue,stockValue,profit}))grand[k]=(grand[k]||0)+n;
     const entry=inventoryManualCurrent[String(x.id)]||{};
@@ -691,7 +691,7 @@ function recalculateInventoryLive(){
     const purchase=Math.max(0,(inventoryPurchased[id]||0)-num(manual.purchase))+currentPurchase;
     const sale=Math.max(0,(inventorySold[id]||0)-num(manual.sale))+currentSale;
     const total=opening+purchase,balance=total-sale;
-    current[id]={opening,purchase,sale,total,balance,openingValue:opening*num(p.wholesale_price),saleValue:sale*num(p.mrp),stockValue:balance*num(p.wholesale_price),profit:sale*(num(p.mrp)-num(p.wholesale_price))};
+    current[id]={opening,purchase,sale,total,balance,openingValue:opening*num(p.mrp),saleValue:sale*num(p.mrp),stockValue:balance*num(p.wholesale_price),profit:sale*(num(p.mrp)-num(p.wholesale_price))};
   }
   const allGroups=orderedBrandGroups(products.filter(x=>String(x.category).toLowerCase()==="liquor"));
   const totals={o:[0,0,0,0],p:[0,0,0,0],t:[0,0,0,0],s:[0,0,0,0],b:[0,0,0,0],v:[0,0,0,0]};
@@ -1065,9 +1065,22 @@ function showExciseRows(rows){
   return {...row,product:p,product_id:p?.id||"",rate:p?num(p.wholesale_price):0};
  });
  $("excisePreviewWrap").style.display="block";
- $("excisePreviewRows").innerHTML=excisePreviewItems.map((x,i)=>`<tr><td style="white-space:normal">${safe(x.brand)}</td><td>${safe(x.size||"—")}</td><td><select id="exciseMatch_${i}" style="min-width:210px"><option value="">Select matching product</option>${products.map(p=>`<option value="${safe(p.id)}" ${x.product&&String(p.id)===String(x.product.id)?"selected":""}>${safe(p.brand_name)} · ${safe(p.size)}</option>`).join("")}</select></td><td><input id="exciseQty_${i}" type="number" min="0.01" step="1" value="${x.quantity}" style="width:95px"></td><td><input id="exciseRate_${i}" type="number" min="0" step=".01" value="${x.rate}" style="width:110px"></td></tr>`).join("");
+ $("excisePreviewRows").innerHTML=excisePreviewItems.map((x,i)=>`<tr><td style="white-space:normal">${safe(x.brand)}</td><td>${safe(x.size||"—")}</td><td><select id="exciseMatch_${i}" style="min-width:210px" onchange="updateExciseRateFromProduct(${i})"><option value="">Select matching product</option>${products.map(p=>`<option value="${safe(p.id)}" ${x.product&&String(p.id)===String(x.product.id)?"selected":""}>${safe(p.brand_name)} · ${safe(p.size)}</option>`).join("")}</select></td><td><input id="exciseQty_${i}" type="number" min="0.01" step="1" value="${x.quantity}" style="width:95px"></td><td><input id="exciseRate_${i}" type="number" min="0" step=".01" value="${x.rate}" style="width:110px"></td></tr>`).join("");
  const bottles=rows.reduce((a,x)=>a+Number(x.quantity||0),0),cases=rows.reduce((a,x)=>a+Number(x.cases||0),0);
  $("excisePreviewSummary").textContent=rows.length+" row(s) · "+bottles+" dispatched bottles · "+cases+" cases. Confirm product matches and rates.";
+}
+function updateExciseRateFromProduct(index){
+ const id=$("exciseMatch_"+index)?.value;
+ const p=products.find(x=>String(x.id)===String(id));
+ const rateInput=$("exciseRate_"+index);
+ if(!p||!rateInput)return;
+ const rate=num(p.wholesale_price);
+ rateInput.value=rate.toFixed(2);
+ if(excisePreviewItems[index]){
+  excisePreviewItems[index].product=p;
+  excisePreviewItems[index].product_id=p.id;
+  excisePreviewItems[index].rate=rate;
+ }
 }
 async function confirmExcisePurchase(){
  if(!excisePreviewItems.length){setExciseStatus("Purchase draft ready nahi hai. Pehle QR scan aur pass details fetch honi chahiye.");return;}
