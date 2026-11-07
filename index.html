@@ -927,16 +927,18 @@ async function ensureExciseQrLibrary(){
 async function startExciseQrScanner(){
  const panel=$("exciseScannerPanel"),host=$("exciseQrReader");
  if(panel)panel.style.display="block";
+ if(!host){setExciseStatus("QR camera panel nahi mila. Page refresh karke dobara try karein.");return;}
  if(!window.isSecureContext){setExciseStatus("Camera ke liye secure HTTPS connection zaroori hai. Website ko https:// se kholein.");return;}
- setExciseStatus("Camera permission check ho rahi hai…");
+ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){setExciseStatus("Is browser mein camera access available nahi hai. Android Chrome ko update karke direct Chrome mein website kholein.");return;}
+ setExciseStatus("Mobile camera prepare ho raha hai… Chrome permission allow karein.");
  const loaded=await ensureExciseQrLibrary();
  if(!loaded){setExciseStatus("QR scanner library load nahi hui. Internet connection check karke page refresh karein.");return;}
  host.style.display="block";
  host.innerHTML="";
  try{
-  if(exciseQrScanner){try{if(exciseQrScanner.isScanning)await exciseQrScanner.stop();}catch(e){} exciseQrScanner.clear().catch(()=>{});exciseQrScanner=null;}
+  if(exciseQrScanner){try{if(exciseQrScanner.isScanning)await exciseQrScanner.stop();}catch(e){}try{exciseQrScanner.clear();}catch(e){}exciseQrScanner=null;}
   exciseQrScanner=new Html5Qrcode("exciseQrReader",{verbose:false});
-  const config={fps:12,qrbox:(w,h)=>{const side=Math.floor(Math.min(w,h)*0.78);return {width:side,height:side};},aspectRatio:1.0,formatsToSupport:[Html5QrcodeSupportedFormats.QR_CODE]};
+  const config={fps:10,qrbox:(w,h)=>{const side=Math.max(180,Math.floor(Math.min(w,h)*0.72));return {width:Math.min(side,w),height:Math.min(side,h)};},aspectRatio:1.0,formatsToSupport:[Html5QrcodeSupportedFormats.QR_CODE], videoConstraints:{facingMode:{ideal:"environment"}}};
   const onSuccess=async decoded=>{
    const pass=parseExciseQr(decoded);
    if(!pass){setExciseStatus("QR read hua, lekin valid UP Excise pass QR nahi hai.");return;}
@@ -945,19 +947,34 @@ async function startExciseQrScanner(){
    await stopExciseQrScanner();
    await fetchExcisePassDetails(pass);
   };
+  let started=false, lastError=null;
+  // Android Chrome: enumerate cameras after the browser has granted camera access.
   try{
-   await exciseQrScanner.start({facingMode:"environment"},config,onSuccess,()=>{});
-  }catch(backErr){
    const cams=await Html5Qrcode.getCameras();
-   if(!cams.length)throw backErr;
-   await exciseQrScanner.start(cams[0].id,config,onSuccess,()=>{});
+   if(cams&&cams.length){
+    const backCam=cams.find(c=>/back|rear|environment|world/i.test(c.label||""));
+    const chosen=backCam||cams[cams.length-1];
+    try{await exciseQrScanner.start(chosen.id,config,onSuccess,()=>{});started=true;}
+    catch(e){lastError=e;}
+   }
+  }catch(e){lastError=e;}
+  // Fallback for phones that hide camera labels or reject camera IDs.
+  if(!started){
+   try{await exciseQrScanner.start({facingMode:{ideal:"environment"}},config,onSuccess,()=>{});started=true;}
+   catch(e){lastError=e;}
   }
-  setExciseStatus("Camera ON hai. Excise pass ka QR code camera ke frame mein rakhein.");
+  if(!started){
+   try{await exciseQrScanner.start({facingMode:"environment"},config,onSuccess,()=>{});started=true;}
+   catch(e){lastError=e;}
+  }
+  if(!started)throw (lastError||new Error("Camera start failed"));
+  setExciseStatus("Camera ON hai. QR scan ke liye phone ka back camera use ho raha hai. Pass ka QR frame mein rakhein.");
  }catch(e){
   const msg=String(e&&e.message||e||"");
-  if(/permission|denied|notallowed/i.test(msg))setExciseStatus("Camera permission blocked hai. Chrome address bar ke lock/site settings icon → Camera → Allow karein, phir page reload karein.");
-  else if(/notfound|no camera|device/i.test(msg))setExciseStatus("Is device par camera detect nahi hua. Webcam connect karein ya mobile se website kholein.");
-  else setExciseStatus("Camera start nahi hua: "+msg+". Chrome mein site camera permission Allow karke reload karein.");
+  if(/permission|denied|notallowed|secure context/i.test(msg))setExciseStatus("Camera permission block hai. Android Settings → Apps → Chrome → Permissions → Camera → Allow karein; phir Chrome mein page reload karein.");
+  else if(/notfound|no camera|device/i.test(msg))setExciseStatus("Phone ka camera detect nahi hua. Chrome ko camera permission dein aur doosre apps mein camera band karein.");
+  else if(/in use|could not start|starting video/i.test(msg))setExciseStatus("Camera kisi doosre app mein busy ho sakta hai. Camera/WhatsApp band karke Chrome reload karein. Details: "+msg);
+  else setExciseStatus("Mobile camera start nahi hua: "+msg+". Chrome mein camera permission Allow karke reload karein.");
   host.style.display="block";
  }
 }
