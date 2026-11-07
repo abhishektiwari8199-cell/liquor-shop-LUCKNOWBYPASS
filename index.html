@@ -243,7 +243,84 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
 #inventoryWork .beer-register input{width:64px;min-width:0;max-width:100%;box-sizing:border-box;text-align:center;padding:7px 3px}
 #inventoryWork .beer-register td.beer-brand{white-space:normal;line-height:1.35}
 @media(max-width:760px){.inventory-choice-grid{grid-template-columns:1fr}.inventory-choice{min-height:180px;padding:18px}}
-\n</style>
+\n
+/* FINAL BEER GRID DIMENSIONS — one consistent compact 10-column layout */
+#appView #inventoryWork .table-wrap{width:100%;max-width:100%;overflow-x:auto;overflow-y:visible}
+#appView #inventoryWork table.inventory-register.beer-register{
+  width:100% !important;
+  min-width:1048px !important;
+  table-layout:fixed !important;
+  border-collapse:separate !important;
+  border-spacing:0 !important;
+}
+#appView #inventoryWork table.inventory-register.beer-register col:nth-child(1){width:48px !important}
+#appView #inventoryWork table.inventory-register.beer-register col:nth-child(2){width:238px !important}
+#appView #inventoryWork table.inventory-register.beer-register col:nth-child(3),
+#appView #inventoryWork table.inventory-register.beer-register col:nth-child(5),
+#appView #inventoryWork table.inventory-register.beer-register col:nth-child(6){width:82px !important}
+#appView #inventoryWork table.inventory-register.beer-register col:nth-child(4),
+#appView #inventoryWork table.inventory-register.beer-register col:nth-child(7),
+#appView #inventoryWork table.inventory-register.beer-register col:nth-child(9){width:108px !important}
+#appView #inventoryWork table.inventory-register.beer-register col:nth-child(8),
+#appView #inventoryWork table.inventory-register.beer-register col:nth-child(10){width:96px !important}
+#appView #inventoryWork table.inventory-register.beer-register thead th{
+  height:54px !important;
+  min-height:54px !important;
+  padding:9px 6px !important;
+  box-sizing:border-box !important;
+  white-space:normal !important;
+  overflow-wrap:anywhere !important;
+  vertical-align:middle !important;
+  line-height:1.25 !important;
+  font-size:11px !important;
+  text-align:center !important;
+}
+#appView #inventoryWork table.inventory-register.beer-register tbody td{
+  height:52px !important;
+  min-height:52px !important;
+  padding:7px 6px !important;
+  box-sizing:border-box !important;
+  vertical-align:middle !important;
+  text-align:center !important;
+  white-space:nowrap !important;
+  line-height:1.25 !important;
+  font-size:12px !important;
+}
+#appView #inventoryWork table.inventory-register.beer-register tbody td:first-child{
+  width:48px !important;min-width:48px !important;max-width:48px !important;
+  padding-left:3px !important;padding-right:3px !important;
+  text-align:center !important;font-weight:800 !important;
+}
+#appView #inventoryWork table.inventory-register.beer-register tbody td:nth-child(2){
+  width:238px !important;min-width:238px !important;max-width:238px !important;
+  padding:8px 12px !important;
+  text-align:left !important;
+  white-space:normal !important;
+  overflow-wrap:anywhere !important;
+  line-height:1.35 !important;
+  font-size:12px !important;
+}
+#appView #inventoryWork table.inventory-register.beer-register input[type="number"]{
+  display:block !important;
+  width:64px !important;min-width:64px !important;max-width:64px !important;
+  height:34px !important;min-height:34px !important;
+  margin:0 auto !important;padding:5px 3px !important;
+  box-sizing:border-box !important;
+  text-align:center !important;
+  font-size:12px !important;
+  border-radius:6px !important;
+}
+#appView #inventoryWork table.inventory-register.beer-register tbody tr.inventory-subtotal-row td{
+  height:54px !important;
+  white-space:nowrap !important;
+  font-weight:900 !important;
+  font-size:12px !important;
+}
+#appView #inventoryWork table.inventory-register.beer-register tbody tr.inventory-subtotal-row td:first-child{
+  text-align:left !important;padding-left:12px !important;
+}
+
+</style>
 </head>
 <body>
 <section id="loginView">
@@ -318,7 +395,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
    <tr><th rowspan="2">S.No. / Brand</th><th colspan="4">Opening Stock (02 Nov)</th><th colspan="4">Purchase</th><th colspan="4">Total Stock</th><th colspan="4">Sale</th><th colspan="4">Balance Stock</th><th colspan="4">Balance Stock Value (₹)</th></tr>
    <tr><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th></tr>
   </thead><tbody id="liquorInventoryRows"><tr><td colspan="25" class="empty">Loading inventory…</td></tr></tbody></table></div>
-  <div id="beerInventoryWrap" class="table-wrap"><table class="inventory-register beer-register"><colgroup><col style="width:52px"><col style="width:250px"><col style="width:86px"><col style="width:112px"><col style="width:86px"><col style="width:86px"><col style="width:105px"><col style="width:100px"><col style="width:110px"><col style="width:95px"></colgroup><thead>
+  <div id="beerInventoryWrap" class="table-wrap"><table class="inventory-register beer-register"><colgroup><col style="width:48px"><col style="width:238px"><col style="width:82px"><col style="width:108px"><col style="width:82px"><col style="width:82px"><col style="width:108px"><col style="width:96px"><col style="width:108px"><col style="width:96px"></colgroup><thead>
    <tr><th>QTY</th><th>Brand Name</th><th>Opening Qty</th><th>Opening Total ₹</th><th>Purchase</th><th>Sale</th><th>Sale Total ₹</th><th>Closing Stock</th><th>Stock Value ₹</th><th>Profit ₹</th></tr>
   </thead><tbody id="beerInventoryRows"><tr><td colspan="10" class="empty">Loading beer inventory…</td></tr></tbody></table></div>
  </section>
