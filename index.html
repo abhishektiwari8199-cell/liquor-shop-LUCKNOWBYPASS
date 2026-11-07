@@ -1,1 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Abhishek Composite | Liquor & Beer Management</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#071629;--navy2:#0b2039;--blue:#123c68;--blue2:#1d5d9d;--yellow:#f5c542;--yellow2:#ffdf78;--white:#f7f9fc;--muted:#9db2cb;--line:rgba(174,205,238,.18);--glass:rgba(17,43,73,.62);--glass2:rgba(8,27,49,.72);--green:#42d39a;--red:#ff727c;--shadow:0 24px 70px rgba(0,0,0,.28)}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 70% -15%,#1b5689 0%,#0a2340 34%,var(--navy) 72%);color:var(--white);font-family:'DM Sans',sans-serif;min-height:100vh}button,input,select{font:inherit}button{cursor:pointer}
+.glass{background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:var(--shadow)}
+#loginView{min-height:100vh;display:grid;grid-template-columns:1.1fr .9fr;align-items:center;gap:5vw;padding:6vw}
+.login-brand{max-width:700px}.eyebrow{color:var(--yellow);font-size:11px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase}.login-brand h1{font:800 clamp(42px,6vw,78px)/1.02 Manrope,sans-serif;margin:20px 0}.login-brand h1 span{color:var(--yellow)}.login-brand p{font-size:17px;color:#b9cce2;max-width:530px;line-height:1.8}.login-panel{max-width:430px;width:100%;padding:34px;border-radius:26px}.brand-mark{width:54px;height:54px;border-radius:17px;background:linear-gradient(135deg,var(--yellow2),var(--yellow));display:grid;place-items:center;color:#10233b;font-size:25px;font-weight:900;box-shadow:0 10px 28px #f5c54235}
+input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,199,231,.25);border-radius:11px;padding:13px 14px;color:#fff;outline:none}input:focus,select:focus{border-color:var(--yellow);box-shadow:0 0 0 3px #f5c54220}label{display:grid;gap:8px;color:#bdd0e6;font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase}.field{margin:17px 0}
+.btn{border:0;border-radius:11px;padding:12px 17px;background:linear-gradient(135deg,var(--yellow2),var(--yellow));color:#132b46;font-weight:900;box-shadow:0 8px 24px #f5c54222;transition:.18s}.btn:hover{transform:translateY(-2px);filter:brightness(1.06)}.btn.secondary{background:rgba(119,169,218,.12);border:1px solid var(--line);color:#e7f0fa;box-shadow:none}.btn.danger{background:#542b3a;color:#ffdce0;box-shadow:none}.full{width:100%}
+#appView{display:none;min-height:100vh}.shell{display:grid;grid-template-columns:258px minmax(0,1fr);min-height:100vh}.sidebar{position:sticky;top:0;height:100vh;padding:24px 17px;background:rgba(5,19,35,.78);border-right:1px solid var(--line);backdrop-filter:blur(22px);display:flex;flex-direction:column;z-index:10}.brand{display:flex;align-items:center;gap:12px;padding:0 8px 26px}.brand .brand-mark{width:44px;height:44px;border-radius:14px;font-size:20px}.brand strong{display:block;font:800 14px Manrope}.brand small{color:var(--muted);font-size:9px;letter-spacing:1.5px}.nav-label{padding:12px 12px 8px;color:#6f8ba9;font-size:9px;letter-spacing:1.8px;font-weight:800}.nav{display:grid;gap:5px}.nav button{width:100%;display:flex;align-items:center;gap:12px;padding:12px 13px;border:1px solid transparent;border-radius:11px;background:transparent;color:#b9cce1;text-align:left;font-weight:600;font-size:13px}.nav button .ico{width:22px;text-align:center;font-size:16px}.nav button:hover{background:#173554;color:#fff}.nav button.active{background:linear-gradient(100deg,rgba(245,197,66,.2),rgba(38,102,158,.22));border-color:rgba(245,197,66,.32);color:var(--yellow2)}.side-bottom{margin-top:auto}.user-chip{padding:13px;border:1px solid var(--line);border-radius:13px;background:#ffffff08;overflow:hidden}.user-chip small{display:block;color:var(--muted);font-size:10px}.user-chip strong{display:block;font-size:12px;overflow:hidden;text-overflow:ellipsis}
+.main{min-width:0;padding:25px clamp(16px,3vw,38px) 55px}.topbar{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:28px}.topbar h2{font:800 21px Manrope;margin:0}.topbar p{margin:4px 0 0;color:var(--muted);font-size:12px}.top-actions{display:flex;gap:9px;align-items:center}.live-pill{border:1px solid #42d39a55;color:#8cf0c4;background:#42d39a12;border-radius:30px;padding:7px 11px;font-size:10px;font-weight:800}
+.page{display:none;animation:appear .25s ease}.page.active{display:block}@keyframes appear{from{opacity:.5;transform:translateY(5px)}to{opacity:1;transform:none}}
+.hero{position:relative;overflow:hidden;border-radius:24px;padding:clamp(24px,4vw,42px);background:linear-gradient(110deg,rgba(8,29,53,.96),rgba(20,72,117,.8)),radial-gradient(circle at 80% 50%,#e3ae3428,transparent 30%);border:1px solid rgba(245,197,66,.27);min-height:230px;display:flex;align-items:center;justify-content:space-between;gap:25px;box-shadow:var(--shadow)}.hero:after{content:"";position:absolute;width:300px;height:300px;border:1px solid #f5c5422c;border-radius:50%;right:6%;top:-110px;box-shadow:0 0 0 24px #f5c54209,0 0 0 52px #f5c54208}.hero-copy{position:relative;z-index:1;max-width:640px}.hero h1{font:800 clamp(28px,4vw,45px)/1.1 Manrope;margin:13px 0}.hero h1 span{color:var(--yellow)}.hero p{color:#bed0e3;line-height:1.7;max-width:570px;margin:0 0 20px}.hero-art{position:relative;z-index:1;display:flex;align-items:end;gap:13px;padding-right:4%;font-size:68px;filter:drop-shadow(0 18px 20px #0005)}.hero-art span:nth-child(2){font-size:88px}.section-head{display:flex;justify-content:space-between;align-items:end;gap:12px;margin:28px 0 14px}.section-head h3{font:800 16px Manrope;margin:0}.section-head p{margin:4px 0 0;color:var(--muted);font-size:11px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-top:17px}.kpi{padding:18px;border-radius:17px;min-height:116px;position:relative;overflow:hidden}.kpi small{color:#a9bfd6;font-size:10px;text-transform:uppercase;letter-spacing:1.1px;font-weight:800}.kpi strong{display:block;font:800 26px Manrope;margin-top:10px}.kpi .kpi-icon{position:absolute;right:16px;top:17px;font-size:23px;opacity:.8}.kpi:after{content:"";position:absolute;width:90px;height:90px;border:1px solid #f5c54228;border-radius:50%;right:-34px;bottom:-48px;box-shadow:0 0 0 12px #f5c54209}
+.quick-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.quick{padding:17px;border-radius:15px;text-align:left;color:#fff;background:rgba(20,53,86,.65);border:1px solid var(--line);display:flex;align-items:center;gap:12px}.quick:hover{border-color:#f5c54277;background:#173b61}.quick b{display:block;font-size:12px}.quick small{display:block;color:var(--muted);font-size:10px;margin-top:3px}.quick i{font-style:normal;font-size:23px}
+.category-cards{display:grid;grid-template-columns:1fr 1fr;gap:14px}.category-card{padding:20px;border-radius:17px;display:flex;align-items:center;justify-content:space-between;gap:15px;min-height:112px}.category-card.liquor{background:linear-gradient(110deg,#432b30aa,#142d4caa)}.category-card.beer{background:linear-gradient(110deg,#6a4c18aa,#153653aa)}.category-card h4{margin:0 0 5px;font:800 16px Manrope}.category-card p{margin:0;color:#b9cce0;font-size:11px}.category-card .art{font-size:43px}
+.panel{padding:19px;border-radius:17px;margin:14px 0}.grid{display:grid;gap:13px}.form-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}.form-grid .span2{grid-column:span 2}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:13px;background:rgba(4,18,34,.5);margin:12px 0}table{border-collapse:collapse;width:100%;min-width:720px}th,td{padding:12px 13px;text-align:left;border-bottom:1px solid rgba(174,205,238,.12);white-space:nowrap;font-size:12px}th{background:#173a5e;color:#eaf2fb;text-transform:uppercase;letter-spacing:.8px;font-size:9px;position:sticky;top:0}td{color:#d3e0ef}tr:hover td{background:#ffffff08}.table-wrap input{min-width:90px;padding:8px}.muted{color:var(--muted)}.status{white-space:pre-wrap;padding:12px 14px;border-radius:11px;background:#06182c;border:1px solid var(--line);color:#c9d9eb;margin-top:12px;font-size:12px}.row{display:flex;align-items:end;gap:12px;flex-wrap:wrap}.row label{flex:1;min-width:140px}.toolbar{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.toolbar input{max-width:320px}.total-line{display:flex;justify-content:space-between;align-items:center;padding:12px 0;font-weight:800}.hidden{display:none!important}.tag{display:inline-flex;border-radius:30px;padding:5px 9px;background:#f5c54218;color:var(--yellow2);font-size:10px;font-weight:800}.empty{padding:24px;text-align:center;color:var(--muted)}
+@media(max-width:1100px){.kpis{grid-template-columns:repeat(2,1fr)}.quick-grid{grid-template-columns:repeat(2,1fr)}.form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){#loginView{grid-template-columns:1fr;padding:25px}.login-brand{display:none}.login-panel{margin:auto}.shell{grid-template-columns:1fr}.sidebar{position:sticky;top:0;height:auto;padding:10px 12px;flex-direction:row;align-items:center;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line)}.brand{padding:0 8px;min-width:max-content}.brand .brand-mark{width:36px;height:36px}.brand strong{font-size:11px}.brand small{font-size:8px}.nav-label,.side-bottom{display:none}.nav{display:flex;gap:4px}.nav button{width:auto;min-width:max-content;padding:9px 10px;font-size:11px}.nav button .ico{font-size:14px}.main{padding:17px 12px 40px}.topbar{margin-bottom:18px}.topbar h2{font-size:17px}.live-pill{display:none}.hero{min-height:200px}.hero-art{font-size:42px;padding:0}.hero-art span:nth-child(2){font-size:55px}.category-cards{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr 1fr}.form-grid .span2{grid-column:span 2}}
+@media(max-width:420px){.kpis{grid-template-columns:1fr 1fr;gap:8px}.kpi{padding:13px;min-height:100px}.kpi strong{font-size:21px}.quick-grid{grid-template-columns:1fr 1fr}.quick{padding:12px}.quick i{font-size:18px}.form-grid{grid-template-columns:1fr}.form-grid .span2{grid-column:auto}.hero-art{display:none}}
+</style>
+</head>
+<body>
+<section id="loginView">
+ <div class="login-brand"><div class="eyebrow">Premium retail management</div><h1>ABHISHEK<br><span>COMPOSITE</span></h1><p>One smart workspace for your liquor and beer business. Manage inventory, billing, purchases and daily business performance with clarity.</p><div class="category-cards" style="max-width:540px;margin-top:30px"><div class="category-card liquor glass"><div><h4>LIQUOR STORE</h4><p>Inventory · Sales · Stock</p></div><div class="art">🥃</div></div><div class="category-card beer glass"><div><h4>BEER STORE</h4><p>Inventory · Sales · Stock</p></div><div class="art">🍺</div></div></div></div>
+ <div class="login-panel glass"><div class="brand-mark">A</div><div class="eyebrow" style="margin-top:22px">Secure cloud access</div><h2 style="font:800 27px Manrope;margin:8px 0">Welcome back</h2><p class="muted" style="font-size:12px;margin:0 0 24px">Sign in to open your business dashboard.</p><div class="field"><label>Email address<input id="email" type="email" autocomplete="username" placeholder="Enter your email"></label></div><div class="field"><label>Password<input id="password" type="password" autocomplete="current-password" placeholder="Enter your password"></label></div><button class="btn full" id="loginBtn" onclick="login()">Sign in to dashboard&nbsp; →</button><div id="loginMsg" class="status">Your account details are secured by Supabase authentication.</div><p class="muted" style="font-size:10px;margin-top:18px">ABHISHEK COMPOSITE · LIQUOR & BEER MANAGEMENT</p></div>
+</section>
+<section id="appView">
+<div class="shell">
+<aside class="sidebar">
+ <div class="brand"><div class="brand-mark">A</div><div><strong>ABHISHEK COMPOSITE</strong><small>LIQUOR & BEER POS</small></div></div>
+ <div class="nav-label">WORKSPACE</div>
+ <nav class="nav">
+  <button class="active" data-page="home" onclick="showPage('home',this)"><span class="ico">⌂</span>Overview</button>
+  <button data-page="inventory" onclick="showPage('inventory',this)"><span class="ico">▦</span>Inventory</button>
+  <button data-page="sale" onclick="showPage('sale',this)"><span class="ico">▤</span>New Sale</button>
+  <button data-page="purchase" onclick="showPage('purchase',this)"><span class="ico">⇩</span>Purchases</button>
+  <button data-page="cash" onclick="showPage('cash',this)"><span class="ico">₹</span>Daily Cash</button>
+  <button data-page="history" onclick="showPage('history',this)"><span class="ico">◷</span>Sales History</button>
+ </nav>
+ <div class="side-bottom"><div class="user-chip"><small>LOGGED IN AS</small><strong id="who">Cloud user</strong></div><button class="btn secondary full" style="margin-top:10px" onclick="logout()">↪ Sign out</button></div>
+</aside>
+<main class="main">
+ <div class="topbar"><div><h2 id="pageTitle">Business overview</h2><p id="pageSubtitle">Your store performance at a glance</p></div><div class="top-actions"><span class="live-pill">● CLOUD CONNECTED</span><button class="btn secondary" onclick="refresh()">↻ Refresh</button></div></div>
+
+ <section id="home" class="page active">
+  <div class="hero"><div class="hero-copy"><div class="eyebrow">Your business. One dashboard.</div><h1>Welcome to your<br><span>store command centre.</span></h1><p>Manage liquor and beer operations from one place. Track products, record sales, manage purchases and stay on top of daily cash.</p><button class="btn" onclick="showPage('sale')">＋ Create new sale</button></div><div class="hero-art"><span>🥃</span><span>🍺</span></div></div>
+  <div class="kpis">
+   <div class="kpi glass"><span class="kpi-icon">▦</span><small>Products in catalogue</small><strong id="count">—</strong></div>
+   <div class="kpi glass"><span class="kpi-icon">↗</span><small>Today's sales</small><strong id="todaySales">₹0.00</strong></div>
+   <div class="kpi glass"><span class="kpi-icon">⇩</span><small>Today's purchases</small><strong id="todayPurchase">₹0.00</strong></div>
+   <div class="kpi glass"><span class="kpi-icon">◈</span><small>Store categories</small><strong>02</strong></div>
+  </div>
+  <div class="section-head"><div><h3>Store departments</h3><p>Choose the product category you want to manage</p></div></div>
+  <div class="category-cards"><div class="category-card liquor glass"><div><span class="tag">SPIRITS COLLECTION</span><h4 style="margin-top:10px">Liquor Inventory</h4><p>Browse and manage liquor products</p><button class="btn" style="margin-top:13px" onclick="setCategory('liquor')">Open liquor →</button></div><div class="art">🥃</div></div><div class="category-card beer glass"><div><span class="tag">BEER COLLECTION</span><h4 style="margin-top:10px">Beer Inventory</h4><p>Browse and manage beer products</p><button class="btn" style="margin-top:13px" onclick="setCategory('beer')">Open beer →</button></div><div class="art">🍺</div></div></div>
+  <div class="section-head"><div><h3>Quick actions</h3><p>Common tasks for your daily operations</p></div></div>
+  <div class="quick-grid"><button class="quick" onclick="showPage('sale')"><i>🧾</i><span><b>New sale</b><small>Create a customer bill</small></span></button><button class="quick" onclick="showPage('purchase')"><i>📦</i><span><b>Purchase entry</b><small>Record supplier stock</small></span></button><button class="quick" onclick="showPage('inventory')"><i>🏷️</i><span><b>Manage products</b><small>View wholesale prices</small></span></button><button class="quick" onclick="showPage('cash')"><i>💰</i><span><b>Daily cash</b><small>Record cash and expenses</small></span></button></div>
+  <div id="dashMsg" class="status">Connecting to your business data…</div>
+ </section>
+
+ <section id="inventory" class="page">
+  <div class="section-head"><div><h3>Product catalogue</h3><p>Search products and maintain wholesale prices</p></div><span class="tag" id="inventoryCount">0 PRODUCTS</span></div>
+  <div class="panel glass"><div class="form-grid"><label>Category<select id="cat" onchange="drawProducts()"><option value="all">All categories</option><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label><label class="span2">Search product<input id="search" oninput="drawProducts()" placeholder="Search brand or size…"></label><label>Sort by<select id="sort" onchange="drawProducts()"><option value="brand">Brand name</option><option value="category">Category</option></select></label></div></div>
+  <div class="toolbar" style="margin:12px 0"><span class="muted" id="stockSummary">Stock totals will appear after loading.</span><label style="max-width:190px">Low-stock threshold<input id="lowThreshold" type="number" min="0" step="1" value="5" onchange="drawProducts()"></label></div><div class="status">Opening stock is saved in Supabase. Purchased and sold quantities are calculated from purchase and sale entries. Available stock = Opening + Purchased − Sold. Save each product after editing.</div><div class="table-wrap"><table><thead><tr><th>Category</th><th>Brand / Product</th><th>Size</th><th>Opening stock</th><th>Purchased</th><th>Sold</th><th>Available</th><th>MRP</th><th>Wholesale price</th><th>Stock at MRP</th><th>Action</th></tr></thead><tbody id="products"><tr><td colspan="7" class="empty">Loading inventory…</td></tr></tbody></table></div>
+ </section>
+
+ <section id="sale" class="page">
+  <div class="section-head"><div><h3>Create a sale</h3><p>Prepare a new liquor or beer sales entry</p></div><span class="tag">SALES DESK</span></div>
+  <div class="panel glass"><div class="form-grid"><label>Sale date<input id="sd" type="date"></label><label>Category<select id="sc" onchange="fillSelects()"><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label><label>Bill number<input id="bill" placeholder="Optional bill no."></label><label>Payment mode<select id="pay"><option>Cash</option><option>Online</option><option>Rokad</option><option>Credit</option></select></label></div></div>
+  <div class="panel glass"><div class="form-grid"><label class="span2">Select product<select id="sp"></select></label><label>Quantity<input id="sq" type="number" min=".01" step=".01" value="1"></label><label>Sale rate<input id="sr" type="number" min="0" step=".01"></label></div><div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="btn" onclick="addItem('sale')">＋ Add to bill</button></div></div>
+  <div class="panel glass"><div class="section-head" style="margin-top:0"><div><h3>Bill items</h3><p>Review products before saving</p></div></div><div class="table-wrap"><table><thead><tr><th>Product</th><th>Quantity</th><th>Rate</th><th>Amount</th><th>Action</th></tr></thead><tbody id="saleRows"><tr><td colspan="5" class="empty">No items added yet</td></tr></tbody></table></div><div class="total-line"><span class="muted">Bill total</span><strong id="saleSum">₹0.00</strong></div><button class="btn" onclick="saveSale()">Save sale entry</button><div id="saleMsg" class="status">Add products to begin.</div></div>
+ </section>
+
+ <section id="purchase" class="page">
+  <div class="section-head"><div><h3>Purchase entry</h3><p>Record incoming stock against supplier invoices</p></div><span class="tag">PURCHASE DESK</span></div>
+  <div class="panel glass"><div class="form-grid"><label>Invoice number<input id="inv" placeholder="Supplier invoice no."></label><label>Supplier name<input id="supplier" placeholder="Supplier / distributor"></label><label>Invoice date<input id="pd" type="date"></label><label>Category<select id="pc" onchange="fillSelects()"><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label></div></div>
+  <div class="panel glass"><div class="form-grid"><label class="span2">Select product<select id="pp"></select></label><label>Quantity<input id="pq" type="number" min=".01" step=".01" value="1"></label><label>Purchase rate<input id="pr" type="number" min="0" step=".01"></label></div><div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="btn" onclick="addItem('purchase')">＋ Add purchase item</button></div></div>
+  <div class="panel glass"><h3 style="font:800 16px Manrope">Invoice items</h3><div class="table-wrap"><table><thead><tr><th>Product</th><th>Quantity</th><th>Rate</th><th>Amount</th><th>Action</th></tr></thead><tbody id="purchaseRows"><tr><td colspan="5" class="empty">No items added yet</td></tr></tbody></table></div><div class="total-line"><span class="muted">Invoice total</span><strong id="purchaseSum">₹0.00</strong></div><button class="btn" onclick="savePurchase()">Save purchase invoice</button><div id="purchaseMsg" class="status">Add invoice details and products.</div></div>
+ </section>
+
+ <section id="cash" class="page">
+  <div class="section-head"><div><h3>Daily cash register</h3><p>Track collections, other cash inflow and expenses</p></div><span class="tag">CASH MANAGEMENT</span></div>
+  <div class="panel glass"><div class="form-grid"><label>Date<input id="cd" type="date"></label><label>Cash received<input id="cashin" type="number" min="0" value="0"></label><label>Online received<input id="online" type="number" min="0" value="0"></label><label>Rokad received<input id="rokad" type="number" min="0" value="0"></label><label>Other cash in<input id="other" type="number" min="0" value="0"></label><label>Expenses<input id="expense" type="number" min="0" value="0"></label><label class="span2">Notes<input id="notes" placeholder="Daily notes (optional)"></label></div></div>
+  <div class="panel glass"><div class="total-line"><span class="muted">Cash in hand (cash + other cash − expenses)</span><strong id="cashCalc">₹0.00</strong></div><button class="btn" onclick="saveCash()">Save daily cash</button><div id="cashMsg" class="status">Enter daily collection details.</div></div>
+ </section>
+
+ <section id="history" class="page">
+  <div class="section-head"><div><h3>Sales history</h3><p>Latest recorded sales from your cloud database</p></div><button class="btn secondary" onclick="refresh()">↻ Reload history</button></div>
+  <div class="table-wrap"><table><thead><tr><th>Date</th><th>Bill no.</th><th>Category</th><th>Payment mode</th><th>Sale reference</th></tr></thead><tbody id="hist"><tr><td colspan="5" class="empty">Loading history…</td></tr></tbody></table></div>
+ </section>
+</main></div></section>
+<script>
+const SUPABASE_URL="https://abulaaaezuajnuobzsdj.supabase.co";
+const SUPABASE_KEY="sb_publishable_ae6FQ3C13ru6drINn53jDA_THBBArV5";
+let db=null,user=null,products=[],saleCart=[],purchaseCart=[];
+let stockPurchased={},stockSold={},stockMovementError="";
+const $=id=>document.getElementById(id),num=v=>Number(v)||0;
+const money=v=>"₹"+num(v).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
+const today=()=>{const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)};
+function setMsg(id,text){$(id).textContent=text}
+function safe(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function initDb(){if(!window.supabase)throw new Error("Supabase library could not load. Check internet connection and refresh.");if(!db)db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);return db}
+async function login(){const b=$("loginBtn");b.disabled=true;b.textContent="Signing in…";try{setMsg("loginMsg","Connecting securely…");initDb();const {data,error}=await db.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});if(error)throw error;user=data.user;await openApp()}catch(e){setMsg("loginMsg","Login error: "+(e.message||String(e)));console.error(e)}finally{b.disabled=false;b.textContent="Sign in to dashboard →"}}
+async function logout(){if(db)await db.auth.signOut();user=null;location.reload()}
+async function openApp(){$("loginView").style.display="none";$("appView").style.display="block";$("who").textContent=user?.email||"Signed in";["sd","pd","cd"].forEach(id=>$(id).value=today());await loadProducts();await refresh();fillSelects()}
+function showPage(id,button){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));$(id).classList.add("active");document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===id));const titles={home:["Business overview","Your store performance at a glance"],inventory:["Product inventory","Your liquor and beer product catalogue"],sale:["New sale","Create and record a customer sale"],purchase:["Purchases","Record supplier invoices and stock"],cash:["Daily cash","Daily collection and expense register"],history:["Sales history","Review recent recorded transactions"]};$("pageTitle").textContent=titles[id][0];$("pageSubtitle").textContent=titles[id][1];if(id==="sale"||id==="purchase")fillSelects()}
+function setCategory(cat){showPage("inventory");$("cat").value=cat;drawProducts()}
+async function loadProducts(){
+  setMsg("dashMsg","Loading inventory from cloud…");
+  const {data,error}=await db.from("inventory_products")
+    .select("id,category,brand_name,size,opening_stock,mrp,wholesale_price")
+    .order("brand_name");
+  if(error){setMsg("dashMsg","Inventory read error: "+error.message);return}
+  products=data||[];
+  $("count").textContent=products.length;
+  await loadStockMovements();
+  $("inventoryCount").textContent=products.length+" PRODUCTS";
+  drawProducts();fillSelects();
+  setMsg("dashMsg","Cloud sync complete · "+products.length+" products loaded.");
+}
+async function loadStockMovements(){
+  stockPurchased={};stockSold={};
+  const [purchases,sales]=await Promise.all([
+    db.from("purchase_items").select("product_id,quantity"),
+    db.from("sale_items").select("product_id,quantity")
+  ]);
+  if(purchases.error || sales.error){
+    stockMovementError=(purchases.error||sales.error).message;
+    return;
+  }
+  stockMovementError="";
+  for(const row of (purchases.data||[])){
+    const key=String(row.product_id);
+    stockPurchased[key]=(stockPurchased[key]||0)+num(row.quantity);
+  }
+  for(const row of (sales.data||[])){
+    const key=String(row.product_id);
+    stockSold[key]=(stockSold[key]||0)+num(row.quantity);
+  }
+}
+function stockFor(p){
+  const key=String(p.id);
+  const opening=num(p.opening_stock);
+  const purchased=stockPurchased[key]||0;
+  const sold=stockSold[key]||0;
+  return {opening,purchased,sold,available:opening+purchased-sold,mrpValue:(opening+purchased-sold)*num(p.mrp)};
+}
+function drawProducts(){
+  const cat=$("cat").value,q=$("search").value.toLowerCase(),sort=$("sort").value;
+  let rows=products.filter(p=>(cat==="all"||String(p.category).toLowerCase()===cat)&&(`${p.brand_name||""} ${p.size||""}`).toLowerCase().includes(q));
+  rows.sort((a,b)=>String(a[sort==="category"?"category":"brand_name"]).localeCompare(String(b[sort==="category"?"category":"brand_name"])));
+  $("inventoryCount").textContent=rows.length+" PRODUCTS";
+  const threshold=Math.max(0,num($("lowThreshold")?.value??5));
+  const totalUnits=products.reduce((a,p)=>a+stockFor(p).available,0);
+  const totalMrp=products.reduce((a,p)=>a+stockFor(p).mrpValue,0);
+  $("stockSummary").textContent=`Total available: ${totalUnits.toLocaleString("en-IN")} units · Stock value at MRP: ${money(totalMrp)}${stockMovementError?" · Movement data error: "+stockMovementError:""}`;
+  $("products").innerHTML=rows.length?rows.map(p=>{
+    const s=stockFor(p),low=s.available<=threshold;
+    return `<tr>
+      <td><span class="tag">${safe(p.category)}</span></td>
+      <td><b>${safe(p.brand_name)}</b>${low?'<div class="tag" style="background:#ff727c20;color:#ff9ca3;margin-top:5px">LOW STOCK</div>':''}</td>
+      <td>${safe(p.size)}</td>
+      <td><input id="stock_${safe(p.id)}" type="number" min="0" step=".01" value="${num(p.opening_stock)}"></td>
+      <td>${s.purchased}</td><td>${s.sold}</td>
+      <td><b>${s.available}</b></td>
+      <td><input id="mrp_${safe(p.id)}" type="number" min="0" step=".01" value="${num(p.mrp)}"></td>
+      <td><input id="wh_${safe(p.id)}" type="number" min="0" step=".01" value="${num(p.wholesale_price)}"></td>
+      <td>${money(s.mrpValue)}</td>
+      <td><button class="btn" onclick="saveProduct('${safe(p.id)}',this)">Save all</button></td>
+    </tr>`;
+  }).join(""):`<tr><td colspan="11" class="empty">No matching products found.</td></tr>`;
+}
+async function saveProduct(id,button){
+  const stockInput=$("stock_"+id),mrpInput=$("mrp_"+id),whInput=$("wh_"+id);
+  if(!stockInput||!mrpInput||!whInput)return;
+  const opening_stock=num(stockInput.value),mrp=num(mrpInput.value),wholesale_price=num(whInput.value);
+  if([opening_stock,mrp,wholesale_price].some(v=>!Number.isFinite(v)||v<0)){
+    alert("Stock, MRP and wholesale price must be valid non-negative numbers.");return;
+  }
+  if(button){button.disabled=true;button.textContent="Saving…";}
+  try{
+    const {data,error}=await db.from("inventory_products")
+      .update({opening_stock,mrp,wholesale_price})
+      .eq("id",id)
+      .select("id,opening_stock,mrp,wholesale_price")
+      .single();
+    if(error)throw error;
+    const p=products.find(x=>String(x.id)===String(id));
+    if(p){p.opening_stock=data.opening_stock;p.mrp=data.mrp;p.wholesale_price=data.wholesale_price;}
+    drawProducts();
+    if(button)alert("Saved permanently to cloud database.");
+  }catch(e){
+    alert("Save failed. Nothing was confirmed as saved: "+(e.message||String(e)));
+  }finally{
+    if(button){button.disabled=false;button.textContent="Save all";}
+  }
+}
+function fillSelects(){if(!db||!products.length)return;for(const [id,cat] of [["sp",$("sc").value],["pp",$("pc").value]]){const list=products.filter(p=>String(p.category).toLowerCase()===cat);$(id).innerHTML=list.map(p=>`<option value="${safe(p.id)}">${safe(p.brand_name)} · ${safe(p.size)}</option>`).join("")||'<option value="">No products found</option>'}const s=products.find(p=>String(p.id)===$("sp").value),p=products.find(p=>String(p.id)===$("pp").value);$("sr").value=s?.mrp||0;$("pr").value=p?.wholesale_price||0}
+$("sp").addEventListener("change",()=>$("sr").value=products.find(p=>String(p.id)===$("sp").value)?.mrp||0);
+$("pp").addEventListener("change",()=>$("pr").value=products.find(p=>String(p.id)===$("pp").value)?.wholesale_price||0);
+function addItem(kind){const sale=kind==="sale",p=products.find(x=>String(x.id)===$(sale?"sp":"pp").value),qty=num($(sale?"sq":"pq").value),rate=num($(sale?"sr":"pr").value),cart=sale?saleCart:purchaseCart;if(!p||qty<=0||rate<0){alert("Please select a product and enter a valid quantity and rate.");return}const found=cart.find(x=>String(x.product_id)===String(p.id));if(found){found.quantity+=qty;found.rate=rate}else cart.push({product_id:p.id,name:p.brand_name+" "+p.size,quantity:qty,rate});drawCart(kind)}
+function drawCart(kind){const sale=kind==="sale",cart=sale?saleCart:purchaseCart,id=sale?"saleRows":"purchaseRows";$(id).innerHTML=cart.length?cart.map((x,i)=>`<tr><td>${safe(x.name)}</td><td>${x.quantity}</td><td>${money(x.rate)}</td><td>${money(x.quantity*x.rate)}</td><td><button class="btn danger" onclick="removeCart('${kind}',${i})">Remove</button></td></tr>`).join(""):`<tr><td colspan="5" class="empty">No items added yet</td></tr>`;$(sale?"saleSum":"purchaseSum").textContent=money(cart.reduce((a,x)=>a+x.quantity*x.rate,0))}
+function removeCart(kind,index){(kind==="sale"?saleCart:purchaseCart).splice(index,1);drawCart(kind)}
+async function saveSale(){if(!saleCart.length){setMsg("saleMsg","Add at least one product first.");return}setMsg("saleMsg","Checking available stock…");for(const x of saleCart){const p=products.find(y=>String(y.id)===String(x.product_id));const [pu,sa]=await Promise.all([db.from("purchase_items").select("quantity").eq("product_id",x.product_id),db.from("sale_items").select("quantity").eq("product_id",x.product_id)]);if(pu.error||sa.error){setMsg("saleMsg","Stock check failed: "+(pu.error||sa.error).message);return}const available=num(p?.opening_stock)+(pu.data||[]).reduce((a,r)=>a+num(r.quantity),0)-(sa.data||[]).reduce((a,r)=>a+num(r.quantity),0);if(x.quantity>available){setMsg("saleMsg",`Insufficient stock for ${x.name}. Available: ${available}`);return}}
+const {data:s,error}=await db.from("sales").insert({user_id:user.id,category:$("sc").value,sale_date:$("sd").value,bill_number:$("bill").value.trim()||null,payment_mode:$("pay").value}).select("id").single();if(error){setMsg("saleMsg","Sale save failed: "+error.message);return}const rows=saleCart.map(x=>({sale_id:s.id,product_id:x.product_id,quantity:x.quantity,sale_rate:x.rate,user_id:user.id}));const result=await db.from("sale_items").insert(rows);if(result.error){setMsg("saleMsg","Sale header created but items failed. Reference "+s.id+". Error: "+result.error.message);return}saleCart=[];drawCart("sale");setMsg("saleMsg","Sale saved successfully · Reference "+s.id);await refresh()}
+async function savePurchase(){if(!purchaseCart.length||!$("inv").value.trim()||!$("supplier").value.trim()){setMsg("purchaseMsg","Invoice number, supplier and at least one item are required.");return}const {data:dup,error:de}=await db.from("purchase_invoices").select("id").eq("invoice_number",$("inv").value.trim()).maybeSingle();if(de){setMsg("purchaseMsg",de.message);return}if(dup){setMsg("purchaseMsg","This invoice number already exists. Duplicate blocked.");return}const {data:h,error}=await db.from("purchase_invoices").insert({user_id:user.id,invoice_number:$("inv").value.trim(),supplier_name:$("supplier").value.trim(),invoice_date:$("pd").value,category:$("pc").value}).select("id").single();if(error){setMsg("purchaseMsg","Purchase save failed: "+error.message);return}const result=await db.from("purchase_items").insert(purchaseCart.map(x=>({invoice_id:h.id,product_id:x.product_id,quantity:x.quantity,purchase_rate:x.rate,user_id:user.id})));if(result.error){setMsg("purchaseMsg","Invoice created but items failed. Reference "+h.id+". Error: "+result.error.message);return}purchaseCart=[];drawCart("purchase");setMsg("purchaseMsg","Purchase invoice saved · Reference "+h.id);await refresh()}
+function cashPreview(){$("cashCalc").textContent=money(num($("cashin").value)+num($("other").value)-num($("expense").value))}["cashin","other","expense"].forEach(id=>$(id).addEventListener("input",cashPreview));
+async function saveCash(){const row={user_id:user.id,date:$("cd").value,cash_received:num($("cashin").value),online_received:num($("online").value),rokad_received:num($("rokad").value),other_cash_in:num($("other").value),expenses:num($("expense").value),notes:$("notes").value};const {error}=await db.from("daily_cash").upsert(row,{onConflict:"date"});setMsg("cashMsg",error?"Save error: "+error.message:"Daily cash saved.");}
+async function refresh(){if(!db||!user)return;const d=today();const {data:s,error}=await db.from("sales").select("id").eq("sale_date",d);if(error){setMsg("dashMsg","Sales summary: "+error.message);return}const ids=(s||[]).map(x=>x.id);let salesTotal=0;if(ids.length){const r=await db.from("sale_items").select("quantity,sale_rate").in("sale_id",ids);if(!r.error)salesTotal=(r.data||[]).reduce((a,x)=>a+num(x.quantity)*num(x.sale_rate),0)}$("todaySales").textContent=money(salesTotal);const {data:invoices}=await db.from("purchase_invoices").select("id").eq("invoice_date",d);let purchaseTotal=0;if(invoices?.length){const r=await db.from("purchase_items").select("quantity,purchase_rate").in("invoice_id",invoices.map(x=>x.id));if(!r.error)purchaseTotal=(r.data||[]).reduce((a,x)=>a+num(x.quantity)*num(x.purchase_rate),0)}$("todayPurchase").textContent=money(purchaseTotal);const h=await db.from("sales").select("id,sale_date,bill_number,category,payment_mode").order("sale_date",{ascending:false}).limit(50);$("hist").innerHTML=h.error?`<tr><td colspan="5" class="empty">${safe(h.error.message)}</td></tr>`:(h.data||[]).map(x=>`<tr><td>${safe(x.sale_date)}</td><td>${safe(x.bill_number||"—")}</td><td>${safe(x.category)}</td><td>${safe(x.payment_mode)}</td><td>${safe(x.id)}</td></tr>`).join("")||'<tr><td colspan="5" class="empty">No sales recorded yet.</td></tr>'}
+(async()=>{try{initDb();const {data}=await db.auth.getSession();if(data.session){user=data.session.user;await openApp()}}catch(e){console.error("Startup:",e);setMsg("loginMsg","Startup error: "+e.message)}})();
+</script>
+</body>
+</html>
 
