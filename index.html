@@ -411,16 +411,28 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
 
  <section id="purchase" class="page">
   <div class="section-head" style="align-items:center;gap:12px"><div><h3>Purchase entry</h3><p>Record incoming stock against supplier invoices</p></div><div class="row" style="justify-content:flex-end;align-items:center;gap:10px;flex-wrap:wrap"><button class="btn" type="button" onclick="startExciseQrScanner()">📷 Scan QR for Purchase</button><button class="btn secondary" onclick="showPage('purchaseHistory')">▤ Purchase history</button></div></div>
-  <div class="panel glass" id="exciseScannerPanel" style="display:none;padding:14px;margin:12px 0;border:2px solid #f5c542;box-shadow:0 12px 34px #0005">
-   <div class="toolbar" style="justify-content:space-between;gap:12px"><div><strong style="font:800 15px Manrope">📷 UP Excise QR Scanner</strong><div class="muted" style="font-size:11px;margin-top:4px">Live rear-camera preview · Scan ke baad purchase draft yahin dikhega</div></div><button class="btn secondary" type="button" style="padding:9px 12px" onclick="stopExciseQrScanner()">Stop camera</button></div>
-   <div id="exciseQrReader" style="width:100%;max-width:680px;min-height:300px;margin:12px auto;background:#050b14;border:2px solid #f5c94a;border-radius:14px;overflow:hidden;position:relative"></div>
-   <div class="status" id="exciseScanStatus">Excise transport pass ka QR camera ke saamne rakhein.</div>
-   <div class="status" id="exciseFetchStatus" style="display:none"></div>
-   <div class="table-wrap" id="excisePreviewWrap" style="display:none"><table style="min-width:760px"><thead><tr><th>Pass brand</th><th>Size</th><th>Inventory product</th><th>Dispatched bottles</th><th>Purchase rate ₹</th></tr></thead><tbody id="excisePreviewRows"></tbody></table><div class="toolbar" style="padding:10px"><span class="muted" id="excisePreviewSummary">Verify rows before confirmation.</span><button class="btn" type="button" id="exciseConfirmBtn" onclick="confirmExcisePurchase()">✓ Confirm Purchase</button></div></div>
-  </div>
   <div class="panel glass"><div class="section-head" style="margin-top:0"><div><h3>Brand wholesale rates</h3><p>Update each product's purchase cost once; sale margin uses this rate</p></div></div><div class="row"><label>Search brand<input id="whSearch" placeholder="Search brand / size" oninput="drawWholesaleRates()"></label><label>Category<select id="whCategory" onchange="drawWholesaleRates()"><option value="all">All</option><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label></div><div class="table-wrap"><table><thead><tr><th>Category</th><th>Brand</th><th>Size</th><th>Wholesale rate</th><th>MRP</th><th>Margin / bottle</th><th>Action</th></tr></thead><tbody id="wholesaleRateRows"></tbody></table></div></div>
   <div class="panel glass"><div class="form-grid"><label>Invoice number<input id="inv" placeholder="Supplier invoice no."></label><label>Supplier name<input id="supplier" placeholder="Supplier / distributor"></label><label>Invoice date<input id="pd" type="date" min="2026-11-02"></label><label>Category<select id="pc" onchange="fillSelects()"><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label></div></div>
-
+  <div class="panel glass" id="exciseScannerPanel" style="display:none;padding:12px 14px;margin:8px 0">
+   <div class="toolbar" style="justify-content:flex-start;gap:12px">
+    <strong style="font:800 14px Manrope">📷 Scan QR for Purchase</strong>
+    
+    <button class="btn secondary" type="button" style="padding:9px 12px" onclick="stopExciseQrScanner()">Stop</button>
+    <span class="muted" id="exciseScanStatus" style="font-size:11px">Excise transport pass ka QR scan karein.</span>
+   </div>
+   <div id="exciseQrReader" style="width:100%;max-width:360px;margin:10px 0;display:none"></div>
+   <div class="status" id="exciseFetchStatus" style="display:none"></div>
+   <div id="exciseImportBox" class="status" style="display:none">
+    <b>Portal response import</b>
+    <p style="margin:7px 0">Portal API response ka complete JSON yahan paste karein. System result2 ke dispatched product rows ko automatically draft mein badlega. Koi purchase abhi save nahi hogi.</p>
+    <textarea id="exciseApiJson" rows="7" style="width:100%;background:#06182c;color:#eaf2fb;border:1px solid rgba(174,205,238,.3);border-radius:9px;padding:10px" placeholder='{"tp_mode":"INDENT","result":"...","result1":"...","result2":"..."}'></textarea>
+    <div style="display:flex;justify-content:flex-end;margin-top:9px"><button class="btn" type="button" onclick="importExciseApiResponse()">Parse response into purchase draft</button></div>
+   </div>
+   <div class="table-wrap" id="excisePreviewWrap" style="display:none">
+    <table style="min-width:760px"><thead><tr><th>Pass brand</th><th>Size</th><th>Inventory product</th><th>Dispatched bottles</th><th>Purchase rate ₹</th></tr></thead><tbody id="excisePreviewRows"></tbody></table>
+    <div class="toolbar" style="padding:10px"><span class="muted" id="excisePreviewSummary">Verify rows before adding.</span><button class="btn" type="button" id="exciseConfirmBtn" onclick="confirmExcisePurchase()">✓ Confirm Purchase</button></div>
+   </div>
+  </div>
   <div class="panel glass"><div class="form-grid"><label class="span2">Select product<select id="pp"></select></label><label>Quantity<input id="pq" type="number" min=".01" step=".01" value="1"></label><label>Purchase rate<input id="pr" type="number" min="0" step=".01"></label></div><div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="btn" onclick="addItem('purchase')">＋ Add purchase item</button></div></div>
   <div class="panel glass"><h3 style="font:800 16px Manrope">Invoice items</h3><div class="table-wrap"><table><thead><tr><th>Product</th><th>Quantity</th><th>Rate</th><th>Amount</th><th>Action</th></tr></thead><tbody id="purchaseRows"><tr><td colspan="5" class="empty">No items added yet</td></tr></tbody></table></div><div class="total-line"><span class="muted">Invoice total</span><strong id="purchaseSum">₹0.00</strong></div><button class="btn" onclick="savePurchase(this)">Save purchase invoice</button><div id="purchaseMsg" class="status">Add invoice details and products.</div></div>
  </section>
@@ -878,7 +890,7 @@ async function saveSale(){
   setMsg("saleMsg","Sale saved successfully · Bill total: "+money(billTotal)+" · Reference "+s.id);
   await loadProducts(); await refresh();
 }
-let exciseQrScanner=null,excisePreviewItems=[],excisePassUrl="",exciseQrStarting=false;
+let exciseQrScanner=null,excisePreviewItems=[],excisePassUrl="";
 function setExciseStatus(message){const el=$("exciseScanStatus");if(el)el.textContent=message;}
 function setExciseFetchStatus(message){const el=$("exciseFetchStatus");if(el){el.style.display="block";el.textContent=message;}}
 function toggleExciseScanner(){
@@ -919,57 +931,45 @@ async function ensureExciseQrLibrary(){
  return false;
 }
 async function startExciseQrScanner(){
- if(exciseQrStarting)return;
- exciseQrStarting=true;
  const panel=$("exciseScannerPanel"),host=$("exciseQrReader");
  if(panel)panel.style.display="block";
- if(host){host.style.display="block";host.hidden=false;host.innerHTML="";}
- setExciseStatus("Camera start ho raha hai…");
- if(!window.isSecureContext){setExciseStatus("Camera ke liye HTTPS zaroori hai. Website ko https:// se kholein.");exciseQrStarting=false;return;}
- if(!window.Html5Qrcode){setExciseStatus("QR scanner library load nahi hui. Page refresh karke dobara try karein.");exciseQrStarting=false;return;}
- if(!host){setExciseStatus("QR camera panel nahi mila. Page refresh karein.");exciseQrStarting=false;return;}
+ if(!window.isSecureContext){setExciseStatus("Camera ke liye secure HTTPS connection zaroori hai. Website ko https:// se kholein.");return;}
+ setExciseStatus("Camera permission check ho rahi hai…");
+ const loaded=await ensureExciseQrLibrary();
+ if(!loaded){setExciseStatus("QR scanner library load nahi hui. Internet connection check karke page refresh karein.");return;}
+ host.style.display="block";
+ host.innerHTML="";
  try{
-  // Create a fresh scanner only after the visible reader container is ready.
-  if(exciseQrScanner){try{if(exciseQrScanner.isScanning)await exciseQrScanner.stop();}catch(e){} exciseQrScanner=null;}
+  if(exciseQrScanner){try{if(exciseQrScanner.isScanning)await exciseQrScanner.stop();}catch(e){} exciseQrScanner.clear().catch(()=>{});exciseQrScanner=null;}
   exciseQrScanner=new Html5Qrcode("exciseQrReader",{verbose:false});
-  const config={fps:10,qrbox:{width:240,height:240},formatsToSupport:[Html5QrcodeSupportedFormats.QR_CODE],aspectRatio:1.0};
-  let handled=false;
+  const config={fps:12,qrbox:(w,h)=>{const side=Math.floor(Math.min(w,h)*0.78);return {width:side,height:side};},aspectRatio:1.0,formatsToSupport:[Html5QrcodeSupportedFormats.QR_CODE]};
   const onSuccess=async decoded=>{
-   if(handled)return;handled=true;
    const pass=parseExciseQr(decoded);
-   if(!pass){handled=false;setExciseStatus("QR read hua, lekin valid UP Excise transport pass QR nahi hai.");return;}
+   if(!pass){setExciseStatus("QR read hua, lekin valid UP Excise pass QR nahi hai.");return;}
    $("inv").value=pass.tpnum;
-   setExciseStatus("QR successfully scan ho gaya ✓ Pass details load ho rahi hain…");
-   await stopExciseQrScanner(true);
+   setExciseStatus("QR successfully scan ho gaya ✓ Pass number invoice mein fill hua.");
+   await stopExciseQrScanner();
    await fetchExcisePassDetails(pass);
   };
   try{
    await exciseQrScanner.start({facingMode:"environment"},config,onSuccess,()=>{});
-  }catch(primaryError){
-   try{if(exciseQrScanner&&exciseQrScanner.isScanning)await exciseQrScanner.stop();}catch(e){}
-   const cameras=await Html5Qrcode.getCameras();
-   const rear=cameras.find(c=>/back|rear|environment/i.test(c.label||""));
-   if(!rear)throw new Error("Rear camera detect nahi hua. Chrome camera permission check karein.");
-   await exciseQrScanner.start(rear.id,config,onSuccess,()=>{});
+  }catch(backErr){
+   const cams=await Html5Qrcode.getCameras();
+   if(!cams.length)throw backErr;
+   await exciseQrScanner.start(cams[0].id,config,onSuccess,()=>{});
   }
-  // Keep the live preview visible; do not hide or clear its DOM while scanning.
-  host.style.display="block";
-  host.querySelectorAll("video").forEach(v=>{v.style.display="block";v.style.visibility="visible";v.style.opacity="1";v.style.width="100%";v.style.height="min(62vh,520px)";v.style.minHeight="280px";v.style.objectFit="cover";});
-  setExciseStatus("Rear camera active hai. Live camera screen par QR frame mein rakhein.");
+  setExciseStatus("Camera ON hai. Excise pass ka QR code camera ke frame mein rakhein.");
  }catch(e){
   const msg=String(e&&e.message||e||"");
-  if(/permission|denied|notallowed/i.test(msg))setExciseStatus("Camera permission blocked hai. Chrome Site settings → Camera → Allow karein.");
-  else if(/rear camera|notfound|no camera|device/i.test(msg))setExciseStatus("Rear camera start nahi hua. Chrome permission dein aur doosri camera app band karein.");
-  else setExciseStatus("Camera start error: "+msg);
+  if(/permission|denied|notallowed/i.test(msg))setExciseStatus("Camera permission blocked hai. Chrome address bar ke lock/site settings icon → Camera → Allow karein, phir page reload karein.");
+  else if(/notfound|no camera|device/i.test(msg))setExciseStatus("Is device par camera detect nahi hua. Webcam connect karein ya mobile se website kholein.");
+  else setExciseStatus("Camera start nahi hua: "+msg+". Chrome mein site camera permission Allow karke reload karein.");
   host.style.display="block";
- }finally{exciseQrStarting=false;}
+ }
 }
-async function stopExciseQrScanner(afterScan=false){
+async function stopExciseQrScanner(){
  if(exciseQrScanner){try{if(exciseQrScanner.isScanning)await exciseQrScanner.stop();}catch(e){}}
- const host=$("exciseQrReader");
- // Keep the scanner card in the same top position after scan; only stop the camera stream.
- if(host){host.style.display="block";if(!afterScan)host.innerHTML='<div style="padding:24px 12px;text-align:center;color:#dbe7f5">Camera stopped. Scan QR for Purchase to restart.</div>';else host.innerHTML='<div style="padding:18px 12px;text-align:center;color:#dbe7f5">QR scanned ✓ Camera stopped. Purchase draft is loading below.</div>';}
- if(!afterScan)setExciseStatus("Camera stopped.");
+ const host=$("exciseQrReader");if(host)host.style.display="none";
 }
 function normExcise(s){return String(s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").replace(/\s+/g," ").trim();}
 function findExciseProduct(brand,size,category){
@@ -985,101 +985,89 @@ function findExciseProduct(brand,size,category){
  }
  return bestScore>=0.55?best:null;
 }
-function exciseTextFromHtml(html){
- const doc=new DOMParser().parseFromString(String(html||""),"text/html");
- return doc;
+function unwrapExciseJson(value){
+ let v=value;
+ for(let i=0;i<4&&typeof v==="string";i++){try{v=JSON.parse(v)}catch(e){break}}
+ return v;
 }
-function parseExciseRowsFromRaw(raw){
- if(!raw)return [];
- // Accept JSON-encoded response bodies as well as HTML/text returned by the Edge Function.
- let value=raw;
- if(typeof value==="string"){
-  const trimmed=value.trim();
-  if((trimmed.startsWith("{")&&trimmed.endsWith("}"))||(trimmed.startsWith("[")&&trimmed.endsWith("]"))){
-   try{value=JSON.parse(trimmed);}catch(e){}
-  }
+function exciseRowsFromApiPayload(payload){
+ const root=unwrapExciseJson(payload);
+ if(!root||typeof root!=="object")throw new Error("JSON object detect nahi hua.");
+ const passObj=unwrapExciseJson(root.result);
+ const indentObj=unwrapExciseJson(root.result1);
+ const productsObj=unwrapExciseJson(root.result2);
+ const pass=Array.isArray(passObj?.responseContent)?passObj.responseContent[0]||{}:{};
+ const indent=Array.isArray(indentObj?.responseContent)?indentObj.responseContent[0]||{}:{};
+ const records=Array.isArray(productsObj?.responseContent)?productsObj.responseContent:[];
+ if(!records.length)throw new Error("result2.responseContent mein product rows nahi mile.");
+ const rows=records.map(r=>({
+  brand:String(r.brand_name||"").trim(),
+  size:String(r.package_size_name||"").trim(),
+  category:String(r.liquor_type_name||"").trim().toLowerCase(),
+  packagingType:String(r.package_type_name||"").trim(),
+  quantity:Number(r.bottles_dispatched_qty??0),
+  cases:Number(r.case_dispatched_qty??0),
+  bulkLitres:Number(r.dispathed_bulk_litres??r.total_bulk_litre??0)
+ })).filter(r=>r.brand&&r.size&&Number.isFinite(r.quantity)&&r.quantity>0);
+ if(!rows.length)throw new Error("Dispatched bottle quantity wale valid product rows nahi mile.");
+ return {pass,indent,rows};
+}
+function importExciseApiResponse(){
+ try{
+  const raw=$("exciseApiJson")?.value?.trim();
+  if(!raw)throw new Error("Pehle complete API response JSON paste karein.");
+  const parsed=exciseRowsFromApiPayload(JSON.parse(raw));
+  applyExcisePassHeader(parsed.pass,parsed.indent);
+  showExciseRows(parsed.rows);
+  $("exciseImportBox").style.display="none";
+  setExciseFetchStatus("API response se "+parsed.rows.length+" product row(s) parse hui. Brand, size aur dispatched quantity review karein; Confirm se pehle supplier/date verify karein.");
+ }catch(e){
+  setExciseFetchStatus("Response parse nahi hua: "+(e.message||String(e))+". Complete JSON object paste karein, sirf result2 nahi.");
  }
- if(Array.isArray(value))return value;
- if(value&&typeof value==="object"){
-  const nested=value.rows||value.items||value.products||value.data?.rows||value.data?.items||value.data?.products;
-  if(Array.isArray(nested))return nested;
-  raw=value.html||value.pageHtml||value.body||value.content||value.pageText||value.text||"";
- }
- if(typeof raw!=="string"||!raw.trim())return [];
- const doc=exciseTextFromHtml(raw);
- const tables=[...doc.querySelectorAll("table")];
- const out=[];
- for(const table of tables){
-  const trs=[...table.querySelectorAll("tr")];
-  if(trs.length<2)continue;
-  const matrix=trs.map(tr=>[...tr.querySelectorAll("th,td")].map(td=>(td.innerText||td.textContent||"").replace(/\s+/g," ").trim()));
-  const headerIndex=matrix.findIndex(row=>row.some(c=>/brand/i.test(c))&&row.some(c=>/packaging\s*size|size/i.test(c))&&row.some(c=>/bottles?\s*dispatched|dispatched\s*bottles/i.test(c)));
-  if(headerIndex<0)continue;
-  const headers=matrix[headerIndex].map(x=>x.toLowerCase());
-  const findCol=patterns=>headers.findIndex(h=>patterns.some(p=>p.test(h)));
-  const brandCol=findCol([/brand/]);
-  const sizeCol=findCol([/packaging\s*size/,/^size$/]);
-  const qtyCol=findCol([/no\.?\s*of\s*bottles\s*dispatched/,/bottles?\s*dispatched/,/dispatched\s*bottles/]);
-  const caseCol=findCol([/cases?.*dispatched/,/dispatched.*cases?/]);
-  for(const row of matrix.slice(headerIndex+1)){
-   if(!row.length)continue;
-   const brand=row[brandCol]||"";
-   const size=row[sizeCol]||"";
-   const quantity=Number(String(row[qtyCol]||"").replace(/,/g,"").match(/\d+(?:\.\d+)?/)?.[0]||0);
-   const cases=Number(String(row[caseCol]||"").replace(/,/g,"").match(/\d+(?:\.\d+)?/)?.[0]||0);
-   if(brand&&size&&quantity>0)out.push({brand,size,quantity,cases});
-  }
-  if(out.length)return out;
- }
- // Text-only fallback: only accept rows where all three values are present on one line.
- const lines=raw.replace(/<[^>]+>/g," ").replace(/&nbsp;/gi," ").replace(/&amp;/gi,"&").split(/\r?\n/).map(x=>x.replace(/\s+/g," ").trim()).filter(Boolean);
- for(const line of lines){
-  const m=line.match(/^(.{4,100}?)\s+(Beer|Liquor)\s+(Strong|Mild|[A-Za-z -]+)\s+(\d{2,4}\s*ML)\s+([A-Za-z ]+)\s+[\d,]+\s+[\d,]+\s+[\d,]+\s+([\d,]+)\s+[\d,.]+$/i);
-  if(m)out.push({brand:m[1],size:m[4],quantity:Number(m[6].replace(/,/g,""))});
- }
- return out;
+}
+function applyExcisePassHeader(pass,indent){
+ if(pass.serial_no)$("inv").value=pass.serial_no;
+ if(pass.from_entity_name||pass.entity_name)$("supplier").value=pass.from_entity_name||pass.entity_name;
+ const rawDate=String(pass.issue_date||indent.created_date||"");
+ let m=rawDate.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{4})/);
+ if(m){
+  const months={Jan:"01",Feb:"02",Mar:"03",Apr:"04",May:"05",Jun:"06",Jul:"07",Aug:"08",Sep:"09",Oct:"10",Nov:"11",Dec:"12"};
+  const d=String(m[1]).padStart(2,"0"),mo=months[m[2]],y=m[3];
+  if(mo)$("pd").value=`${y}-${mo}-${d}`;
+ }else if(/^\d{4}-\d{2}-\d{2}/.test(rawDate))$("pd").value=rawDate.slice(0,10);
+ const categories=[...new Set((excisePreviewItems||[]).map(x=>x.category).filter(Boolean))];
+ if(categories.length===1&&["beer","liquor"].includes(categories[0]))$("pc").value=categories[0];
 }
 async function fetchExcisePassDetails(pass){
- setExciseFetchStatus("QR read ho gaya. Supabase Edge Function se official Excise response aur dispatched product rows fetch ho rahi hain…");
+ setExciseFetchStatus("QR read ho gaya. Supabase Edge Function se official portal fetch try ho raha hai…");
+ $("exciseImportBox").style.display="none";
  try{
-  const {data,error}=await db.functions.invoke("excise-transport-pass",{body:{tpnum:pass.tpnum,tptype:pass.tptype||"FG",tpyear:pass.tpyear||"2026",sourceUrl:pass.url}});
-  if(error)throw new Error(error.message||"Supabase Edge Function request failed");
-  const payload=data||{};
-  if(payload.success===false)throw new Error(payload.message||payload.error||("Excise portal fetch failed"+(payload.httpStatus?" (HTTP "+payload.httpStatus+")":"")));
-  let rows=Array.isArray(payload.rows)?payload.rows:(Array.isArray(payload.items)?payload.items:(Array.isArray(payload.products)?payload.products:[]));
-  if(!rows.length&&payload.data)rows=parseExciseRowsFromRaw(payload.data);
-  if(!rows.length)rows=parseExciseRowsFromRaw(payload.html||payload.pageHtml||payload.body||payload.content||payload.pageText||payload.text||payload.raw||payload.response);
-  const normalized=rows.map(r=>({
-   brand:r.brand||r.brandName||r.product_name||r.productName||r.name||r.product||"",
-   size:r.size||r.packaging_size||r.packagingSize||r.pack_size||"",
-   quantity:Number(r.quantity??r.dispatched_bottles??r.bottles_dispatched??r.no_of_bottles_dispatched??r.noOfBottlesDispatched??r.bottles??r.qty??0),
-   rate:Number(r.rate??r.purchase_rate??r.wholesale_price??0)
-  })).filter(r=>r.brand&&r.size&&Number.isFinite(r.quantity)&&r.quantity>0);
-  if(!normalized.length){
-   const status=payload.httpStatus||payload.status||"unknown";
-   const length=payload.contentLength||String(payload.pageText||payload.html||payload.body||"").length||0;
-   throw new Error("Portal ne response diya, lekin dispatched product table parse nahi hui (HTTP "+status+", response length "+length+"). Edge Function ko raw HTML/body return karna hoga; bina product rows ke purchase draft nahi banayi.");
+  const {data,error}=await db.functions.invoke("excise-transport-pass",{
+   body:{tpnum:pass.tpnum,tptype:pass.tptype||"FG",tpyear:pass.tpyear||"2026"}
+  });
+  if(!error&&data?.success===true&&Array.isArray(data.rows)&&data.rows.length){
+   applyExcisePassHeader(data.pass||{},data.indent||{});
+   showExciseRows(data.rows.map(r=>({brand:r.brand,size:r.size,category:String(r.category||"").toLowerCase(),quantity:Number(r.quantity),cases:Number(r.cases||0),bulkLitres:Number(r.bulkLitres||0)})));
+   setExciseFetchStatus("Official API se "+data.rows.length+" product row(s) fetch hui. Purchase draft ready hai; confirm se pehle sab rows verify karein.");
+   return;
   }
-  showExciseRows(normalized);
-  const passInfo=payload.pass||payload.details||{};
-  if((passInfo.consignor||passInfo.supplier)&&!$("supplier").value)$("supplier").value=passInfo.consignor||passInfo.supplier;
-  const issue=passInfo.issueDate||passInfo.issue_date;
-  if(issue&&!$("pd").value){const d=new Date(issue);if(!isNaN(d))$("pd").value=d.toISOString().slice(0,10);}
-  setExciseFetchStatus("✓ "+normalized.length+" dispatched product rows fetch hui. Har brand, size aur bottle quantity verify karein. Purchase abhi save nahi hui hai.");
-  $("excisePreviewWrap").scrollIntoView({behavior:"smooth",block:"center"});
+  const reason=error?.message||data?.message||"Portal API ne data return nahi kiya.";
+  $("exciseImportBox").style.display="block";
+  setExciseFetchStatus("Automatic fetch abhi complete nahi hua ("+reason+"). Portal ka authorized API response copy karke neeche paste karein. Koi external tab automatically nahi khola gaya aur purchase save nahi hui.");
  }catch(e){
-  const msg=String(e&&e.message||e||"Unknown error");
-  setExciseFetchStatus("QR scan successful, lekin automatic product fetch fail hua: "+msg+". Koi external Excise tab open nahi hua aur koi purchase save nahi hui.");
+  $("exciseImportBox").style.display="block";
+  setExciseFetchStatus("Automatic fetch blocked/failed: "+(e.message||String(e))+". Portal se milne wala complete API JSON neeche paste karein. Purchase abhi save nahi hui.");
  }
 }
 function showExciseRows(rows){
  excisePreviewItems=rows.map(row=>{
   const p=findExciseProduct(row.brand,row.size,"");
-  return {...row,product:p,product_id:p?.id||"",rate:Number.isFinite(Number(row.rate))&&Number(row.rate)>0?Number(row.rate):(p?num(p.wholesale_price):0)};
+  return {...row,product:p,product_id:p?.id||"",rate:p?num(p.wholesale_price):0};
  });
  $("excisePreviewWrap").style.display="block";
  $("excisePreviewRows").innerHTML=excisePreviewItems.map((x,i)=>`<tr><td style="white-space:normal">${safe(x.brand)}</td><td>${safe(x.size||"—")}</td><td><select id="exciseMatch_${i}" style="min-width:210px"><option value="">Select matching product</option>${products.map(p=>`<option value="${safe(p.id)}" ${x.product&&String(p.id)===String(x.product.id)?"selected":""}>${safe(p.brand_name)} · ${safe(p.size)}</option>`).join("")}</select></td><td><input id="exciseQty_${i}" type="number" min="0.01" step="1" value="${x.quantity}" style="width:95px"></td><td><input id="exciseRate_${i}" type="number" min="0" step=".01" value="${x.rate}" style="width:110px"></td></tr>`).join("");
- $("excisePreviewSummary").textContent=rows.length+" row(s) fetched. Verify product mapping and dispatched bottles, then Confirm Purchase.";
+ const bottles=rows.reduce((a,x)=>a+Number(x.quantity||0),0),cases=rows.reduce((a,x)=>a+Number(x.cases||0),0);
+ $("excisePreviewSummary").textContent=rows.length+" row(s) · "+bottles+" dispatched bottles · "+cases+" cases. Confirm product matches and rates.";
 }
 async function confirmExcisePurchase(){
  if(!excisePreviewItems.length){setExciseStatus("Purchase draft ready nahi hai. Pehle QR scan aur pass details fetch honi chahiye.");return;}
