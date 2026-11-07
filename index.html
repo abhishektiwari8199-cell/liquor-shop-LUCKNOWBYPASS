@@ -28,6 +28,15 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
 @media(max-width:1100px){.kpis{grid-template-columns:repeat(2,1fr)}.quick-grid{grid-template-columns:repeat(2,1fr)}.form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:760px){#loginView{grid-template-columns:1fr;padding:25px}.login-brand{display:none}.login-panel{margin:auto}.shell{grid-template-columns:1fr}.sidebar{position:sticky;top:0;height:auto;padding:10px 12px;flex-direction:row;align-items:center;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line)}.brand{padding:0 8px;min-width:max-content}.brand .brand-mark{width:36px;height:36px}.brand strong{font-size:11px}.brand small{font-size:8px}.nav-label,.side-bottom{display:none}.nav{display:flex;gap:4px}.nav button{width:auto;min-width:max-content;padding:9px 10px;font-size:11px}.nav button .ico{font-size:14px}.main{padding:17px 12px 40px}.topbar{margin-bottom:18px}.topbar h2{font-size:17px}.live-pill{display:none}.hero{min-height:200px}.hero-art{font-size:42px;padding:0}.hero-art span:nth-child(2){font-size:55px}.category-cards{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr 1fr}.form-grid .span2{grid-column:span 2}}
 @media(max-width:420px){.kpis{grid-template-columns:1fr 1fr;gap:8px}.kpi{padding:13px;min-height:100px}.kpi strong{font-size:21px}.quick-grid{grid-template-columns:1fr 1fr}.quick{padding:12px}.quick i{font-size:18px}.form-grid{grid-template-columns:1fr}.form-grid .span2{grid-column:auto}.hero-art{display:none}}
+
+.inventory-register{min-width:1750px;border-collapse:separate;border-spacing:0}
+.inventory-register th{position:sticky;top:0;z-index:2;background:#fff4c2;color:#183653;font-size:12px;white-space:nowrap}
+.inventory-register th:first-child,.inventory-register td:first-child{position:sticky;left:0;z-index:3;background:#fff8dc;text-align:left;min-width:230px;font-weight:800}
+.inventory-register td{white-space:nowrap;text-align:center}
+.inventory-register input{width:68px;max-width:100%;padding:7px 5px;text-align:right;border:1px solid #cbd5e1;border-radius:7px;background:#fff}
+.inventory-register .calc{font-weight:700;background:#f4f8ff}
+.inventory-register .value{font-weight:700;color:#173f70;background:#fff9df}
+
 </style>
 </head>
 <body>
@@ -81,9 +90,18 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
  </section>
 
  <section id="inventory" class="page">
-  <div class="section-head"><div><h3>Product catalogue</h3><p>Search products and maintain wholesale prices</p></div><span class="tag" id="inventoryCount">0 PRODUCTS</span></div>
-  <div class="panel glass"><div class="form-grid"><label>Category<select id="cat" onchange="drawProducts()"><option value="all">All categories</option><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label><label class="span2">Search product<input id="search" oninput="drawProducts()" placeholder="Search brand or size…"></label><label>Sort by<select id="sort" onchange="drawProducts()"><option value="brand">Brand name</option><option value="category">Category</option></select></label></div></div>
-  <div class="toolbar" style="margin:12px 0"><span class="muted" id="stockSummary">Stock totals will appear after loading.</span><label style="max-width:190px">Low-stock threshold<input id="lowThreshold" type="number" min="0" step="1" value="5" onchange="drawProducts()"></label></div><div class="status">New stock cycle starts 2 November 2026. Enter opening stock for that date and press Save all. Purchases and sales dated from 2 November onward update stock automatically. Older transaction history is retained and excluded from this stock cycle.</div><div class="table-wrap"><table><thead><tr><th>Category</th><th>Brand / Product</th><th>Size</th><th>Opening stock</th><th>Purchased</th><th>Sold</th><th>Available</th><th>MRP</th><th>Wholesale price</th><th>Stock at MRP</th><th>Action</th></tr></thead><tbody id="products"><tr><td colspan="7" class="empty">Loading inventory…</td></tr></tbody></table></div>
+  <div class="section-head"><div><h3>Inventory Register</h3><p>Excel ke 2 Nov sheet ke original brand sequence mein date-wise stock</p></div><span class="tag" id="inventoryCount">0 BRANDS</span></div>
+  <div class="panel glass"><div class="form-grid">
+   <label>Inventory date (as on)<input id="inventoryDate" type="date" min="2026-11-02" value="2026-11-07" onchange="loadInventoryForDate()"></label>
+   <label>Category<select id="cat" onchange="drawProducts()"><option value="all">All categories</option><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label>
+   <label class="span2">Search brand<input id="search" oninput="drawProducts()" placeholder="Search brand name…"></label>
+  </div></div>
+  <div class="toolbar" style="margin:12px 0"><span class="muted" id="stockSummary">Select a date to view stock.</span><button class="btn" onclick="saveOpeningStock(this)">Save all opening stock</button></div>
+  <div class="status" id="inventoryDateStatus">Opening stock means stock at the start of 02 Nov 2026. Purchase and sale quantities are accumulated from 02 Nov through the selected date. Older entries are excluded.</div>
+  <div class="table-wrap"><table class="inventory-register"><thead>
+   <tr><th rowspan="2">S.No. / Brand</th><th colspan="4">Opening Stock (02 Nov)</th><th colspan="4">Purchase</th><th colspan="4">Total Stock</th><th colspan="4">Sale</th><th colspan="4">Balance Stock</th><th colspan="4">Balance Stock Value (₹)</th></tr>
+   <tr><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th></tr>
+  </thead><tbody id="inventoryRegisterRows"><tr><td colspan="25" class="empty">Loading inventory…</td></tr></tbody></table></div>
  </section>
 
  <section id="sale" class="page">
@@ -144,7 +162,9 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
 const SUPABASE_URL="https://abulaaaezuajnuobzsdj.supabase.co";
 const SUPABASE_KEY="sb_publishable_ae6FQ3C13ru6drINn53jDA_THBBArV5";
 let db=null,user=null,products=[],saleCart=[],purchaseCart=[];
+const EXCEL_BRAND_ORDER=["BLENDER RESERVE BLUE", "BLENDER PRIDE", "BLENDER 4 ELEMENT", "ANTIQUTI BLUE", "SIGNATURE PREMIUM", "ROYAL THAMBOARE", "ROYAL STAG DOUBLE DARK", "ROYAL STAG", "ROYAL CHALLENGE", "OFFICEAR CHOICE BLUE", "OFICIER CHOICE", "IMPERIAL BLUE", "MACDOWEL NO.1", "MACDOWEL DOUBLE BARELL", "ROYAL STAG BARELL", "EXCLAMATION WHISKEY", "R.G 8 JAMUN", "8 PM BLACK", "8 PM GOLD", "8 PM WHISKEY", "STRELLING B7", "ROYAL GREEN", "WHITE & BLUE", "ALL SEASON SARTAAJ", "GOLFER SHOT 18", "ICONIC WINTER", "GOLFER SHOT A.K", "OCANE GLOW", "ROCKFORD RESERVE", "RED RUSSIAN APPLE", "OCTAINE", "MAGIC MOMENT JAMUN", "AMRUT PESTING WHISKEY", "OAK SMITH", "DOUBLE BLUE", "WHISLER BAREL", "ICONIC WHISKEY", "AFTER DARK", "BATCH 9", "SRISTY FINEST", "AMERICAN PRIDE", "MOUNTAIN OAK", "BX HIPPI", "SINGAL", "MARPHOS X&O BRANDY", "MARPHOUS BLUE BRANDY", "MATSYA", "THE CRAFTRES", "BOHO", "ALL SEASON", "DHURANDHAR", "SIWAS REGAL", "GODAOON", "JONNY WALKER GOLD LEBAL", "JONNY WALKER BLACK LEBAL", "JONNY WALKER DOUBLE BLACK", "JONNY WALKER RED LEBAL", "100 PIPER (12 YEARS)", "100 PIPER", "BLACK DOG TRIPLE GOLD", "BLACK DOG CENETERY", "TEACHERS 50", "TEACHER HIGHLAND", "VAT 69", "BLACK & WHITE", "INDREE", "JAG MISTER", "JACK DANIAEL", "GLAN MORANJI", "BOMBEY SUFFAIR", "DEWARS", "MACDOWEL", "SIMRAN OF CRAFT", "SIMRAN MINTY JAMUN", "SIMRAN MANGO MIRCHI", "SIMRAN JESTY LEMON", "MAGIC VERB LEMON", "MAGIC VERB", "MAGIC MOMENT LEMON", "MAGIC MOMENT APPLE", "MAGIC MOMENT PINK", "MAGIC MOMENT", "1 GL BUNTY", "G R 8 APPLE", "ONE MORE NEXT CANBERRY", "ONE MORE APPLE", "ONE MORE PLANE", "AMAZING PLANE", "MOON WALK APPLE", "MOON WALK ORANGE", "SNOSKI JAMUN VODKA", "SNOSKI SADA VODKA", "CULTER RUM", "ORTHIK CANBERRY", "LIPTOP PLANE", "MAGIC MOMENT AAM PANA", "BUNTY JAMUN", "BAKARDI WHITE", "BAKARDI MANGO CHILLI", "BAKARDI LEMON", "BAKARDI ORANGE", "BAKARDI BLACK", "OLD MONK LEGEND", "BERRY OLD MONK RESERVED'", "OLD MONK COFFEE", "MACDOWELL DARK RUM", "CAPTAIN MORGAIN", "1965 XXX RUM", "BUM LEMON RUM", "LEMON DEDDY RUM", "HIGH IMPACT", "MACDAWELL CITRONN RUM"];
 let stockPurchased={},stockSold={},stockMovementError="";
+let inventoryPurchased={},inventorySold={},inventoryMovementError="";
 const $=id=>document.getElementById(id),num=v=>Number(v)||0;
 const money=v=>"₹"+num(v).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
 const today=()=>{const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)};
@@ -154,7 +174,7 @@ function safe(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&
 function initDb(){if(!window.supabase)throw new Error("Supabase library could not load. Check internet connection and refresh.");if(!db)db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);return db}
 async function login(){const b=$("loginBtn");b.disabled=true;b.textContent="Signing in…";try{setMsg("loginMsg","Connecting securely…");initDb();const {data,error}=await db.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});if(error)throw error;user=data.user;await openApp()}catch(e){setMsg("loginMsg","Login error: "+(e.message||String(e)));console.error(e)}finally{b.disabled=false;b.textContent="Sign in to dashboard →"}}
 async function logout(){if(db)await db.auth.signOut();user=null;location.reload()}
-async function openApp(){$("loginView").style.display="none";$("appView").style.display="block";$("who").textContent=user?.email||"Signed in";["sd","pd","cd"].forEach(id=>$(id).value=today());await loadProducts();await refresh();fillSelects();fillBrandFilters();drawWholesaleRates()}
+async function openApp(){$("loginView").style.display="none";$("appView").style.display="block";$("who").textContent=user?.email||"Signed in";["sd","pd","cd"].forEach(id=>$(id).value=today());$("inventoryDate").value=today()<STOCK_START_DATE?STOCK_START_DATE:today();await loadProducts();await refresh();fillSelects();fillBrandFilters();drawWholesaleRates()}
 function showPage(id,button){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));$(id).classList.add("active");document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===id));const titles={home:["Business overview","Your store performance at a glance"],inventory:["Product inventory","Your liquor and beer product catalogue"],sale:["New sale","Create and record a customer sale"],purchase:["Purchases","Record supplier invoices and stock"],purchaseHistory:["Purchase history","Edit or delete saved purchase invoices"],profit:["Profit & margin","Monthly profit, day-end closing and bottle-wise margin"],cash:["Daily cash","Daily collection and expense register"],history:["Sales history","Review recent recorded transactions"]};$("pageTitle").textContent=titles[id][0];$("pageSubtitle").textContent=titles[id][1];if(id==="sale"||id==="purchase")fillSelects();if(id==="purchaseHistory")loadPurchaseHistory();if(id==="history")refresh();if(id==="profit"){setProfitPeriod();loadProfitReport()}if(id==="cash")loadDailyClosing()}
 function setCategory(cat){showPage("inventory");$("cat").value=cat;drawProducts()}
 async function loadProducts(){
@@ -167,7 +187,8 @@ async function loadProducts(){
   $("count").textContent=products.length;
   await loadStockMovements();
   $("inventoryCount").textContent=products.length+" PRODUCTS";
-  drawProducts();fillSelects();
+  await loadInventoryForDate();
+  fillSelects();
   setMsg("dashMsg","Cloud sync complete · "+products.length+" products loaded.");
 }
 async function loadStockMovements(){
@@ -202,30 +223,76 @@ function stockFor(p){
   const sold=stockSold[key]||0;
   return {opening,purchased,sold,available:opening+purchased-sold,mrpValue:(opening+purchased-sold)*num(p.mrp)};
 }
+function sizeIndex(value){const digits=String(value||"").replace(/[^0-9]/g,"");return ({"750":0,"375":1,"180":2,"90":3})[digits]??-1;}
+function brandKey(value){return String(value||"").toUpperCase().replace(/[^A-Z0-9]/g,"");}
+async function loadInventoryForDate(){
+  const date=$("inventoryDate").value||STOCK_START_DATE;
+  if(date<STOCK_START_DATE){$("inventoryDate").value=STOCK_START_DATE;setMsg("inventoryDateStatus","Inventory date 02 November 2026 se pehle nahi ho sakti.");return;}
+  $("inventoryDateStatus").textContent="Loading date-wise stock from 02 Nov 2026 through "+date+"…";
+  inventoryPurchased={};inventorySold={};inventoryMovementError="";
+  try{
+    const [ph,sh]=await Promise.all([
+      db.from("purchase_invoices").select("id").gte("invoice_date",STOCK_START_DATE).lte("invoice_date",date),
+      db.from("sales").select("id").gte("sale_date",STOCK_START_DATE).lte("sale_date",date)
+    ]);
+    if(ph.error||sh.error)throw (ph.error||sh.error);
+    const pids=(ph.data||[]).map(x=>x.id),sids=(sh.data||[]).map(x=>x.id);
+    const [pi,si]=await Promise.all([
+      pids.length?db.from("purchase_items").select("product_id,quantity").in("invoice_id",pids):Promise.resolve({data:[],error:null}),
+      sids.length?db.from("sale_items").select("product_id,quantity").in("sale_id",sids):Promise.resolve({data:[],error:null})
+    ]);
+    if(pi.error||si.error)throw (pi.error||si.error);
+    for(const x of pi.data||[]){const k=String(x.product_id);inventoryPurchased[k]=(inventoryPurchased[k]||0)+num(x.quantity);}
+    for(const x of si.data||[]){const k=String(x.product_id);inventorySold[k]=(inventorySold[k]||0)+num(x.quantity);}
+    $("inventoryDateStatus").textContent="Showing cumulative stock from 02 Nov 2026 through "+date+". Opening stock can be entered/edited in the first four columns and saved below.";
+  }catch(e){inventoryMovementError=e.message||String(e);$("inventoryDateStatus").textContent="Date-wise stock load error: "+inventoryMovementError;}
+  drawProducts();
+}
+function orderedBrandGroups(rows){
+  const byKey=new Map();
+  for(const p of rows){const k=brandKey(p.brand_name);if(!byKey.has(k))byKey.set(k,[]);byKey.get(k).push(p);}
+  const out=[],used=new Set();
+  for(const name of EXCEL_BRAND_ORDER){const k=brandKey(name),list=byKey.get(k);if(list){out.push({name,products:list});used.add(k);}}
+  const leftovers=[...byKey.entries()].filter(([k])=>!used.has(k)).sort((a,b)=>String(a[1][0].brand_name).localeCompare(String(b[1][0].brand_name)));
+  for(const [,list] of leftovers)out.push({name:list[0].brand_name,products:list});
+  return out;
+}
 function drawProducts(){
-  const cat=$("cat").value,q=$("search").value.toLowerCase(),sort=$("sort").value;
-  let rows=products.filter(p=>(cat==="all"||String(p.category).toLowerCase()===cat)&&(`${p.brand_name||""} ${p.size||""}`).toLowerCase().includes(q));
-  rows.sort((a,b)=>String(a[sort==="category"?"category":"brand_name"]).localeCompare(String(b[sort==="category"?"category":"brand_name"])));
-  $("inventoryCount").textContent=rows.length+" PRODUCTS";
-  const threshold=Math.max(0,num($("lowThreshold")?.value??5));
-  const totalUnits=products.reduce((a,p)=>a+stockFor(p).available,0);
-  const totalMrp=products.reduce((a,p)=>a+stockFor(p).mrpValue,0);
-  $("stockSummary").textContent=`Total available: ${totalUnits.toLocaleString("en-IN")} units · Stock value at MRP: ${money(totalMrp)}${stockMovementError?" · Movement data error: "+stockMovementError:""}`;
-  $("products").innerHTML=rows.length?rows.map(p=>{
-    const s=stockFor(p),low=s.available<=threshold;
-    return `<tr>
-      <td><span class="tag">${safe(p.category)}</span></td>
-      <td><b>${safe(p.brand_name)}</b>${low?'<div class="tag" style="background:#ff727c20;color:#ff9ca3;margin-top:5px">LOW STOCK</div>':''}</td>
-      <td>${safe(p.size)}</td>
-      <td><input id="stock_${safe(p.id)}" type="number" min="0" step=".01" value="${num(p.opening_stock)}"></td>
-      <td>${s.purchased}</td><td>${s.sold}</td>
-      <td><b>${s.available}</b></td>
-      <td><input id="mrp_${safe(p.id)}" type="number" min="0" step=".01" value="${num(p.mrp)}"></td>
-      <td><input id="wh_${safe(p.id)}" type="number" min="0" step=".01" value="${num(p.wholesale_price)}"></td>
-      <td>${money(s.mrpValue)}</td>
-      <td><button class="btn" onclick="saveProduct('${safe(p.id)}',this)">Save all</button></td>
-    </tr>`;
-  }).join(""):`<tr><td colspan="11" class="empty">No matching products found.</td></tr>`;
+  const cat=$("cat").value,q=$("search").value.toLowerCase();
+  const rows=products.filter(p=>(cat==="all"||String(p.category).toLowerCase()===cat)&&(`${p.brand_name||""}`).toLowerCase().includes(q));
+  const groups=orderedBrandGroups(rows);
+  $("inventoryCount").textContent=groups.length+" BRANDS · "+rows.length+" SIZES";
+  let totals={opening:0,purchase:0,total:0,sale:0,balance:0,value:0};
+  const html=groups.map((g,idx)=>{
+    const map=[-1,-1,-1,-1].map(()=>null);
+    for(const p of g.products){const i=sizeIndex(p.size);if(i>=0)map[i]=p;}
+    const opening=map.map(p=>p?num(p.opening_stock):0);
+    const purchase=map.map(p=>p?(inventoryPurchased[String(p.id)]||0):0);
+    const sale=map.map(p=>p?(inventorySold[String(p.id)]||0):0);
+    const total=opening.map((v,i)=>v+purchase[i]);
+    const balance=total.map((v,i)=>v-sale[i]);
+    const value=balance.map((v,i)=>v*num(map[i]?.wholesale_price));
+    for(let i=0;i<4;i++){totals.opening+=opening[i];totals.purchase+=purchase[i];totals.total+=total[i];totals.sale+=sale[i];totals.balance+=balance[i];totals.value+=value[i];}
+    const openCells=map.map((p,i)=>`<td>${p?`<input aria-label="${safe(g.name)} ${['750','375','180','90'][i]} opening stock" id="opening_${safe(p.id)}" type="number" min="0" step=".01" value="${opening[i]}">`:'—'}</td>`).join('');
+    const cells=arr=>arr.map(v=>`<td class="calc">${Number(v||0).toLocaleString('en-IN',{maximumFractionDigits:2})}</td>`).join('');
+    const values=value.map(v=>`<td class="value">${money(v)}</td>`).join('');
+    return `<tr><td>${idx+1}. ${safe(g.name)}</td>${openCells}${cells(purchase)}${cells(total)}${cells(sale)}${cells(balance)}${values}</tr>`;
+  }).join('');
+  $("inventoryRegisterRows").innerHTML=html||'<tr><td colspan="25" class="empty">No matching brands found.</td></tr>';
+  $("stockSummary").textContent=`As on ${$("inventoryDate").value||STOCK_START_DATE} · Opening ${totals.opening} · Purchase ${totals.purchase} · Total ${totals.total} · Sale ${totals.sale} · Balance ${totals.balance} · Balance stock value ${money(totals.value)}${inventoryMovementError?" · "+inventoryMovementError:""}`;
+}
+async function saveOpeningStock(button){
+  const date=$("inventoryDate").value||STOCK_START_DATE;
+  if(date!==STOCK_START_DATE){alert("Opening stock sirf 02 November 2026 ke opening balance ke liye enter karein. Date selector ko 02 Nov par set karke save karein.");return;}
+  const updates=[];
+  for(const p of products){const el=$("opening_"+p.id);if(!el)continue;const value=Number(el.value);if(!Number.isFinite(value)||value<0){alert("Opening stock valid non-negative number hona chahiye: "+p.brand_name+" "+p.size);return;}updates.push({p,value});}
+  if(!updates.length){alert("Koi opening stock field nahi mila.");return;}
+  if(button){button.disabled=true;button.textContent="Saving…";}
+  try{
+    for(const item of updates){const {data,error}=await db.from("inventory_products").update({opening_stock:item.value}).eq("id",item.p.id).select("id,opening_stock").single();if(error)throw error;item.p.opening_stock=data.opening_stock;}
+    drawProducts();alert("Opening stock 02 Nov 2026 ke liye cloud database mein save ho gaya.");
+  }catch(e){alert("Save error: "+(e.message||String(e))+". Kuch entries save ho chuki ho sakti hain; dobara load karke check karein.");}
+  finally{if(button){button.disabled=false;button.textContent="Save all opening stock";}}
 }
 async function saveProduct(id,button){
   const stockInput=$("stock_"+id),mrpInput=$("mrp_"+id),whInput=$("wh_"+id);
