@@ -74,14 +74,15 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
 
 /* INVENTORY LAYOUT FIX: compact brand column, no frozen panes */
 #appView #inventory .table-wrap{overflow:auto !important; max-width:100% !important;}
-#appView #inventory table.inventory-register{width:max-content !important; min-width:1750px !important; max-width:none !important; table-layout:auto !important;}
+#appView #inventory table.inventory-register{width:2486px !important;min-width:2486px !important;max-width:none !important;table-layout:fixed !important;border-collapse:separate !important;border-spacing:0 !important;}
 #appView #inventory table.inventory-register th,
-#appView #inventory table.inventory-register td{position:static !important; width:auto !important; min-width:94px !important; max-width:none !important;}
+#appView #inventory table.inventory-register td{position:static !important;width:94px !important;min-width:94px !important;max-width:94px !important;box-sizing:border-box !important;}
 #appView #inventory table.inventory-register th:first-child,
-#appView #inventory table.inventory-register td:first-child{position:static !important; left:auto !important; width:230px !important; min-width:230px !important; max-width:230px !important; white-space:normal !important; text-align:left !important;}
+#appView #inventory table.inventory-register td:first-child{position:static !important;left:auto !important;width:230px !important;min-width:230px !important;max-width:230px !important;white-space:normal !important;text-align:left !important;}
 #appView #inventory table.inventory-register td:first-child{padding:12px 10px !important;}
-#appView #inventory table.inventory-register input{width:78px !important; min-width:78px !important; max-width:78px !important; height:40px !important; box-sizing:border-box !important; text-align:center !important;}
-#appView #inventory table.inventory-register thead th{position:static !important; top:auto !important;}
+#appView #inventory table.inventory-register input{display:block !important;width:78px !important;min-width:78px !important;max-width:78px !important;height:40px !important;min-height:40px !important;max-height:40px !important;box-sizing:border-box !important;text-align:center !important;margin:0 auto !important;padding:7px 8px !important;}
+#appView #inventory table.inventory-register thead th{position:static !important;top:auto !important;}
+#appView #inventory table.inventory-register thead tr:nth-child(2) th{width:94px !important;min-width:94px !important;max-width:94px !important;}
 
 </style>
 </head>
