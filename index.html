@@ -70,19 +70,19 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
  <section id="inventory" class="page">
   <div class="section-head"><div><h3>Product catalogue</h3><p>Search products and maintain wholesale prices</p></div><span class="tag" id="inventoryCount">0 PRODUCTS</span></div>
   <div class="panel glass"><div class="form-grid"><label>Category<select id="cat" onchange="drawProducts()"><option value="all">All categories</option><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label><label class="span2">Search product<input id="search" oninput="drawProducts()" placeholder="Search brand or size…"></label><label>Sort by<select id="sort" onchange="drawProducts()"><option value="brand">Brand name</option><option value="category">Category</option></select></label></div></div>
-  <div class="toolbar" style="margin:12px 0"><span class="muted" id="stockSummary">Stock totals will appear after loading.</span><label style="max-width:190px">Low-stock threshold<input id="lowThreshold" type="number" min="0" step="1" value="5" onchange="drawProducts()"></label></div><div class="status">Opening stock is saved in Supabase. Purchased and sold quantities are calculated from purchase and sale entries. Available stock = Opening + Purchased − Sold. Save each product after editing.</div><div class="table-wrap"><table><thead><tr><th>Category</th><th>Brand / Product</th><th>Size</th><th>Opening stock</th><th>Purchased</th><th>Sold</th><th>Available</th><th>MRP</th><th>Wholesale price</th><th>Stock at MRP</th><th>Action</th></tr></thead><tbody id="products"><tr><td colspan="7" class="empty">Loading inventory…</td></tr></tbody></table></div>
+  <div class="toolbar" style="margin:12px 0"><span class="muted" id="stockSummary">Stock totals will appear after loading.</span><label style="max-width:190px">Low-stock threshold<input id="lowThreshold" type="number" min="0" step="1" value="5" onchange="drawProducts()"></label></div><div class="status">New stock cycle starts 2 November 2026. Enter opening stock for that date and press Save all. Purchases and sales dated from 2 November onward update stock automatically. Older transaction history is retained and excluded from this stock cycle.</div><div class="table-wrap"><table><thead><tr><th>Category</th><th>Brand / Product</th><th>Size</th><th>Opening stock</th><th>Purchased</th><th>Sold</th><th>Available</th><th>MRP</th><th>Wholesale price</th><th>Stock at MRP</th><th>Action</th></tr></thead><tbody id="products"><tr><td colspan="7" class="empty">Loading inventory…</td></tr></tbody></table></div>
  </section>
 
  <section id="sale" class="page">
   <div class="section-head"><div><h3>Create a sale</h3><p>Prepare a new liquor or beer sales entry</p></div><span class="tag">SALES DESK</span></div>
-  <div class="panel glass"><div class="form-grid"><label>Sale date<input id="sd" type="date"></label><label>Category<select id="sc" onchange="fillSelects()"><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label><label>Bill number<input id="bill" placeholder="Optional bill no."></label><label>Payment mode<select id="pay"><option>Cash</option><option>Online</option><option>Rokad</option><option>Credit</option></select></label></div></div>
+  <div class="panel glass"><div class="form-grid"><label>Sale date<input id="sd" type="date" min="2026-11-02"></label><label>Category<select id="sc" onchange="fillSelects()"><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label><label>Bill number<input id="bill" placeholder="Optional bill no."></label><label>Payment mode<select id="pay"><option>Cash</option><option>Online</option><option>Rokad</option><option>Credit</option></select></label></div></div>
   <div class="panel glass"><div class="form-grid"><label class="span2">Select product<select id="sp"></select></label><label>Quantity<input id="sq" type="number" min=".01" step=".01" value="1"></label><label>Sale rate<input id="sr" type="number" min="0" step=".01"></label></div><div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="btn" onclick="addItem('sale')">＋ Add to bill</button></div></div>
   <div class="panel glass"><div class="section-head" style="margin-top:0"><div><h3>Bill items</h3><p>Review products before saving</p></div></div><div class="table-wrap"><table><thead><tr><th>Product</th><th>Quantity</th><th>Rate</th><th>Amount</th><th>Action</th></tr></thead><tbody id="saleRows"><tr><td colspan="5" class="empty">No items added yet</td></tr></tbody></table></div><div class="total-line"><span class="muted">Bill total</span><strong id="saleSum">₹0.00</strong></div><button class="btn" onclick="saveSale()">Save sale entry</button><div id="saleMsg" class="status">Add products to begin.</div></div>
  </section>
 
  <section id="purchase" class="page">
   <div class="section-head"><div><h3>Purchase entry</h3><p>Record incoming stock against supplier invoices</p></div><span class="tag">PURCHASE DESK</span></div>
-  <div class="panel glass"><div class="form-grid"><label>Invoice number<input id="inv" placeholder="Supplier invoice no."></label><label>Supplier name<input id="supplier" placeholder="Supplier / distributor"></label><label>Invoice date<input id="pd" type="date"></label><label>Category<select id="pc" onchange="fillSelects()"><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label></div></div>
+  <div class="panel glass"><div class="form-grid"><label>Invoice number<input id="inv" placeholder="Supplier invoice no."></label><label>Supplier name<input id="supplier" placeholder="Supplier / distributor"></label><label>Invoice date<input id="pd" type="date" min="2026-11-02"></label><label>Category<select id="pc" onchange="fillSelects()"><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label></div></div>
   <div class="panel glass"><div class="form-grid"><label class="span2">Select product<select id="pp"></select></label><label>Quantity<input id="pq" type="number" min=".01" step=".01" value="1"></label><label>Purchase rate<input id="pr" type="number" min="0" step=".01"></label></div><div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="btn" onclick="addItem('purchase')">＋ Add purchase item</button></div></div>
   <div class="panel glass"><h3 style="font:800 16px Manrope">Invoice items</h3><div class="table-wrap"><table><thead><tr><th>Product</th><th>Quantity</th><th>Rate</th><th>Amount</th><th>Action</th></tr></thead><tbody id="purchaseRows"><tr><td colspan="5" class="empty">No items added yet</td></tr></tbody></table></div><div class="total-line"><span class="muted">Invoice total</span><strong id="purchaseSum">₹0.00</strong></div><button class="btn" onclick="savePurchase()">Save purchase invoice</button><div id="purchaseMsg" class="status">Add invoice details and products.</div></div>
  </section>
@@ -105,7 +105,8 @@ let db=null,user=null,products=[],saleCart=[],purchaseCart=[];
 let stockPurchased={},stockSold={},stockMovementError="";
 const $=id=>document.getElementById(id),num=v=>Number(v)||0;
 const money=v=>"₹"+num(v).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
-const STOCK_START_DATE="2026-11-02";return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)};
+const today=()=>{const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)};
+const STOCK_START_DATE="2026-11-02";
 function setMsg(id,text){$(id).textContent=text}
 function safe(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function initDb(){if(!window.supabase)throw new Error("Supabase library could not load. Check internet connection and refresh.");if(!db)db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);return db}
@@ -128,23 +129,28 @@ async function loadProducts(){
   setMsg("dashMsg","Cloud sync complete · "+products.length+" products loaded.");
 }
 async function loadStockMovements(){
-  stockPurchased={};stockSold={};
-  const [purchases,sales]=await Promise.all([
-    db.from("purchase_items").select("product_id,quantity"),
-    db.from("sale_items").select("product_id,quantity")
+  stockPurchased={}; stockSold={}; stockMovementError="";
+  const [purchaseHeaders,saleHeaders]=await Promise.all([
+    db.from("purchase_invoices").select("id").gte("invoice_date",STOCK_START_DATE),
+    db.from("sales").select("id").gte("sale_date",STOCK_START_DATE)
   ]);
-  if(purchases.error || sales.error){
-    stockMovementError=(purchases.error||sales.error).message;
-    return;
+  if(purchaseHeaders.error||saleHeaders.error){
+    stockMovementError=(purchaseHeaders.error||saleHeaders.error).message; return;
   }
-  stockMovementError="";
-  for(const row of (purchases.data||[])){
-    const key=String(row.product_id);
-    stockPurchased[key]=(stockPurchased[key]||0)+num(row.quantity);
+  const purchaseIds=(purchaseHeaders.data||[]).map(x=>x.id);
+  const saleIds=(saleHeaders.data||[]).map(x=>x.id);
+  const [purchases,sales]=await Promise.all([
+    purchaseIds.length ? db.from("purchase_items").select("product_id,quantity").in("invoice_id",purchaseIds) : Promise.resolve({data:[],error:null}),
+    saleIds.length ? db.from("sale_items").select("product_id,quantity").in("sale_id",saleIds) : Promise.resolve({data:[],error:null})
+  ]);
+  if(purchases.error||sales.error){
+    stockMovementError=(purchases.error||sales.error).message; return;
   }
-  for(const row of (sales.data||[])){
-    const key=String(row.product_id);
-    stockSold[key]=(stockSold[key]||0)+num(row.quantity);
+  for(const row of purchases.data||[]){
+    const key=String(row.product_id); stockPurchased[key]=(stockPurchased[key]||0)+num(row.quantity);
+  }
+  for(const row of sales.data||[]){
+    const key=String(row.product_id); stockSold[key]=(stockSold[key]||0)+num(row.quantity);
   }
 }
 function stockFor(p){
@@ -204,15 +210,99 @@ async function saveProduct(id,button){
     if(button){button.disabled=false;button.textContent="Save all";}
   }
 }
-function fillSelects(){if(!db||!products.length)return;for(const [id,cat] of [["sp",$("sc").value],["pp",$("pc").value]]){const list=products.filter(p=>String(p.category).toLowerCase()===cat);$(id).innerHTML=list.map(p=>`<option value="${safe(p.id)}">${safe(p.brand_name)} · ${safe(p.size)}</option>`).join("")||'<option value="">No products found</option>'}const s=products.find(p=>String(p.id)===$("sp").value),p=products.find(p=>String(p.id)===$("pp").value);$("sr").value=s?.mrp||0;$("pr").value=p?.wholesale_price||0}
+function fillSelects(){
+  if(!db||!products.length)return;
+  for(const [id,cat] of [["sp",$("sc").value],["pp",$("pc").value]]){
+    const list=products.filter(p=>String(p.category).toLowerCase()===cat);
+    $(id).innerHTML=list.map(p=>`<option value="${safe(p.id)}">${safe(p.brand_name)} · ${safe(p.size)}</option>`).join("")||'<option value="">No products found</option>';
+  }
+  const s=products.find(p=>String(p.id)===$("sp").value);
+  const p=products.find(p=>String(p.id)===$("pp").value);
+  $("sr").value=s?.mrp??0;
+  $("pr").value=p?.wholesale_price??0;
+}
 $("sp").addEventListener("change",()=>$("sr").value=products.find(p=>String(p.id)===$("sp").value)?.mrp||0);
 $("pp").addEventListener("change",()=>$("pr").value=products.find(p=>String(p.id)===$("pp").value)?.wholesale_price||0);
-function addItem(kind){const sale=kind==="sale",p=products.find(x=>String(x.id)===$(sale?"sp":"pp").value),qty=num($(sale?"sq":"pq").value),rate=num($(sale?"sr":"pr").value),cart=sale?saleCart:purchaseCart;if(!p||qty<=0||rate<0){alert("Please select a product and enter a valid quantity and rate.");return}const found=cart.find(x=>String(x.product_id)===String(p.id));if(found){found.quantity+=qty;found.rate=rate}else cart.push({product_id:p.id,name:p.brand_name+" "+p.size,quantity:qty,rate});drawCart(kind)}
-function drawCart(kind){const sale=kind==="sale",cart=sale?saleCart:purchaseCart,id=sale?"saleRows":"purchaseRows";$(id).innerHTML=cart.length?cart.map((x,i)=>`<tr><td>${safe(x.name)}</td><td>${x.quantity}</td><td>${money(x.rate)}</td><td>${money(x.quantity*x.rate)}</td><td><button class="btn danger" onclick="removeCart('${kind}',${i})">Remove</button></td></tr>`).join(""):`<tr><td colspan="5" class="empty">No items added yet</td></tr>`;$(sale?"saleSum":"purchaseSum").textContent=money(cart.reduce((a,x)=>a+x.quantity*x.rate,0))}
-function removeCart(kind,index){(kind==="sale"?saleCart:purchaseCart).splice(index,1);drawCart(kind)}
-async function saveSale(){if(!saleCart.length){setMsg("saleMsg","Add at least one product first.");return}setMsg("saleMsg","Checking available stock…");for(const x of saleCart){const p=products.find(y=>String(y.id)===String(x.product_id));const [pu,sa]=await Promise.all([db.from("purchase_items").select("quantity").eq("product_id",x.product_id),db.from("sale_items").select("quantity").eq("product_id",x.product_id)]);if(pu.error||sa.error){setMsg("saleMsg","Stock check failed: "+(pu.error||sa.error).message);return}const available=num(p?.opening_stock)+(pu.data||[]).reduce((a,r)=>a+num(r.quantity),0)-(sa.data||[]).reduce((a,r)=>a+num(r.quantity),0);if(x.quantity>available){setMsg("saleMsg",`Insufficient stock for ${x.name}. Available: ${available}`);return}}
-const {data:s,error}=await db.from("sales").insert({user_id:user.id,category:$("sc").value,sale_date:$("sd").value,bill_number:$("bill").value.trim()||null,payment_mode:$("pay").value}).select("id").single();if(error){setMsg("saleMsg","Sale save failed: "+error.message);return}const rows=saleCart.map(x=>({sale_id:s.id,product_id:x.product_id,quantity:x.quantity,sale_rate:x.rate,user_id:user.id}));const result=await db.from("sale_items").insert(rows);if(result.error){setMsg("saleMsg","Sale header created but items failed. Reference "+s.id+". Error: "+result.error.message);return}saleCart=[];drawCart("sale");setMsg("saleMsg","Sale saved successfully · Reference "+s.id);await refresh()}
-async function savePurchase(){if(!purchaseCart.length||!$("inv").value.trim()||!$("supplier").value.trim()){setMsg("purchaseMsg","Invoice number, supplier and at least one item are required.");return}const {data:dup,error:de}=await db.from("purchase_invoices").select("id").eq("invoice_number",$("inv").value.trim()).maybeSingle();if(de){setMsg("purchaseMsg",de.message);return}if(dup){setMsg("purchaseMsg","This invoice number already exists. Duplicate blocked.");return}const {data:h,error}=await db.from("purchase_invoices").insert({user_id:user.id,invoice_number:$("inv").value.trim(),supplier_name:$("supplier").value.trim(),invoice_date:$("pd").value,category:$("pc").value}).select("id").single();if(error){setMsg("purchaseMsg","Purchase save failed: "+error.message);return}const result=await db.from("purchase_items").insert(purchaseCart.map(x=>({invoice_id:h.id,product_id:x.product_id,quantity:x.quantity,purchase_rate:x.rate,user_id:user.id})));if(result.error){setMsg("purchaseMsg","Invoice created but items failed. Reference "+h.id+". Error: "+result.error.message);return}purchaseCart=[];drawCart("purchase");setMsg("purchaseMsg","Purchase invoice saved · Reference "+h.id);await refresh()}
+function addItem(kind){
+  const sale=kind==="sale",p=products.find(x=>String(x.id)===$(sale?"sp":"pp").value);
+  const qty=Number($(sale?"sq":"pq").value),rate=Number($(sale?"sr":"pr").value),cart=sale?saleCart:purchaseCart;
+  if(!p||!Number.isFinite(qty)||qty<=0||!Number.isFinite(rate)||rate<0){
+    alert("Product, valid quantity aur valid rate enter karo."); return;
+  }
+  const found=cart.find(x=>String(x.product_id)===String(p.id));
+  if(found){found.quantity+=qty;found.rate=rate;}
+  else cart.push({product_id:p.id,name:p.brand_name+" "+p.size,quantity:qty,rate});
+  drawCart(kind);
+}
+function drawCart(kind){
+  const sale=kind==="sale",cart=sale?saleCart:purchaseCart,id=sale?"saleRows":"purchaseRows";
+  $(id).innerHTML=cart.length?cart.map((x,i)=>`
+    <tr><td>${safe(x.name)}</td>
+    <td><input type="number" min=".01" step=".01" value="${x.quantity}" style="width:85px" onchange="updateCartItem('${kind}',${i},'quantity',this.value)"></td>
+    <td><input type="number" min="0" step=".01" value="${x.rate}" style="width:105px" onchange="updateCartItem('${kind}',${i},'rate',this.value)"></td>
+    <td>${money(x.quantity*x.rate)}</td>
+    <td><button class="btn danger" onclick="removeCart('${kind}',${i})">Remove</button></td></tr>`).join(""):`<tr><td colspan="5" class="empty">No items added yet</td></tr>`;
+  $(sale?"saleSum":"purchaseSum").textContent=money(cart.reduce((a,x)=>a+x.quantity*x.rate,0));
+}
+function updateCartItem(kind,index,field,value){
+  const cart=kind==="sale"?saleCart:purchaseCart,n=Number(value);
+  if(!Number.isFinite(n)||n<0||(field==="quantity"&&n<=0)){
+    alert("Valid quantity/rate enter karo."); drawCart(kind); return;
+  }
+  cart[index][field]=n; drawCart(kind);
+}
+function removeCart(kind,index){
+  (kind==="sale"?saleCart:purchaseCart).splice(index,1); drawCart(kind);
+}
+async function saveSale(){
+  if(!$("sd").value||$("sd").value<STOCK_START_DATE){
+    setMsg("saleMsg","Sale date 2 November 2026 ya uske baad ki honi chahiye."); return;
+  }
+  if(!saleCart.length){setMsg("saleMsg","Pehle product add karo.");return;}
+  setMsg("saleMsg","Stock check ho raha hai...");
+  await loadStockMovements();
+  if(stockMovementError){setMsg("saleMsg","Stock check failed: "+stockMovementError);return;}
+  for(const x of saleCart){
+    const p=products.find(y=>String(y.id)===String(x.product_id)),available=stockFor(p).available;
+    if(x.quantity>available){setMsg("saleMsg",`Insufficient stock: ${x.name}. Available: ${available}`);return;}
+  }
+  const billTotal=saleCart.reduce((a,x)=>a+x.quantity*x.rate,0);
+  const {data:s,error}=await db.from("sales").insert({
+    user_id:user.id,category:$("sc").value,sale_date:$("sd").value,
+    bill_number:$("bill").value.trim()||null,payment_mode:$("pay").value
+  }).select("id").single();
+  if(error){setMsg("saleMsg","Sale save failed: "+error.message);return;}
+  const rows=saleCart.map(x=>({sale_id:s.id,product_id:x.product_id,quantity:x.quantity,sale_rate:x.rate,user_id:user.id}));
+  const result=await db.from("sale_items").insert(rows);
+  if(result.error){setMsg("saleMsg","Sale header created but items failed. Reference "+s.id+". Error: "+result.error.message);return;}
+  saleCart=[]; drawCart("sale");
+  setMsg("saleMsg","Sale saved successfully · Bill total: "+money(billTotal)+" · Reference "+s.id);
+  await loadProducts(); await refresh();
+}
+async function savePurchase(){
+  if(!$("pd").value||$("pd").value<STOCK_START_DATE){
+    setMsg("purchaseMsg","Purchase date 2 November 2026 ya uske baad ki honi chahiye."); return;
+  }
+  if(!purchaseCart.length||!$("inv").value.trim()||!$("supplier").value.trim()){
+    setMsg("purchaseMsg","Invoice number, supplier aur kam se kam ek product zaroori hai."); return;
+  }
+  const {data:dup,error:de}=await db.from("purchase_invoices").select("id").eq("invoice_number",$("inv").value.trim()).maybeSingle();
+  if(de){setMsg("purchaseMsg",de.message);return;}
+  if(dup){setMsg("purchaseMsg","This invoice number already exists. Duplicate blocked.");return;}
+  const invoiceTotal=purchaseCart.reduce((a,x)=>a+x.quantity*x.rate,0);
+  const {data:h,error}=await db.from("purchase_invoices").insert({
+    user_id:user.id,invoice_number:$("inv").value.trim(),supplier_name:$("supplier").value.trim(),
+    invoice_date:$("pd").value,category:$("pc").value
+  }).select("id").single();
+  if(error){setMsg("purchaseMsg","Purchase save failed: "+error.message);return;}
+  const result=await db.from("purchase_items").insert(purchaseCart.map(x=>({
+    invoice_id:h.id,product_id:x.product_id,quantity:x.quantity,purchase_rate:x.rate,user_id:user.id
+  })));
+  if(result.error){setMsg("purchaseMsg","Invoice created but items failed. Reference "+h.id+". Error: "+result.error.message);return;}
+  purchaseCart=[]; drawCart("purchase");
+  setMsg("purchaseMsg","Purchase invoice saved · Total: "+money(invoiceTotal)+" · Reference "+h.id);
+  await loadProducts(); await refresh();
+}
 function cashPreview(){$("cashCalc").textContent=money(num($("cashin").value)+num($("other").value)-num($("expense").value))}["cashin","other","expense"].forEach(id=>$(id).addEventListener("input",cashPreview));
 async function saveCash(){const row={user_id:user.id,date:$("cd").value,cash_received:num($("cashin").value),online_received:num($("online").value),rokad_received:num($("rokad").value),other_cash_in:num($("other").value),expenses:num($("expense").value),notes:$("notes").value};const {error}=await db.from("daily_cash").upsert(row,{onConflict:"date"});setMsg("cashMsg",error?"Save error: "+error.message:"Daily cash saved.");}
 async function refresh(){if(!db||!user)return;const d=today();const {data:s,error}=await db.from("sales").select("id").eq("sale_date",d);if(error){setMsg("dashMsg","Sales summary: "+error.message);return}const ids=(s||[]).map(x=>x.id);let salesTotal=0;if(ids.length){const r=await db.from("sale_items").select("quantity,sale_rate").in("sale_id",ids);if(!r.error)salesTotal=(r.data||[]).reduce((a,x)=>a+num(x.quantity)*num(x.sale_rate),0)}$("todaySales").textContent=money(salesTotal);const {data:invoices}=await db.from("purchase_invoices").select("id").eq("invoice_date",d);let purchaseTotal=0;if(invoices?.length){const r=await db.from("purchase_items").select("quantity,purchase_rate").in("invoice_id",invoices.map(x=>x.id));if(!r.error)purchaseTotal=(r.data||[]).reduce((a,x)=>a+num(x.quantity)*num(x.purchase_rate),0)}$("todayPurchase").textContent=money(purchaseTotal);const h=await db.from("sales").select("id,sale_date,bill_number,category,payment_mode").order("sale_date",{ascending:false}).limit(50);$("hist").innerHTML=h.error?`<tr><td colspan="5" class="empty">${safe(h.error.message)}</td></tr>`:(h.data||[]).map(x=>`<tr><td>${safe(x.sale_date)}</td><td>${safe(x.bill_number||"—")}</td><td>${safe(x.category)}</td><td>${safe(x.payment_mode)}</td><td>${safe(x.id)}</td></tr>`).join("")||'<tr><td colspan="5" class="empty">No sales recorded yet.</td></tr>'}
@@ -220,4 +310,3 @@ async function refresh(){if(!db||!user)return;const d=today();const {data:s,erro
 </script>
 </body>
 </html>
-
