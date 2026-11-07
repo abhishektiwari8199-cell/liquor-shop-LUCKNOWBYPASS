@@ -420,7 +420,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
     <button class="btn secondary" type="button" style="padding:9px 12px" onclick="stopExciseQrScanner()">Stop</button>
     <span class="muted" id="exciseScanStatus" style="font-size:11px">Excise transport pass ka QR scan karein.</span>
    </div>
-   <div id="exciseQrReader" style="width:100%;max-width:360px;margin:10px 0;display:none"></div>
+   <div id="exciseQrReader" style="width:100%;max-width:520px;min-height:300px;margin:12px auto;display:none;background:#050b14;border:2px solid #f5c94a;border-radius:14px;overflow:hidden;position:relative"></div>
    <div class="status" id="exciseFetchStatus" style="display:none"></div>
    <div class="table-wrap" id="excisePreviewWrap" style="display:none">
     <table style="min-width:760px"><thead><tr><th>Pass brand</th><th>Size</th><th>Inventory product</th><th>Dispatched bottles</th><th>Purchase rate ₹</th></tr></thead><tbody id="excisePreviewRows"></tbody></table>
@@ -884,7 +884,7 @@ async function saveSale(){
   setMsg("saleMsg","Sale saved successfully · Bill total: "+money(billTotal)+" · Reference "+s.id);
   await loadProducts(); await refresh();
 }
-let exciseQrScanner=null,excisePreviewItems=[],excisePassUrl="";
+let exciseQrScanner=null,excisePreviewItems=[],excisePassUrl="",exciseQrStarting=false;
 function setExciseStatus(message){const el=$("exciseScanStatus");if(el)el.textContent=message;}
 function setExciseFetchStatus(message){const el=$("exciseFetchStatus");if(el){el.style.display="block";el.textContent=message;}}
 function toggleExciseScanner(){
@@ -925,18 +925,19 @@ async function ensureExciseQrLibrary(){
  return false;
 }
 async function startExciseQrScanner(){
+ if(exciseQrStarting)return;
+ exciseQrStarting=true;
  const panel=$("exciseScannerPanel"),host=$("exciseQrReader");
  if(panel)panel.style.display="block";
- if(!window.isSecureContext){setExciseStatus("Camera ke liye HTTPS zaroori hai. Website ko https:// se kholein.");return;}
- if(!window.Html5Qrcode){setExciseStatus("QR scanner library load nahi hui. Page refresh karke dobara try karein.");return;}
- if(!host){setExciseStatus("QR camera panel nahi mila. Page refresh karein.");return;}
- host.style.display="block";
+ if(host){host.style.display="block";host.hidden=false;host.innerHTML="";}
+ setExciseStatus("Camera start ho raha hai…");
+ if(!window.isSecureContext){setExciseStatus("Camera ke liye HTTPS zaroori hai. Website ko https:// se kholein.");exciseQrStarting=false;return;}
+ if(!window.Html5Qrcode){setExciseStatus("QR scanner library load nahi hui. Page refresh karke dobara try karein.");exciseQrStarting=false;return;}
+ if(!host){setExciseStatus("QR camera panel nahi mila. Page refresh karein.");exciseQrStarting=false;return;}
  try{
-  if(exciseQrScanner){
-   try{if(exciseQrScanner.isScanning)await exciseQrScanner.stop();}catch(e){}
-   try{exciseQrScanner.clear();}catch(e){}
-  }
-  exciseQrScanner=new Html5Qrcode("exciseQrReader");
+  // Create a fresh scanner only after the visible reader container is ready.
+  if(exciseQrScanner){try{if(exciseQrScanner.isScanning)await exciseQrScanner.stop();}catch(e){} exciseQrScanner=null;}
+  exciseQrScanner=new Html5Qrcode("exciseQrReader",{verbose:false});
   const config={fps:10,qrbox:{width:240,height:240},formatsToSupport:[Html5QrcodeSupportedFormats.QR_CODE],aspectRatio:1.0};
   let handled=false;
   const onSuccess=async decoded=>{
@@ -945,32 +946,36 @@ async function startExciseQrScanner(){
    if(!pass){handled=false;setExciseStatus("QR read hua, lekin valid UP Excise transport pass QR nahi hai.");return;}
    $("inv").value=pass.tpnum;
    setExciseStatus("QR successfully scan ho gaya ✓ Pass details load ho rahi hain…");
-   await stopExciseQrScanner();
+   await stopExciseQrScanner(true);
    await fetchExcisePassDetails(pass);
   };
-  // Ask the browser explicitly for the device's rear-facing camera first.
   try{
    await exciseQrScanner.start({facingMode:"environment"},config,onSuccess,()=>{});
   }catch(primaryError){
-   // Some Android devices require an explicit camera ID. Never silently switch to selfie camera.
-   try{if(exciseQrScanner.isScanning)await exciseQrScanner.stop();}catch(e){}
+   try{if(exciseQrScanner&&exciseQrScanner.isScanning)await exciseQrScanner.stop();}catch(e){}
    const cameras=await Html5Qrcode.getCameras();
-   const rear=cameras.find(c=>/back|rear|environment|tr[a]?s?e?r?a?/i.test(c.label||""));
-   if(!rear)throw new Error("Rear camera detect nahi hua. Chrome mein camera permission allow karke page reload karein.");
+   const rear=cameras.find(c=>/back|rear|environment/i.test(c.label||""));
+   if(!rear)throw new Error("Rear camera detect nahi hua. Chrome camera permission check karein.");
    await exciseQrScanner.start(rear.id,config,onSuccess,()=>{});
   }
-  setExciseStatus("Rear camera active hai. Excise pass ka QR frame ke andar rakhein.");
+  // Keep the live preview visible; do not hide or clear its DOM while scanning.
+  host.style.display="block";
+  host.querySelectorAll("video").forEach(v=>{v.style.display="block";v.style.width="100%";v.style.maxHeight="60vh";v.style.objectFit="cover";});
+  setExciseStatus("Rear camera active hai. Live camera screen par QR frame mein rakhein.");
  }catch(e){
   const msg=String(e&&e.message||e||"");
   if(/permission|denied|notallowed/i.test(msg))setExciseStatus("Camera permission blocked hai. Chrome Site settings → Camera → Allow karein.");
-  else if(/rear camera|notfound|no camera|device/i.test(msg))setExciseStatus("Rear camera start nahi hua. Phone ke Chrome ko camera permission dein aur doosri camera app band karein.");
-  else setExciseStatus("Rear camera start nahi hua: "+msg);
+  else if(/rear camera|notfound|no camera|device/i.test(msg))setExciseStatus("Rear camera start nahi hua. Chrome permission dein aur doosri camera app band karein.");
+  else setExciseStatus("Camera start error: "+msg);
   host.style.display="block";
- }
+ }finally{exciseQrStarting=false;}
 }
-async function stopExciseQrScanner(){
+async function stopExciseQrScanner(afterScan=false){
  if(exciseQrScanner){try{if(exciseQrScanner.isScanning)await exciseQrScanner.stop();}catch(e){}}
- const host=$("exciseQrReader");if(host)host.style.display="none";
+ const host=$("exciseQrReader");
+ // After a successful scan, hide the preview; on manual stop keep the panel visible with a stopped message.
+ if(host){host.style.display=afterScan?"none":"block";if(!afterScan)host.innerHTML='<div style="padding:28px 12px;text-align:center;color:#dbe7f5">Camera stopped. Scan QR for Purchase to start again.</div>';}
+ if(!afterScan)setExciseStatus("Camera stopped.");
 }
 function normExcise(s){return String(s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").replace(/\s+/g," ").trim();}
 function findExciseProduct(brand,size,category){
