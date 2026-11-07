@@ -545,6 +545,38 @@ const $=id=>document.getElementById(id),num=v=>Number(v)||0;
 const money=v=>"₹"+num(v).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
 const today=()=>{const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)};
 const STOCK_START_DATE="2026-11-02";
+// Authoritative beer rate card supplied by the shop owner (07 Nov 2026).
+// MRP is used for opening/sale totals; wholesale is used for stock valuation;
+// margin is the supplied per-unit margin. Missing wholesale rates stay unmodified.
+const BEER_RATE_CARD=[
+ {name:"KINGFISHER - 650 ML (BOTTLE)",mrp:190,wholesale:165.89,margin:24.11},
+ {name:"ULTRAMAX - 650 ML (BOTTLE)",mrp:210,wholesale:185.04,margin:24.96},
+ {name:"TUBORG -650 ML (BOTTLE)",mrp:190,wholesale:165.89,margin:24.11},
+ {name:"ELEPHENT - 650 ML (BOTTLE)",mrp:210,wholesale:185.08,margin:24.92},
+ {name:"BROCODE - 375 ML (CAN)",mrp:150,wholesale:139.06,margin:10.94},
+ {name:"RIO GOLD",mrp:150,wholesale:139.06,margin:10.94},
+ {name:"ULTRAMAX - 500 ML (CAN)",mrp:160,wholesale:140.73,margin:19.27},
+ {name:"BUDWISER 650 ML (BOTTLE)",mrp:210,wholesale:184.95,margin:25.05},
+ {name:"ELEPHENT - 500 ML (CAN)",mrp:160,wholesale:140.83,margin:19.17},
+ {name:"BUDWISER 500 ML (CAN)",mrp:160,wholesale:140.73,margin:19.27},
+ {name:"KINGFISHER - 500 ML (CAN)",mrp:140,wholesale:121.45,margin:18.55},
+ {name:"TUBORG CLASSIC 500 ML (CAN)",mrp:160,wholesale:140.73,margin:19.27},
+ {name:"TUBORG STRONG 500 ML (CAN)",mrp:140,wholesale:121.45,margin:18.55},
+ {name:"SAB 500 ML (CAN)",mrp:140,wholesale:121.40,margin:18.60},
+ {name:"GOD FATHER 500 ML (CAN)",mrp:140,wholesale:111.80,margin:28.20},
+ {name:"HYWARDS 5000 - 500 ML (CAN)",mrp:120,wholesale:104.91,margin:15.09},
+ {name:"X7 CLASSICO 330ML",mrp:160,wholesale:140.73,margin:19.27},
+ {name:"ELIFHANTH SMOOCH PRE",mrp:100,wholesale:null,margin:null},
+ {name:"ELEFHANT 330 ML",mrp:110,wholesale:null,margin:null}
+];
+function beerRateKey(value){return String(value||"").toUpperCase().replace(/AS\s+LISTED/g," ").replace(/[^A-Z0-9]+/g," ").replace(/\s+/g," ").trim()}
+function applyBeerRateCard(product){
+ if(String(product.category||"").toLowerCase()!=="beer")return product;
+ const combined=beerRateKey(`${cleanBeerBrandName(product.brand_name||"")} ${product.size||""}`);
+ const rate=BEER_RATE_CARD.find(r=>{const key=beerRateKey(r.name);return combined===key||combined.includes(key)||key.includes(combined)});
+ if(!rate)return product;
+ return {...product,mrp:rate.mrp,wholesale_price:rate.wholesale==null?product.wholesale_price:rate.wholesale,rate_card_margin:rate.margin,rate_card_name:rate.name};
+}
 function setMsg(id,text){$(id).textContent=text}
 function safe(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function initDb(){if(!window.supabase)throw new Error("Supabase library could not load. Check internet connection and refresh.");if(!db)db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);return db}
@@ -559,7 +591,7 @@ async function loadProducts(){
     .select("id,category,brand_name,size,opening_stock,mrp,wholesale_price")
     .order("brand_name");
   if(error){setMsg("dashMsg","Inventory read error: "+error.message);return}
-  products=(data||[]).map(p=>String(p.category||"").toLowerCase()==="beer"?{...p,brand_name:cleanBeerBrandName(p.brand_name)}:p);
+  products=(data||[]).map(p=>applyBeerRateCard(String(p.category||"").toLowerCase()==="beer"?{...p,brand_name:cleanBeerBrandName(p.brand_name)}:p));
   $("count").textContent=products.length;
   await loadStockMovements();
   $("inventoryCount").textContent=products.length+" PRODUCTS";
