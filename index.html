@@ -36,6 +36,16 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
 .inventory-register input{width:68px;max-width:100%;padding:7px 5px;text-align:right;border:1px solid #cbd5e1;border-radius:7px;background:#fff}
 .inventory-register .calc{font-weight:700;background:#f4f8ff}
 .inventory-register .value{font-weight:700;color:#173f70;background:#fff9df}
+/* High-contrast inventory register: readable navy text on light cells */
+.inventory-register tbody td{background:#fffdf5 !important;color:#183653 !important;font-weight:600}
+.inventory-register tbody td:first-child{background:#fff1b8 !important;color:#102f50 !important;font-weight:800}
+.inventory-register tbody td.calc{background:#eaf2ff !important;color:#123c68 !important;font-weight:800}
+.inventory-register tbody td.value{background:#fff0b3 !important;color:#102f50 !important;font-weight:900}
+.inventory-register thead th{background:#ffe99a !important;color:#102f50 !important;font-weight:900}
+.inventory-register input{background:#ffffff !important;color:#102f50 !important;border:1px solid #8da7c2 !important;font-weight:700}
+.inventory-register input:focus{background:#fffbea !important;border-color:#c28b00 !important;outline:2px solid #f5c542 !important}
+.inventory-register tbody tr:hover td{background:#fff6d6 !important}
+.inventory-register tbody tr:hover td.calc{background:#dceaff !important}
 
 </style>
 </head>
