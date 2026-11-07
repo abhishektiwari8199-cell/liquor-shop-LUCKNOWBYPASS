@@ -100,6 +100,83 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
   box-sizing:border-box !important;text-align:center !important;margin:0 auto !important;padding:7px 8px !important;
 }
 
+
+/* Liquor subtotal row and keyboard navigation */
+#appView #inventory table.inventory-register tbody tr.liquor-total-row td{
+  background:#ffe89a !important;color:#102f50 !important;font-weight:900 !important;
+  border-top:3px solid #173b63 !important;border-bottom:2px solid #173b63 !important;
+}
+#appView #inventory table.inventory-register tbody tr.liquor-total-row td:first-child{
+  background:#f5c542 !important;color:#102f50 !important;font-weight:900 !important;
+}
+#appView #inventory table.inventory-register tbody tr.liquor-total-row td.value{
+  background:#ffdf78 !important;color:#563d00 !important;
+}
+
+
+/* Clear visual zones for inventory entry: opening / purchase / total / sale / balance / value */
+#appView #inventory .inventory-register thead tr:first-child th:nth-child(2),
+#appView #inventory .inventory-register thead tr:nth-child(2) th:nth-child(n+1):nth-child(-n+4){
+  background:#dceeff !important;color:#123c68 !important;
+}
+#appView #inventory .inventory-register thead tr:first-child th:nth-child(3),
+#appView #inventory .inventory-register thead tr:nth-child(2) th:nth-child(n+5):nth-child(-n+8){
+  background:#ffead5 !important;color:#7c3d08 !important;
+}
+#appView #inventory .inventory-register thead tr:first-child th:nth-child(4),
+#appView #inventory .inventory-register thead tr:nth-child(2) th:nth-child(n+9):nth-child(-n+12){
+  background:#e8edf3 !important;color:#26384b !important;
+}
+#appView #inventory .inventory-register thead tr:first-child th:nth-child(5),
+#appView #inventory .inventory-register thead tr:nth-child(2) th:nth-child(n+13):nth-child(-n+16){
+  background:#ddf5e5 !important;color:#14532d !important;
+}
+#appView #inventory .inventory-register thead tr:first-child th:nth-child(6),
+#appView #inventory .inventory-register thead tr:nth-child(2) th:nth-child(n+17):nth-child(-n+20){
+  background:#d9f3ef !important;color:#115e59 !important;
+}
+#appView #inventory .inventory-register thead tr:first-child th:nth-child(7),
+#appView #inventory .inventory-register thead tr:nth-child(2) th:nth-child(n+21):nth-child(-n+24){
+  background:#fff2c7 !important;color:#704b00 !important;
+}
+#appView #inventory .inventory-register tbody td:nth-child(n+2):nth-child(-n+5){
+  background:#edf6ff !important;color:#123c68 !important;
+}
+#appView #inventory .inventory-register tbody td:nth-child(n+6):nth-child(-n+9){
+  background:#fff3e8 !important;color:#7c3d08 !important;
+}
+#appView #inventory .inventory-register tbody td:nth-child(n+10):nth-child(-n+13){
+  background:#f0f3f7 !important;color:#26384b !important;
+}
+#appView #inventory .inventory-register tbody td:nth-child(n+14):nth-child(-n+17){
+  background:#eaf8ee !important;color:#14532d !important;
+}
+#appView #inventory .inventory-register tbody td:nth-child(n+18):nth-child(-n+21){
+  background:#e8f7f5 !important;color:#115e59 !important;
+}
+#appView #inventory .inventory-register tbody td:nth-child(n+22):nth-child(-n+25){
+  background:#fff8df !important;color:#704b00 !important;
+}
+#appView #inventory .inventory-register tbody td:nth-child(n+2):nth-child(-n+5) input{
+  background:#dceeff !important;border-color:#9bc5ef !important;color:#123c68 !important;
+}
+#appView #inventory .inventory-register tbody td:nth-child(n+6):nth-child(-n+9) input{
+  background:#ffead5 !important;border-color:#efbd91 !important;color:#7c3d08 !important;
+}
+#appView #inventory .inventory-register tbody td:nth-child(n+14):nth-child(-n+17) input{
+  background:#ddf5e5 !important;border-color:#9bd4aa !important;color:#14532d !important;
+}
+/* Keep the liquor subtotal visually distinct across all numeric groups */
+#appView #inventory .inventory-register tbody tr.liquor-total-row td{
+  background:#ffe89a !important;color:#102f50 !important;
+}
+#appView #inventory .inventory-register tbody tr.liquor-total-row td:first-child{
+  background:#f5c542 !important;color:#102f50 !important;
+}
+#appView #inventory .inventory-register tbody tr.liquor-total-row td.value{
+  background:#ffdf78 !important;color:#563d00 !important;
+}
+
 </style>
 </head>
 <body>
@@ -331,7 +408,10 @@ function drawProducts(){
   const groups=orderedBrandGroups(rows);
   $("inventoryCount").textContent=groups.length+" BRANDS · "+rows.length+" SIZES";
   let totals={opening:0,purchase:0,total:0,sale:0,balance:0,value:0};
-  const html=groups.map((g,idx)=>{
+  const liquorTotals={opening:[0,0,0,0],purchase:[0,0,0,0],purchaseEntry:[0,0,0,0],total:[0,0,0,0],sale:[0,0,0,0],saleEntry:[0,0,0,0],balance:[0,0,0,0],value:[0,0,0,0]};
+  const lastLiquorIndex=groups.reduce((last,g,i)=>String(g.products[0]?.category||"").toLowerCase()==="liquor"?i:last,-1);
+  const htmlRows=[];
+  groups.forEach((g,idx)=>{
     const map=[-1,-1,-1,-1].map(()=>null);
     for(const p of g.products){const i=sizeIndex(p.size);if(i>=0)map[i]=p;}
     const opening=map.map(p=>p?num(p.opening_stock):0);
@@ -340,29 +420,65 @@ function drawProducts(){
     const total=opening.map((v,i)=>v+purchase[i]);
     const balance=total.map((v,i)=>v-sale[i]);
     const value=balance.map((v,i)=>v*num(map[i]?.wholesale_price));
-    for(let i=0;i<4;i++){totals.opening+=opening[i];totals.purchase+=purchase[i];totals.total+=total[i];totals.sale+=sale[i];totals.balance+=balance[i];totals.value+=value[i];}
+    for(let i=0;i<4;i++){
+      totals.opening+=opening[i];totals.purchase+=purchase[i];totals.total+=total[i];totals.sale+=sale[i];totals.balance+=balance[i];totals.value+=value[i];
+      if(String(g.products[0]?.category||"").toLowerCase()==="liquor"){
+        const p=map[i],entry= p ? (inventoryManualCurrent[String(p.id)]||{}) : {};
+        liquorTotals.opening[i]+=opening[i];
+        liquorTotals.purchase[i]+=purchase[i];
+        liquorTotals.purchaseEntry[i]+=num(entry.purchase);
+        liquorTotals.total[i]+=total[i];
+        liquorTotals.sale[i]+=sale[i];
+        liquorTotals.saleEntry[i]+=num(entry.sale);
+        liquorTotals.balance[i]+=balance[i];
+        liquorTotals.value[i]+=value[i];
+      }
+    }
     const openCells=map.map((p,i)=>`<td>${p?`<input aria-label="${safe(g.name)} ${['750','375','180','90'][i]} opening stock" id="opening_${safe(p.id)}" type="number" min="0" step=".01" value="${opening[i]}" onkeydown="inventoryEnterNext(event)">`:'—'}</td>`).join('');
     const purchaseCells=map.map((p,i)=>{const v=p?(inventoryManualCurrent[String(p.id)]?.purchase||0):0;return `<td>${p?`<input aria-label="${safe(g.name)} ${['750','375','180','90'][i]} purchase quantity" id="reg_purchase_${safe(p.id)}" type="number" min="0" step=".01" value="${v}" onkeydown="inventoryEnterNext(event)">`:'—'}</td>`;}).join('');
     const saleCells=map.map((p,i)=>{const v=p?(inventoryManualCurrent[String(p.id)]?.sale||0):0;return `<td>${p?`<input aria-label="${safe(g.name)} ${['750','375','180','90'][i]} sale quantity" id="reg_sale_${safe(p.id)}" type="number" min="0" step=".01" value="${v}" onkeydown="inventoryEnterNext(event)">`:'—'}</td>`;}).join('');
     const cells=arr=>arr.map(v=>`<td class="calc">${Number(v||0).toLocaleString('en-IN',{maximumFractionDigits:2})}</td>`).join('');
     const values=value.map(v=>`<td class="value">${money(v)}</td>`).join('');
-    return `<tr><td>${idx+1}. ${safe(g.name)}</td>${openCells}${purchaseCells}${cells(total)}${saleCells}${cells(balance)}${values}</tr>`;
-  }).join('');
-  $("inventoryRegisterRows").innerHTML=html||'<tr><td colspan="25" class="empty">No matching brands found.</td></tr>';
+    htmlRows.push(`<tr><td>${idx+1}. ${safe(g.name)}</td>${openCells}${purchaseCells}${cells(total)}${saleCells}${cells(balance)}${values}</tr>`);
+    if(idx===lastLiquorIndex){
+      const tc=arr=>arr.map(v=>`<td class="calc liquor-total-cell">${Number(v||0).toLocaleString('en-IN',{maximumFractionDigits:2})}</td>`).join('');
+      const tv=liquorTotals.value.map(v=>`<td class="value liquor-total-cell">${money(v)}</td>`).join('');
+      htmlRows.push(`<tr class="liquor-total-row"><td>TOTAL LIQUOR</td>${tc(liquorTotals.opening)}${tc(liquorTotals.purchaseEntry)}${tc(liquorTotals.total)}${tc(liquorTotals.saleEntry)}${tc(liquorTotals.balance)}${tv}</tr>`);
+    }
+  });
+  $("inventoryRegisterRows").innerHTML=htmlRows.join("")||'<tr><td colspan="25" class="empty">No matching brands found.</td></tr>';
   $("stockSummary").textContent=`As on ${$("inventoryDate").value||STOCK_START_DATE} · Opening ${totals.opening} · Purchase ${totals.purchase} · Total ${totals.total} · Sale ${totals.sale} · Balance ${totals.balance} · Balance stock value ${money(totals.value)}${inventoryMovementError?" · "+inventoryMovementError:""}`;
 }
 function inventoryEnterNext(event){
-  if(event.key!=="Enter")return;
-  event.preventDefault();
-  const fields=[...$("inventoryRegisterRows").querySelectorAll('input[type="number"]')];
-  const index=fields.indexOf(event.currentTarget);
-  if(index>=0&&index<fields.length-1){
-    const next=fields[index+1];
-    next.focus();
-    next.select();
-  }else if(index===fields.length-1){
-    event.currentTarget.blur();
+  const key=event.key;
+  const fieldsInRow=()=>[...event.currentTarget.closest("tr").querySelectorAll('input[type="number"]')];
+  const allRows=[...$("inventoryRegisterRows").querySelectorAll("tr")];
+  const row=event.currentTarget.closest("tr");
+  const rowIndex=allRows.indexOf(row);
+  const rowFields=fieldsInRow();
+  const colIndex=rowFields.indexOf(event.currentTarget);
+  let target=null;
+  if(key==="Enter"||key==="ArrowRight"){
+    event.preventDefault();
+    target=rowFields[colIndex+1]||null;
+    if(!target){
+      for(let r=rowIndex+1;r<allRows.length&&!target;r++)target=allRows[r].querySelector('input[type="number"]');
+    }
+  }else if(key==="ArrowLeft"){
+    event.preventDefault();
+    target=rowFields[colIndex-1]||null;
+    if(!target){
+      for(let r=rowIndex-1;r>=0&&!target;r--){const f=allRows[r].querySelectorAll('input[type="number"]');target=f[f.length-1]||null;}
+    }
+  }else if(key==="ArrowDown"||key==="ArrowUp"){
+    event.preventDefault();
+    const step=key==="ArrowDown"?1:-1;
+    for(let r=rowIndex+step;r>=0&&r<allRows.length;r+=step){
+      const f=allRows[r].querySelectorAll('input[type="number"]');
+      if(f[colIndex]){target=f[colIndex];break;}
+    }
   }
+  if(target){target.focus();target.select();}
 }
 async function saveOpeningStock(button){
   const date=$("inventoryDate").value||STOCK_START_DATE;
