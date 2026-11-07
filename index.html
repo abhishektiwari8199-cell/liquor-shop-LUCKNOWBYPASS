@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Abhishek Composite | Liquor & Beer Management</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>\n<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -55,10 +55,21 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
  <section id="home" class="page active">
   <div class="hero"><div class="hero-copy"><div class="eyebrow">Your business. One dashboard.</div><h1>Welcome to your<br><span>store command centre.</span></h1><p>Manage liquor and beer operations from one place. Track products, record sales, manage purchases and stay on top of daily cash.</p><button class="btn" onclick="showPage('sale')">＋ Create new sale</button></div><div class="hero-art"><span>🥃</span><span>🍺</span></div></div>
   <div class="kpis">
-   <div class="kpi glass"><span class="kpi-icon">▦</span><small>Products in catalogue</small><strong id="count">—</strong></div>
+   <div class="kpi glass"><span class="kpi-icon">▦</span><small>Total products</small><strong id="count">—</strong></div>
    <div class="kpi glass"><span class="kpi-icon">↗</span><small>Today's sales</small><strong id="todaySales">₹0.00</strong></div>
    <div class="kpi glass"><span class="kpi-icon">⇩</span><small>Today's purchases</small><strong id="todayPurchase">₹0.00</strong></div>
-   <div class="kpi glass"><span class="kpi-icon">◈</span><small>Store categories</small><strong>02</strong></div>
+   <div class="kpi glass"><span class="kpi-icon">◈</span><small>Total stock units</small><strong id="dashStock">—</strong></div>
+   <div class="kpi glass"><span class="kpi-icon">⚠</span><small>Low stock products</small><strong id="dashLow">—</strong></div>
+   <div class="kpi glass"><span class="kpi-icon">🍺</span><small>Beer stock</small><strong id="dashBeer">—</strong></div>
+   <div class="kpi glass"><span class="kpi-icon">🥃</span><small>Liquor stock</small><strong id="dashLiquor">—</strong></div>
+   <div class="kpi glass"><span class="kpi-icon">▤</span><small>Sales (30 days)</small><strong id="dash30Sales">₹0.00</strong></div>
+  </div>
+  <div class="section-head"><div><h3>Sales performance</h3><p>Daily sales value for the last 7 days</p></div><span class="tag">LIVE REPORT</span></div>
+  <div class="panel glass"><div style="height:280px;position:relative"><canvas id="salesChart" aria-label="Sales graph"></canvas></div></div>
+  <div class="section-head"><div><h3>Category sales summary</h3><p>Beer and liquor sold, with quantity and revenue</p></div></div>
+  <div class="category-cards">
+   <div class="category-card liquor glass"><div><span class="tag">LIQUOR SALES</span><h4 id="dashLiquorSale">₹0.00</h4><p id="dashLiquorQty">0 units sold</p></div><div class="art">🥃</div></div>
+   <div class="category-card beer glass"><div><span class="tag">BEER SALES</span><h4 id="dashBeerSale">₹0.00</h4><p id="dashBeerQty">0 units sold</p></div><div class="art">🍺</div></div>
   </div>
   <div class="section-head"><div><h3>Store departments</h3><p>Choose the product category you want to manage</p></div></div>
   <div class="category-cards"><div class="category-card liquor glass"><div><span class="tag">SPIRITS COLLECTION</span><h4 style="margin-top:10px">Liquor Inventory</h4><p>Browse and manage liquor products</p><button class="btn" style="margin-top:13px" onclick="setCategory('liquor')">Open liquor →</button></div><div class="art">🥃</div></div><div class="category-card beer glass"><div><span class="tag">BEER COLLECTION</span><h4 style="margin-top:10px">Beer Inventory</h4><p>Browse and manage beer products</p><button class="btn" style="margin-top:13px" onclick="setCategory('beer')">Open beer →</button></div><div class="art">🍺</div></div></div>
@@ -84,7 +95,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
   <div class="section-head"><div><h3>Purchase entry</h3><p>Record incoming stock against supplier invoices</p></div><span class="tag">PURCHASE DESK</span></div>
   <div class="panel glass"><div class="form-grid"><label>Invoice number<input id="inv" placeholder="Supplier invoice no."></label><label>Supplier name<input id="supplier" placeholder="Supplier / distributor"></label><label>Invoice date<input id="pd" type="date" min="2026-11-02"></label><label>Category<select id="pc" onchange="fillSelects()"><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label></div></div>
   <div class="panel glass"><div class="form-grid"><label class="span2">Select product<select id="pp"></select></label><label>Quantity<input id="pq" type="number" min=".01" step=".01" value="1"></label><label>Purchase rate<input id="pr" type="number" min="0" step=".01"></label></div><div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="btn" onclick="addItem('purchase')">＋ Add purchase item</button></div></div>
-  <div class="panel glass"><h3 style="font:800 16px Manrope">Invoice items</h3><div class="table-wrap"><table><thead><tr><th>Product</th><th>Quantity</th><th>Rate</th><th>Amount</th><th>Action</th></tr></thead><tbody id="purchaseRows"><tr><td colspan="5" class="empty">No items added yet</td></tr></tbody></table></div><div class="total-line"><span class="muted">Invoice total</span><strong id="purchaseSum">₹0.00</strong></div><button class="btn" onclick="savePurchase()">Save purchase invoice</button><div id="purchaseMsg" class="status">Add invoice details and products.</div></div>
+  <div class="panel glass"><h3 style="font:800 16px Manrope">Invoice items</h3><div class="table-wrap"><table><thead><tr><th>Product</th><th>Quantity</th><th>Rate</th><th>Amount</th><th>Action</th></tr></thead><tbody id="purchaseRows"><tr><td colspan="5" class="empty">No items added yet</td></tr></tbody></table></div><div class="total-line"><span class="muted">Invoice total</span><strong id="purchaseSum">₹0.00</strong></div><button class="btn" onclick="savePurchase(this)">Save purchase invoice</button><div id="purchaseMsg" class="status">Add invoice details and products.</div></div>
  </section>
 
  <section id="cash" class="page">
@@ -95,7 +106,17 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
 
  <section id="history" class="page">
   <div class="section-head"><div><h3>Sales history</h3><p>Latest recorded sales from your cloud database</p></div><button class="btn secondary" onclick="refresh()">↻ Reload history</button></div>
-  <div class="table-wrap"><table><thead><tr><th>Date</th><th>Bill no.</th><th>Category</th><th>Payment mode</th><th>Sale reference</th></tr></thead><tbody id="hist"><tr><td colspan="5" class="empty">Loading history…</td></tr></tbody></table></div>
+  <div class="kpis">
+   <div class="kpi glass"><small>Total sales amount</small><strong id="histTotal">₹0.00</strong></div>
+   <div class="kpi glass"><small>Liquor sold</small><strong id="histLiquorQty">0</strong></div>
+   <div class="kpi glass"><small>Beer sold</small><strong id="histBeerQty">0</strong></div>
+   <div class="kpi glass"><small>Total units sold</small><strong id="histUnits">0</strong></div>
+  </div>
+  <div class="category-cards">
+   <div class="category-card liquor glass"><div><span class="tag">LIQUOR TOTAL</span><h4 id="histLiquorAmount">₹0.00</h4><p id="histLiquorDetail">0 units</p></div><div class="art">🥃</div></div>
+   <div class="category-card beer glass"><div><span class="tag">BEER TOTAL</span><h4 id="histBeerAmount">₹0.00</h4><p id="histBeerDetail">0 units</p></div><div class="art">🍺</div></div>
+  </div>
+  <div class="table-wrap"><table><thead><tr><th>Date</th><th>Bill no.</th><th>Category</th><th>Payment mode</th><th>Quantity</th><th>Bill total</th><th>Sale reference</th></tr></thead><tbody id="hist"><tr><td colspan="7" class="empty">Loading history…</td></tr></tbody></table></div>
  </section>
 </main></div></section>
 <script>
@@ -279,33 +300,67 @@ async function saveSale(){
   setMsg("saleMsg","Sale saved successfully · Bill total: "+money(billTotal)+" · Reference "+s.id);
   await loadProducts(); await refresh();
 }
-async function savePurchase(){
-  if(!$("pd").value||$("pd").value<STOCK_START_DATE){
-    setMsg("purchaseMsg","Purchase date 2 November 2026 ya uske baad ki honi chahiye."); return;
-  }
-  if(!purchaseCart.length||!$("inv").value.trim()||!$("supplier").value.trim()){
-    setMsg("purchaseMsg","Invoice number, supplier aur kam se kam ek product zaroori hai."); return;
-  }
+async function savePurchase(button){
+ const btn=button||document.querySelector('#purchase button[onclick^="savePurchase"]');
+ if(btn){btn.disabled=true;btn.textContent="Saving invoice…"}
+ try{
+  if(!$("pd").value||$("pd").value<STOCK_START_DATE)throw new Error("Purchase date 2 November 2026 ya uske baad ki honi chahiye.");
+  if(!purchaseCart.length||!$("inv").value.trim()||!$("supplier").value.trim())throw new Error("Invoice number, supplier aur kam se kam ek product zaroori hai.");
+  setMsg("purchaseMsg","Saving invoice header… please wait.");
   const {data:dup,error:de}=await db.from("purchase_invoices").select("id").eq("invoice_number",$("inv").value.trim()).maybeSingle();
-  if(de){setMsg("purchaseMsg",de.message);return;}
-  if(dup){setMsg("purchaseMsg","This invoice number already exists. Duplicate blocked.");return;}
+  if(de)throw de;if(dup)throw new Error("This invoice number already exists. Duplicate blocked.");
   const invoiceTotal=purchaseCart.reduce((a,x)=>a+x.quantity*x.rate,0);
-  const {data:h,error}=await db.from("purchase_invoices").insert({
-    user_id:user.id,invoice_number:$("inv").value.trim(),supplier_name:$("supplier").value.trim(),
-    invoice_date:$("pd").value,category:$("pc").value
-  }).select("id").single();
-  if(error){setMsg("purchaseMsg","Purchase save failed: "+error.message);return;}
-  const result=await db.from("purchase_items").insert(purchaseCart.map(x=>({
-    invoice_id:h.id,product_id:x.product_id,quantity:x.quantity,purchase_rate:x.rate,user_id:user.id
-  })));
-  if(result.error){setMsg("purchaseMsg","Invoice created but items failed. Reference "+h.id+". Error: "+result.error.message);return;}
-  purchaseCart=[]; drawCart("purchase");
-  setMsg("purchaseMsg","Purchase invoice saved · Total: "+money(invoiceTotal)+" · Reference "+h.id);
-  await loadProducts(); await refresh();
+  const {data:h,error}=await db.from("purchase_invoices").insert({user_id:user.id,invoice_number:$("inv").value.trim(),supplier_name:$("supplier").value.trim(),invoice_date:$("pd").value,category:$("pc").value}).select("id").single();
+  if(error)throw error;
+  setMsg("purchaseMsg","Invoice created. Saving product rows…");
+  const result=await db.from("purchase_items").insert(purchaseCart.map(x=>({invoice_id:h.id,product_id:x.product_id,quantity:x.quantity,purchase_rate:x.rate,user_id:user.id})));
+  if(result.error)throw new Error("Invoice header created but item rows failed. Reference "+h.id+". "+result.error.message);
+  purchaseCart=[];drawCart("purchase");$("inv").value="";$("supplier").value="";
+  setMsg("purchaseMsg","Purchase invoice saved successfully · Total: "+money(invoiceTotal)+" · Reference "+h.id);
+  await loadProducts();await refresh();
+ }catch(e){setMsg("purchaseMsg","Save failed: "+(e.message||String(e)));console.error("Purchase save:",e)}
+ finally{if(btn){btn.disabled=false;btn.textContent="Save purchase invoice"}}
 }
 function cashPreview(){$("cashCalc").textContent=money(num($("cashin").value)+num($("other").value)-num($("expense").value))}["cashin","other","expense"].forEach(id=>$(id).addEventListener("input",cashPreview));
 async function saveCash(){const row={user_id:user.id,date:$("cd").value,cash_received:num($("cashin").value),online_received:num($("online").value),rokad_received:num($("rokad").value),other_cash_in:num($("other").value),expenses:num($("expense").value),notes:$("notes").value};const {error}=await db.from("daily_cash").upsert(row,{onConflict:"date"});setMsg("cashMsg",error?"Save error: "+error.message:"Daily cash saved.");}
-async function refresh(){if(!db||!user)return;const d=today();const {data:s,error}=await db.from("sales").select("id").eq("sale_date",d);if(error){setMsg("dashMsg","Sales summary: "+error.message);return}const ids=(s||[]).map(x=>x.id);let salesTotal=0;if(ids.length){const r=await db.from("sale_items").select("quantity,sale_rate").in("sale_id",ids);if(!r.error)salesTotal=(r.data||[]).reduce((a,x)=>a+num(x.quantity)*num(x.sale_rate),0)}$("todaySales").textContent=money(salesTotal);const {data:invoices}=await db.from("purchase_invoices").select("id").eq("invoice_date",d);let purchaseTotal=0;if(invoices?.length){const r=await db.from("purchase_items").select("quantity,purchase_rate").in("invoice_id",invoices.map(x=>x.id));if(!r.error)purchaseTotal=(r.data||[]).reduce((a,x)=>a+num(x.quantity)*num(x.purchase_rate),0)}$("todayPurchase").textContent=money(purchaseTotal);const h=await db.from("sales").select("id,sale_date,bill_number,category,payment_mode").order("sale_date",{ascending:false}).limit(50);$("hist").innerHTML=h.error?`<tr><td colspan="5" class="empty">${safe(h.error.message)}</td></tr>`:(h.data||[]).map(x=>`<tr><td>${safe(x.sale_date)}</td><td>${safe(x.bill_number||"—")}</td><td>${safe(x.category)}</td><td>${safe(x.payment_mode)}</td><td>${safe(x.id)}</td></tr>`).join("")||'<tr><td colspan="5" class="empty">No sales recorded yet.</td></tr>'}
+let salesChart=null;
+function dateBack(days){const d=new Date();d.setDate(d.getDate()-days);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)}
+async function refresh(){
+ if(!db||!user)return;
+ setMsg("dashMsg","Refreshing dashboard and sales history…");
+ try{
+  const d=today(),from=dateBack(29),chartFrom=dateBack(6);
+  const [todayHeaders,allHeaders,monthHeaders,chartHeaders]=await Promise.all([
+   db.from("sales").select("id").eq("sale_date",d),
+   db.from("sales").select("id,sale_date,bill_number,category,payment_mode").order("sale_date",{ascending:false}).limit(500),
+   db.from("sales").select("id").gte("sale_date",from).lte("sale_date",d),
+   db.from("sales").select("id,sale_date").gte("sale_date",chartFrom).lte("sale_date",d)
+  ]);
+  for(const r of [todayHeaders,allHeaders,monthHeaders,chartHeaders])if(r.error)throw r.error;
+  async function itemsFor(headers){
+   const ids=(headers||[]).map(x=>x.id);if(!ids.length)return [];
+   const {data,error}=await db.from("sale_items").select("sale_id,product_id,quantity,sale_rate").in("sale_id",ids);
+   if(error)throw error;return data||[];
+  }
+  const [todayItems,historyItems,monthItems,chartItems]=await Promise.all([itemsFor(todayHeaders.data),itemsFor(allHeaders.data),itemsFor(monthHeaders.data),itemsFor(chartHeaders.data)]);
+  const sum=rows=>rows.reduce((a,x)=>a+num(x.quantity)*num(x.sale_rate),0);
+  $("todaySales").textContent=money(sum(todayItems));
+  const {data:invoices,error:ie}=await db.from("purchase_invoices").select("id").eq("invoice_date",d);if(ie)throw ie;
+  let purchaseTotal=0;if(invoices?.length){const pr=await db.from("purchase_items").select("quantity,purchase_rate").in("invoice_id",invoices.map(x=>x.id));if(pr.error)throw pr.error;purchaseTotal=(pr.data||[]).reduce((a,x)=>a+num(x.quantity)*num(x.purchase_rate),0)}
+  $("todayPurchase").textContent=money(purchaseTotal);$("dash30Sales").textContent=money(sum(monthItems));
+  const idsBySale={};for(const row of historyItems){(idsBySale[row.sale_id] ||= []).push(row)}
+  let liquorQty=0,beerQty=0,liquorAmount=0,beerAmount=0,totalQty=0;
+  for(const sale of allHeaders.data||[]){const rows=idsBySale[sale.id]||[],qty=rows.reduce((a,x)=>a+num(x.quantity),0),amount=sum(rows);totalQty+=qty;if(String(sale.category).toLowerCase()==="beer"){beerQty+=qty;beerAmount+=amount}else if(String(sale.category).toLowerCase()==="liquor"){liquorQty+=qty;liquorAmount+=amount}}
+  $("histTotal").textContent=money(sum(historyItems));$("histLiquorQty").textContent=liquorQty.toLocaleString("en-IN");$("histBeerQty").textContent=beerQty.toLocaleString("en-IN");$("histUnits").textContent=totalQty.toLocaleString("en-IN");
+  $("histLiquorAmount").textContent=money(liquorAmount);$("histBeerAmount").textContent=money(beerAmount);$("histLiquorDetail").textContent=liquorQty.toLocaleString("en-IN")+" units sold";$("histBeerDetail").textContent=beerQty.toLocaleString("en-IN")+" units sold";
+  $("dashLiquorSale").textContent=money(liquorAmount);$("dashBeerSale").textContent=money(beerAmount);$("dashLiquorQty").textContent=liquorQty.toLocaleString("en-IN")+" units sold";$("dashBeerQty").textContent=beerQty.toLocaleString("en-IN")+" units sold";
+  $("hist").innerHTML=(allHeaders.data||[]).map(x=>{const rows=idsBySale[x.id]||[],qty=rows.reduce((a,z)=>a+num(z.quantity),0),amount=sum(rows);return `<tr><td>${safe(x.sale_date)}</td><td>${safe(x.bill_number||"—")}</td><td><span class="tag">${safe(x.category)}</span></td><td>${safe(x.payment_mode)}</td><td>${qty.toLocaleString("en-IN")}</td><td><b>${money(amount)}</b></td><td>${safe(x.id)}</td></tr>`}).join("")||'<tr><td colspan="7" class="empty">No sales recorded yet.</td></tr>';
+  const labels=[],values=[];for(let i=6;i>=0;i--){const day=dateBack(i);labels.push(new Date(day+"T00:00:00").toLocaleDateString("en-IN",{day:"2-digit",month:"short"}));const dayIds=new Set((chartHeaders.data||[]).filter(x=>x.sale_date===day).map(x=>x.id));values.push(sum(chartItems.filter(x=>dayIds.has(x.sale_id))))}
+  if(window.Chart&&$("salesChart")){if(salesChart)salesChart.destroy();salesChart=new Chart($("salesChart"),{type:"bar",data:{labels,datasets:[{label:"Sales amount",data:values,backgroundColor:"rgba(53,200,120,.72)",borderColor:"#42d39a",borderWidth:1,borderRadius:8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:"#dce8df"}},tooltip:{callbacks:{label:c=>" "+money(c.raw)}}},scales:{x:{ticks:{color:"#aab9af"},grid:{color:"rgba(255,255,255,.05)"}},y:{beginAtZero:true,ticks:{color:"#aab9af",callback:v=>"₹"+Number(v).toLocaleString("en-IN")},grid:{color:"rgba(255,255,255,.08)"}}}}})}
+  if(products.length){const total=products.reduce((a,p)=>a+stockFor(p).available,0);$("dashStock").textContent=total.toLocaleString("en-IN");$("dashLow").textContent=products.filter(p=>stockFor(p).available<=5).length;$("dashBeer").textContent=products.filter(p=>String(p.category).toLowerCase()==="beer").reduce((a,p)=>a+stockFor(p).available,0).toLocaleString("en-IN");$("dashLiquor").textContent=products.filter(p=>String(p.category).toLowerCase()==="liquor").reduce((a,p)=>a+stockFor(p).available,0).toLocaleString("en-IN")}
+  setMsg("dashMsg","Cloud sync complete · Dashboard, graph and category-wise sales updated.");
+ }catch(e){setMsg("dashMsg","Dashboard refresh error: "+(e.message||String(e)));console.error("Dashboard refresh:",e)}
+}
 (async()=>{try{initDb();const {data}=await db.auth.getSession();if(data.session){user=data.session.user;await openApp()}}catch(e){console.error("Startup:",e);setMsg("loginMsg","Startup error: "+e.message)}})();
 </script>
 </body>
