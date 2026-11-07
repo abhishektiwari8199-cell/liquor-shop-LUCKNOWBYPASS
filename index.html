@@ -44,6 +44,17 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
 .inventory-register thead th{background:#ffe99a !important;color:#102f50 !important;font-weight:900}
 .inventory-register input{background:#ffffff !important;color:#102f50 !important;border:1px solid #8da7c2 !important;font-weight:700}
 .inventory-register input:focus{background:#fffbea !important;border-color:#c28b00 !important;outline:2px solid #f5c542 !important}
+
+/* Compact Beer register: quantity cells sized for short numeric values */
+#appView #inventory table.beer-register{width:100% !important;min-width:1120px !important;table-layout:fixed !important}
+#appView #inventory table.beer-register col:nth-child(1){width:52px !important}
+#appView #inventory table.beer-register col:nth-child(2){width:245px !important}
+#appView #inventory table.beer-register col:nth-child(n+3){width:92px !important}
+#appView #inventory table.beer-register th,#appView #inventory table.beer-register td{width:auto !important;padding:7px 5px !important}
+#appView #inventory table.beer-register td:first-child{min-width:0 !important;width:52px !important;max-width:52px !important;text-align:center !important}
+#appView #inventory table.beer-register td:nth-child(2){min-width:0 !important;width:245px !important;max-width:245px !important}
+#appView #inventory table.beer-register input{width:62px !important;min-width:62px !important;max-width:62px !important;height:36px !important;padding:5px 3px !important;text-align:center !important}
+
 .inventory-register tbody tr:hover td{background:#fff6d6 !important}
 .inventory-register tbody tr:hover td.calc{background:#dceaff !important}
 
@@ -269,9 +280,10 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
  <section id="inventory" class="page">
   <div class="section-head"><div><h3>Inventory Register</h3><p>Excel ke 2 Nov sheet ke original brand sequence mein date-wise stock</p></div><span class="tag" id="inventoryCount">0 BRANDS</span></div>
   <div class="panel glass"><div class="form-grid">
-   <label>Inventory date (as on)<input id="inventoryDate" type="date" min="2026-11-02" value="2026-11-07" onchange="loadInventoryForDate()"></label>
-   <label>Category<select id="cat" onchange="drawProducts()"><option value="all">All categories</option><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label>
+   <label>Inventory date<input id="inventoryDate" type="date" min="2026-11-02" value="2026-11-07"></label>
+   <label>Category<select id="cat"><option value="all">All categories</option><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label>
    <label class="span2">Search brand<input id="search" oninput="drawProducts()" placeholder="Search brand name…"></label>
+   <div style="display:flex;align-items:end"><button class="btn" type="button" onclick="applyInventoryFilters()">Apply filters</button></div>
   </div></div>
   <div class="toolbar" style="margin:12px 0"><span class="muted" id="stockSummary">Select a date to view stock.</span><button class="btn" onclick="saveOpeningStock(this)">Save all opening stock</button><button class="btn secondary" onclick="saveInventoryMovements(this)">Save purchase &amp; sale quantities</button></div>
   <div class="status" id="inventoryDateStatus">Opening stock means stock at the start of 02 Nov 2026. Purchase and sale quantities are accumulated from 02 Nov through the selected date. Older entries are excluded.</div>
@@ -413,6 +425,11 @@ function sizeIndex(value){
   return ({"750":0,"375":1,"180":2,"90":3})[normalized]??-1;
 }
 function brandKey(value){return String(value||"").toUpperCase().replace(/[^A-Z0-9]/g,"");}
+function applyInventoryFilters(){
+  const date=$("inventoryDate").value||STOCK_START_DATE;
+  if(date<STOCK_START_DATE){$("inventoryDate").value=STOCK_START_DATE;setMsg("inventoryDateStatus","Inventory date 02 November 2026 se pehle nahi ho sakti.");return;}
+  loadInventoryForDate();
+}
 async function loadInventoryForDate(){
   const date=$("inventoryDate").value||STOCK_START_DATE;
   if(date<STOCK_START_DATE){$("inventoryDate").value=STOCK_START_DATE;setMsg("inventoryDateStatus","Inventory date 02 November 2026 se pehle nahi ho sakti.");return;}
