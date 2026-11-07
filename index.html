@@ -428,7 +428,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
   </div></div>
   <div class="toolbar" style="margin:12px 0"><span class="muted" id="stockSummary">Select a date to view stock.</span><button class="btn" type="button" onclick="saveFinalInventory(this)">Final Save — Save All Inventory</button></div>
   <div class="status">Important: Inventory ke Sale column ko ek baar Final Save karein. Ye entry Sales History, Overview aur Daily Cash mein automatically dikhegi. Isi sale ko New Sale page par dobara enter na karein, warna double counting ho sakti hai.</div>
-  <div class="status" id="inventoryDateStatus">Opening stock means stock at the start of 02 Nov 2026. Purchase and sale quantities are accumulated from 02 Nov through the selected date. Older entries are excluded.</div>
+  <div class="status" id="inventoryDateStatus">02 Nov 2026 ka original opening stock base hai. Har agle din ka Opening Qty pichhle din ke closing balance se automatically carry forward hota hai; selected date ki purchase aur sale alag dikhte hain.</div>
   <div id="liquorInventoryWrap" class="table-wrap"><table class="inventory-register liquor-register"><colgroup><col style="width:230px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"></colgroup><thead>
    <tr><th rowspan="2">S.No. / Brand</th><th colspan="4">Opening Stock (02 Nov)</th><th colspan="4">Purchase</th><th colspan="4">Total Stock</th><th colspan="4">Sale</th><th colspan="4">Balance Stock</th><th colspan="4">Balance Stock Value (₹)</th></tr>
    <tr><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th></tr>
@@ -543,7 +543,7 @@ let db=null,user=null,products=[],saleCart=[],purchaseCart=[];
 const EXCEL_BRAND_ORDER=["BLENDER RESERVE BLUE", "BLENDER PRIDE", "BLENDER 4 ELEMENT", "ANTIQUTI BLUE", "SIGNATURE PREMIUM", "ROYAL THAMBOARE", "ROYAL STAG DOUBLE DARK", "ROYAL STAG", "ROYAL CHALLENGE", "OFFICEAR CHOICE BLUE", "OFICIER CHOICE", "IMPERIAL BLUE", "MACDOWEL NO.1", "MACDOWEL DOUBLE BARELL", "ROYAL STAG BARELL", "EXCLAMATION WHISKEY", "R.G 8 JAMUN", "8 PM BLACK", "8 PM GOLD", "8 PM WHISKEY", "STRELLING B7", "ROYAL GREEN", "WHITE & BLUE", "ALL SEASON SARTAAJ", "GOLFER SHOT 18", "ICONIC WINTER", "GOLFER SHOT A.K", "OCANE GLOW", "ROCKFORD RESERVE", "RED RUSSIAN APPLE", "OCTAINE", "MAGIC MOMENT JAMUN", "AMRUT PESTING WHISKEY", "OAK SMITH", "DOUBLE BLUE", "WHISLER BAREL", "ICONIC WHISKEY", "AFTER DARK", "BATCH 9", "SRISTY FINEST", "AMERICAN PRIDE", "MOUNTAIN OAK", "BX HIPPI", "SINGAL", "MARPHOS X&O BRANDY", "MARPHOUS BLUE BRANDY", "MATSYA", "THE CRAFTRES", "BOHO", "ALL SEASON", "DHURANDHAR", "SIWAS REGAL", "GODAOON", "JONNY WALKER GOLD LEBAL", "JONNY WALKER BLACK LEBAL", "JONNY WALKER DOUBLE BLACK", "JONNY WALKER RED LEBAL", "100 PIPER (12 YEARS)", "100 PIPER", "BLACK DOG TRIPLE GOLD", "BLACK DOG CENETERY", "TEACHERS 50", "TEACHER HIGHLAND", "VAT 69", "BLACK & WHITE", "INDREE", "JAG MISTER", "JACK DANIAEL", "GLAN MORANJI", "BOMBEY SUFFAIR", "DEWARS", "MACDOWEL", "SIMRAN OF CRAFT", "SIMRAN MINTY JAMUN", "SIMRAN MANGO MIRCHI", "SIMRAN JESTY LEMON", "MAGIC VERB LEMON", "MAGIC VERB", "MAGIC MOMENT LEMON", "MAGIC MOMENT APPLE", "MAGIC MOMENT PINK", "MAGIC MOMENT", "1 GL BUNTY", "G R 8 APPLE", "ONE MORE NEXT CANBERRY", "ONE MORE APPLE", "ONE MORE PLANE", "AMAZING PLANE", "MOON WALK APPLE", "MOON WALK ORANGE", "SNOSKI JAMUN VODKA", "SNOSKI SADA VODKA", "CULTER RUM", "ORTHIK CANBERRY", "LIPTOP PLANE", "MAGIC MOMENT AAM PANA", "BUNTY JAMUN", "BAKARDI WHITE", "BAKARDI MANGO CHILLI", "BAKARDI LEMON", "BAKARDI ORANGE", "BAKARDI BLACK", "OLD MONK LEGEND", "BERRY OLD MONK RESERVED'", "OLD MONK COFFEE", "MACDOWELL DARK RUM", "CAPTAIN MORGAIN", "1965 XXX RUM", "BUM LEMON RUM", "LEMON DEDDY RUM", "HIGH IMPACT", "MACDAWELL CITRONN RUM"];
 let stockPurchased={},stockSold={},stockMovementError="";
 let inventoryPurchased={},inventorySold={},inventoryMovementError="";
-let inventoryManualCurrent={},inventoryManualTotals={};
+let inventoryManualCurrent={},inventoryManualTotals={},inventoryOpeningForDate={};
 const $=id=>document.getElementById(id),num=v=>Number(v)||0;
 const money=v=>"₹"+num(v).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
 const today=()=>{const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)};
@@ -651,26 +651,46 @@ function applyInventoryFilters(){
 async function loadInventoryForDate(){
   const date=$("inventoryDate").value||STOCK_START_DATE;
   if(date<STOCK_START_DATE){$("inventoryDate").value=STOCK_START_DATE;setMsg("inventoryDateStatus","Inventory date 02 November 2026 se pehle nahi ho sakti.");return;}
-  $("inventoryDateStatus").textContent="Loading date-wise stock from 02 Nov 2026 through "+date+"…";
-  inventoryPurchased={};inventorySold={};inventoryManualCurrent={};inventoryManualTotals={};inventoryMovementError="";
+  $("inventoryDateStatus").textContent="Loading opening carry-forward and date-wise movements through "+date+"…";
+  inventoryPurchased={};inventorySold={};inventoryManualCurrent={};inventoryManualTotals={};inventoryOpeningForDate={};inventoryMovementError="";
   try{
     const [ph,sh,mh]=await Promise.all([
-      db.from("purchase_invoices").select("id").gte("invoice_date",STOCK_START_DATE).lte("invoice_date",date),
-      db.from("sales").select("id").gte("sale_date",STOCK_START_DATE).lte("sale_date",date),
+      db.from("purchase_invoices").select("id,invoice_date").gte("invoice_date",STOCK_START_DATE).lte("invoice_date",date),
+      db.from("sales").select("id,sale_date").gte("sale_date",STOCK_START_DATE).lte("sale_date",date),
       db.from("inventory_register_entries").select("product_id,entry_date,purchase_qty,sale_qty").gte("entry_date",STOCK_START_DATE).lte("entry_date",date)
     ]);
     if(ph.error||sh.error||mh.error)throw (ph.error||sh.error||mh.error);
-    const pids=(ph.data||[]).map(x=>x.id),sids=(sh.data||[]).map(x=>x.id);
+    const purchaseDateById=Object.fromEntries((ph.data||[]).map(x=>[String(x.id),x.invoice_date]));
+    const saleDateById=Object.fromEntries((sh.data||[]).map(x=>[String(x.id),x.sale_date]));
+    const pids=Object.keys(purchaseDateById),sids=Object.keys(saleDateById);
     const [pi,si]=await Promise.all([
-      pids.length?db.from("purchase_items").select("product_id,quantity").in("invoice_id",pids):Promise.resolve({data:[],error:null}),
-      sids.length?db.from("sale_items").select("product_id,quantity").in("sale_id",sids):Promise.resolve({data:[],error:null})
+      pids.length?db.from("purchase_items").select("invoice_id,product_id,quantity").in("invoice_id",pids):Promise.resolve({data:[],error:null}),
+      sids.length?db.from("sale_items").select("sale_id,product_id,quantity").in("sale_id",sids):Promise.resolve({data:[],error:null})
     ]);
     if(pi.error||si.error)throw (pi.error||si.error);
-    for(const x of pi.data||[]){const k=String(x.product_id);inventoryPurchased[k]=(inventoryPurchased[k]||0)+num(x.quantity);}
-    for(const x of si.data||[]){const k=String(x.product_id);inventorySold[k]=(inventorySold[k]||0)+num(x.quantity);}
-    for(const x of mh.data||[]){const k=String(x.product_id);inventoryManualTotals[k] ||= {purchase:0,sale:0};inventoryManualTotals[k].purchase+=num(x.purchase_qty);inventoryManualTotals[k].sale+=num(x.sale_qty);if(x.entry_date===date)inventoryManualCurrent[k]={purchase:num(x.purchase_qty),sale:num(x.sale_qty)};}
-    for(const [k,v] of Object.entries(inventoryManualTotals)){inventoryPurchased[k]=(inventoryPurchased[k]||0)+v.purchase;inventorySold[k]=(inventorySold[k]||0)+v.sale;}
-    $("inventoryDateStatus").textContent="Showing cumulative stock from 02 Nov 2026 through "+date+". Opening, purchase and sale quantities can be entered here; balance and value calculate automatically.";
+    const priorPurchase={},priorSale={},dayPurchase={},daySale={};
+    const add=(obj,id,q)=>{const k=String(id);obj[k]=(obj[k]||0)+num(q);};
+    for(const x of pi.data||[]){const d=purchaseDateById[String(x.invoice_id)];add(d===date?dayPurchase:priorPurchase,x.product_id,x.quantity);}
+    for(const x of si.data||[]){const d=saleDateById[String(x.sale_id)];add(d===date?daySale:priorSale,x.product_id,x.quantity);}
+    for(const x of mh.data||[]){
+      const k=String(x.product_id),isToday=x.entry_date===date;
+      if(isToday){
+        inventoryManualCurrent[k]={purchase:num(x.purchase_qty),sale:num(x.sale_qty)};
+        inventoryManualTotals[k]={purchase:num(x.purchase_qty),sale:num(x.sale_qty)};
+        add(dayPurchase,k,x.purchase_qty);add(daySale,k,x.sale_qty);
+      }else{
+        add(priorPurchase,k,x.purchase_qty);add(priorSale,k,x.sale_qty);
+      }
+    }
+    for(const p of products){
+      const k=String(p.id);
+      inventoryOpeningForDate[k]=num(p.opening_stock)+(priorPurchase[k]||0)-(priorSale[k]||0);
+      inventoryPurchased[k]=dayPurchase[k]||0;
+      inventorySold[k]=daySale[k]||0;
+    }
+    $("inventoryDateStatus").textContent=date===STOCK_START_DATE
+      ?"02 Nov 2026: Original opening stock. Aaj ki purchase aur sale is date ke closing balance mein judegi."
+      :"Opening Qty automatically previous date ke closing balance se carry forward hai. Selected date ki purchase aur sale alag calculate hoti hai.";
   }catch(e){inventoryMovementError=e.message||String(e);$("inventoryDateStatus").textContent="Date-wise stock load error: "+inventoryMovementError;}
   drawProducts();
 }
@@ -753,26 +773,26 @@ function drawProducts(){
   const allLiquorGroups=orderedBrandGroups(products.filter(x=>String(x.category).toLowerCase()==="liquor"));
   for(const g of allLiquorGroups){
     const map=[null,null,null,null];g.products.forEach(x=>{const k=sizeIndex(x.size);if(k>=0)map[k]=x;});
-    const o=map.map(x=>x?num(x.opening_stock):0),p=map.map(x=>x?num(inventoryPurchased[String(x.id)]):0),sale=map.map(x=>x?num(inventorySold[String(x.id)]):0),t=o.map((v,k)=>v+p[k]),b=t.map((v,k)=>v-sale[k]),v=b.map((x,k)=>x*num(map[k]?.wholesale_price));
+    const o=map.map(x=>x?num(inventoryOpeningForDate[String(x.id)]??x.opening_stock):0),p=map.map(x=>x?num(inventoryPurchased[String(x.id)]):0),sale=map.map(x=>x?num(inventorySold[String(x.id)]):0),t=o.map((v,k)=>v+p[k]),b=t.map((v,k)=>v-sale[k]),v=b.map((x,k)=>x*num(map[k]?.wholesale_price));
     [o,p,t,sale,b,v].forEach((a,ai)=>a.forEach((n,k)=>{[liqTotals.o,liqTotals.p,liqTotals.t,liqTotals.s,liqTotals.b,liqTotals.v][ai][k]+=n;}));
   }
   liquor.forEach((g,idx)=>{
     const map=[null,null,null,null];g.products.forEach(p=>{const k=sizeIndex(p.size);if(k>=0)map[k]=p;});
-    const o=map.map(p=>p?num(p.opening_stock):0),p=map.map(x=>x?num(inventoryPurchased[String(x.id)]):0),s=map.map(x=>x?num(inventorySold[String(x.id)]):0),t=o.map((v,k)=>v+p[k]),b=t.map((v,k)=>v-s[k]),v=b.map((x,k)=>x*num(map[k]?.wholesale_price));
+    const o=map.map(p=>p?num(inventoryOpeningForDate[String(p.id)]??p.opening_stock):0),p=map.map(x=>x?num(inventoryPurchased[String(x.id)]):0),s=map.map(x=>x?num(inventorySold[String(x.id)]):0),t=o.map((v,k)=>v+p[k]),b=t.map((v,k)=>v-s[k]),v=b.map((x,k)=>x*num(map[k]?.wholesale_price));
     for(let k=0;k<4;k++){grand.opening+=o[k];grand.purchase+=p[k];grand.total+=t[k];grand.sale+=s[k];grand.balance+=b[k];grand.value+=v[k];}
-    const inputs=(arr,prefix,label)=>map.map((x,k)=>`<td>${x?`<input aria-label="${safe(g.name)} ${sizes[k]} ${label}" id="${prefix}_${safe(x.id)}" type="number" min="0" step=".01" value="${arr[k]}" oninput="recalculateInventoryLive()" onkeydown="inventoryEnterNext(event)">`:"—"}</td>`).join("");
+    const inputs=(arr,prefix,label)=>map.map((x,k)=>`<td>${x?`<input aria-label="${safe(g.name)} ${sizes[k]} ${label}" id="${prefix}_${safe(x.id)}" type="number" min="0" step=".01" value="${arr[k]}" ${prefix==="opening"&&($("inventoryDate").value||STOCK_START_DATE)!==STOCK_START_DATE?"readonly title='Auto carried forward from previous day'":"oninput='recalculateInventoryLive()' onkeydown='inventoryEnterNext(event)'"}>`:"—"}</td>`).join("");
     L.push(`<tr><td>${idx+1}. ${safe(g.name)} <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='hideInventoryBrand(${JSON.stringify(g.products.map(x=>String(x.id)))})'>Hide</button></td>${inputs(o,"opening","opening stock")}${inputs(map.map(x=>x?(inventoryManualCurrent[String(x.id)]?.purchase||0):0),"reg_purchase","purchase")}${fmt(t)}${inputs(map.map(x=>x?(inventoryManualCurrent[String(x.id)]?.sale||0):0),"reg_sale","sale")}${fmt(b)}${fmtM(v)}</tr>`);
   });
   if(allLiquorGroups.length)L.push(`<tr class="inventory-subtotal-row liquor-total-row"><td>TOTAL ALL LIQUOR BRANDS</td>${fmt(liqTotals.o)}${fmt(liqTotals.p)}${fmt(liqTotals.t)}${fmt(liqTotals.s)}${fmt(liqTotals.b)}${fmtM(liqTotals.v)}</tr>`);
   $("liquorInventoryRows").innerHTML=L.join("")||'<tr><td colspan="25" class="empty">No liquor brands found.</td></tr>';
   const B=[];let bt={o:0,ov:0,p:0,s:0,sv:0,c:0,cv:0,profit:0};
   beer.forEach((x,idx)=>{
-    const opening=num(x.opening_stock),purchase=num(inventoryPurchased[String(x.id)]),sale=num(inventorySold[String(x.id)]);
+    const opening=num(inventoryOpeningForDate[String(x.id)]??x.opening_stock),purchase=num(inventoryPurchased[String(x.id)]),sale=num(inventorySold[String(x.id)]);
     const openingValue=opening*num(x.mrp),available=opening+purchase,saleValue=sale*num(x.mrp),closing=available-sale,stockValue=closing*num(x.wholesale_price),profit=sale*(num(x.mrp)-num(x.wholesale_price));
     bt.o+=opening;bt.ov+=openingValue;bt.p+=purchase;bt.s+=sale;bt.sv+=saleValue;bt.c+=closing;bt.cv+=stockValue;bt.profit+=profit;
     for(const [k,n] of Object.entries({opening,purchase,sale,available,closing,openingValue,saleValue,stockValue,profit}))grand[k]=(grand[k]||0)+n;
     const entry=inventoryManualCurrent[String(x.id)]||{};
-    B.push(`<tr><td>${idx+1}</td><td class="beer-brand">${safe(cleanBeerBrandName(x.brand_name))}${x.size?" - "+safe(x.size):""} <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='hideInventoryBrand([${JSON.stringify(String(x.id))}])'>Hide</button></td><td><input id="opening_${safe(x.id)}" type="number" min="0" step=".01" value="${opening}" oninput="recalculateInventoryLive()" onkeydown="inventoryEnterNext(event)"></td><td class="calc">${money(openingValue)}</td><td><input id="reg_purchase_${safe(x.id)}" type="number" min="0" step=".01" value="${num(entry.purchase)}" oninput="recalculateInventoryLive()" onkeydown="inventoryEnterNext(event)"></td><td><input id="reg_sale_${safe(x.id)}" type="number" min="0" step=".01" value="${num(entry.sale)}" oninput="recalculateInventoryLive()" onkeydown="inventoryEnterNext(event)"></td><td class="calc">${money(saleValue)}</td><td class="calc">${closing}</td><td class="value">${money(stockValue)}</td><td class="value">${money(profit)}</td></tr>`);
+    B.push(`<tr><td>${idx+1}</td><td class="beer-brand">${safe(cleanBeerBrandName(x.brand_name))}${x.size?" - "+safe(x.size):""} <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='hideInventoryBrand([${JSON.stringify(String(x.id))}])'>Hide</button></td><td><input id="opening_${safe(x.id)}" type="number" min="0" step=".01" value="${opening}" ${($("inventoryDate").value||STOCK_START_DATE)!==STOCK_START_DATE?"readonly title='Auto carried forward from previous day'":"oninput='recalculateInventoryLive()' onkeydown='inventoryEnterNext(event)'"}></td><td class="calc">${money(openingValue)}</td><td><input id="reg_purchase_${safe(x.id)}" type="number" min="0" step=".01" value="${num(entry.purchase)}" oninput="recalculateInventoryLive()" onkeydown="inventoryEnterNext(event)"></td><td><input id="reg_sale_${safe(x.id)}" type="number" min="0" step=".01" value="${num(entry.sale)}" oninput="recalculateInventoryLive()" onkeydown="inventoryEnterNext(event)"></td><td class="calc">${money(saleValue)}</td><td class="calc">${closing}</td><td class="value">${money(stockValue)}</td><td class="value">${money(profit)}</td></tr>`);
   });
   if(beer.length)B.push(`<tr class="inventory-subtotal-row"><td colspan="2">TOTAL BEER</td><td>${bt.o}</td><td>${money(bt.ov)}</td><td>${bt.p}</td><td>${bt.s}</td><td>${money(bt.sv)}</td><td>${bt.c}</td><td>${money(bt.cv)}</td><td>${money(bt.profit)}</td></tr>`);
   $("beerInventoryRows").innerHTML=B.join("")||'<tr><td colspan="10" class="empty">No beer brands found.</td></tr>';
@@ -785,7 +805,7 @@ function recalculateInventoryLive(){
     const id=String(p.id),oEl=$("opening_"+id),pEl=$("reg_purchase_"+id),sEl=$("reg_sale_"+id);
     const manual=inventoryManualTotals[id]||{purchase:0,sale:0};
     const savedCurrent=inventoryManualCurrent[id]||{purchase:0,sale:0};
-    const opening=oEl?num(oEl.value):num(p.opening_stock);
+    const opening=oEl?num(oEl.value):num(inventoryOpeningForDate[id]??p.opening_stock);
     const currentPurchase=pEl?num(pEl.value):num(savedCurrent.purchase);
     const currentSale=sEl?num(sEl.value):num(savedCurrent.sale);
     const purchase=Math.max(0,(inventoryPurchased[id]||0)-num(manual.purchase))+currentPurchase;
@@ -898,6 +918,7 @@ async function saveFinalInventory(button){
       inventoryManualTotals[id]={purchase:num(tot.purchase)-num(old.purchase)+row.purchase_qty,sale:num(tot.sale)-num(old.sale)+row.sale_qty};
       inventoryManualCurrent[id]={purchase:row.purchase_qty,sale:row.sale_qty};
     }
+    await loadInventoryForDate();
     recalculateInventoryLive();
     setMsg("inventoryDateStatus",saveOpening?"Opening stock, purchase aur sale quantities Supabase mein save ho gayi hain.":"Purchase aur sale quantities Supabase mein save ho gayi hain. Opening stock sirf 02 Nov 2026 par save hota hai.");
     await refresh(); if($("dayCounterDate")){ $("dayCounterDate").value=date; await loadInventoryDayCounter(); } if($("cd")){ $("cd").value=date; await loadDailyClosing(); }
