@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Abhishek Composite | Liquor & Beer Management</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>\n<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -44,6 +45,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
   <button data-page="inventory" onclick="showPage('inventory',this)"><span class="ico">▦</span>Inventory</button>
   <button data-page="sale" onclick="showPage('sale',this)"><span class="ico">▤</span>New Sale</button>
   <button data-page="purchase" onclick="showPage('purchase',this)"><span class="ico">⇩</span>Purchases</button>
+  <button data-page="profit" onclick="showPage('profit',this)"><span class="ico">₹</span>Profit & Margin</button>
   <button data-page="cash" onclick="showPage('cash',this)"><span class="ico">₹</span>Daily Cash</button>
   <button data-page="history" onclick="showPage('history',this)"><span class="ico">◷</span>Sales History</button>
  </nav>
@@ -85,27 +87,46 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
  </section>
 
  <section id="sale" class="page">
-  <div class="section-head"><div><h3>Create a sale</h3><p>Prepare a new liquor or beer sales entry</p></div><span class="tag">SALES DESK</span></div>
+  <div class="section-head"><div><h3>Create a sale</h3><p>Prepare a new liquor or beer sales entry</p></div><button class="btn secondary" onclick="showPage('history')">▤ Sale history</button></div>
   <div class="panel glass"><div class="form-grid"><label>Sale date<input id="sd" type="date" min="2026-11-02"></label><label>Category<select id="sc" onchange="fillSelects()"><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label><label>Bill number<input id="bill" placeholder="Optional bill no."></label><label>Payment mode<select id="pay"><option>Cash</option><option>Online</option><option>Rokad</option><option>Credit</option></select></label></div></div>
   <div class="panel glass"><div class="form-grid"><label class="span2">Select product<select id="sp"></select></label><label>Quantity<input id="sq" type="number" min=".01" step=".01" value="1"></label><label>Sale rate<input id="sr" type="number" min="0" step=".01"></label></div><div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="btn" onclick="addItem('sale')">＋ Add to bill</button></div></div>
   <div class="panel glass"><div class="section-head" style="margin-top:0"><div><h3>Bill items</h3><p>Review products before saving</p></div></div><div class="table-wrap"><table><thead><tr><th>Product</th><th>Quantity</th><th>Rate</th><th>Amount</th><th>Action</th></tr></thead><tbody id="saleRows"><tr><td colspan="5" class="empty">No items added yet</td></tr></tbody></table></div><div class="total-line"><span class="muted">Bill total</span><strong id="saleSum">₹0.00</strong></div><button class="btn" onclick="saveSale()">Save sale entry</button><div id="saleMsg" class="status">Add products to begin.</div></div>
  </section>
 
  <section id="purchase" class="page">
-  <div class="section-head"><div><h3>Purchase entry</h3><p>Record incoming stock against supplier invoices</p></div><span class="tag">PURCHASE DESK</span></div>
+  <div class="section-head"><div><h3>Purchase entry</h3><p>Record incoming stock against supplier invoices</p></div><button class="btn secondary" onclick="showPage('purchaseHistory')">▤ Purchase history</button></div>
+  <div class="panel glass"><div class="section-head" style="margin-top:0"><div><h3>Brand wholesale rates</h3><p>Update each product's purchase cost once; sale margin uses this rate</p></div></div><div class="row"><label>Search brand<input id="whSearch" placeholder="Search brand / size" oninput="drawWholesaleRates()"></label><label>Category<select id="whCategory" onchange="drawWholesaleRates()"><option value="all">All</option><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label></div><div class="table-wrap"><table><thead><tr><th>Category</th><th>Brand</th><th>Size</th><th>Wholesale rate</th><th>MRP</th><th>Margin / bottle</th><th>Action</th></tr></thead><tbody id="wholesaleRateRows"></tbody></table></div></div>
   <div class="panel glass"><div class="form-grid"><label>Invoice number<input id="inv" placeholder="Supplier invoice no."></label><label>Supplier name<input id="supplier" placeholder="Supplier / distributor"></label><label>Invoice date<input id="pd" type="date" min="2026-11-02"></label><label>Category<select id="pc" onchange="fillSelects()"><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label></div></div>
   <div class="panel glass"><div class="form-grid"><label class="span2">Select product<select id="pp"></select></label><label>Quantity<input id="pq" type="number" min=".01" step=".01" value="1"></label><label>Purchase rate<input id="pr" type="number" min="0" step=".01"></label></div><div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="btn" onclick="addItem('purchase')">＋ Add purchase item</button></div></div>
   <div class="panel glass"><h3 style="font:800 16px Manrope">Invoice items</h3><div class="table-wrap"><table><thead><tr><th>Product</th><th>Quantity</th><th>Rate</th><th>Amount</th><th>Action</th></tr></thead><tbody id="purchaseRows"><tr><td colspan="5" class="empty">No items added yet</td></tr></tbody></table></div><div class="total-line"><span class="muted">Invoice total</span><strong id="purchaseSum">₹0.00</strong></div><button class="btn" onclick="savePurchase(this)">Save purchase invoice</button><div id="purchaseMsg" class="status">Add invoice details and products.</div></div>
  </section>
 
+ <section id="purchaseHistory" class="page">
+  <div class="section-head"><div><h3>Purchase history</h3><p>View, edit or delete saved supplier invoices · Backdate allowed from 02 Nov 2026</p></div><button class="btn secondary" onclick="showPage('purchase')">＋ New purchase</button></div>
+  <div class="panel glass"><div class="form-grid"><label>Purchase date from<input id="purchaseFrom" type="date" onchange="loadPurchaseHistory()" min="2026-11-02"></label><label>Purchase date to<input id="purchaseTo" type="date" onchange="loadPurchaseHistory()" min="2026-11-02"></label><label>Brand filter<select id="purchaseBrand" onchange="loadPurchaseHistory()"><option value="all">All brands</option></select></label><label>Category<select id="purchaseCategory" onchange="loadPurchaseHistory()"><option value="all">All</option><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label></div></div>
+  <div class="table-wrap"><table><thead><tr><th>Date</th><th>Invoice no.</th><th>Supplier</th><th>Category</th><th>Items</th><th>Total</th><th>Actions</th></tr></thead><tbody id="purchaseHistoryRows"><tr><td colspan="7" class="empty">Loading purchase history…</td></tr></tbody></table></div>
+  <div id="purchaseHistoryMsg" class="status">Purchase history loads from your database.</div>
+ </section>
+ <section id="profit" class="page">
+  <div class="section-head"><div><h3>Profit & margin dashboard</h3><p>Daily closing and current month profitability</p></div><button class="btn secondary" onclick="loadProfitReport()">↻ Refresh profit</button></div>
+  <div class="panel glass"><div class="form-grid"><label>Profit from date<input id="profitFrom" type="date" onchange="loadProfitReport()" min="2026-11-02"></label><label>Profit to date<input id="profitTo" type="date" onchange="loadProfitReport()" min="2026-11-02"></label><label>View<select id="profitPeriod" onchange="setProfitPeriod()"><option value="month">Current month</option><option value="today">Today</option><option value="custom">Custom date range</option></select></label></div></div>
+  <div class="kpis"><div class="kpi glass"><small>Sales revenue</small><strong id="profitRevenue">₹0.00</strong></div><div class="kpi glass"><small>Estimated cost of goods</small><strong id="profitCost">₹0.00</strong></div><div class="kpi glass"><small>Gross profit</small><strong id="profitGross">₹0.00</strong></div><div class="kpi glass"><small>Gross margin</small><strong id="profitMargin">0%</strong></div></div>
+  <div class="category-cards"><div class="category-card liquor glass"><div><span class="tag">LIQUOR PROFIT</span><h4 id="profitLiquor">₹0.00</h4><p id="profitLiquorQty">0 bottles sold</p></div><div class="art">🥃</div></div><div class="category-card beer glass"><div><span class="tag">BEER PROFIT</span><h4 id="profitBeer">₹0.00</h4><p id="profitBeerQty">0 units sold</p></div><div class="art">🍺</div></div></div>
+  <div class="section-head"><div><h3>Day-end profit</h3><p>Daily sales less estimated product cost</p></div></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Sales</th><th>Cost</th><th>Gross profit</th></tr></thead><tbody id="dailyProfitRows"></tbody></table></div>
+  <div class="section-head"><div><h3>Brand / bottle-wise profit</h3><p>Profit contribution for each product in selected period</p></div></div><div class="table-wrap"><table><thead><tr><th>Category</th><th>Brand</th><th>Size</th><th>Qty sold</th><th>Sale rate</th><th>Wholesale cost</th><th>Profit / unit</th><th>Total profit</th></tr></thead><tbody id="brandProfitRows"></tbody></table></div>
+  <div id="profitMsg" class="status">Profit is calculated using current saved wholesale rates.</div>
+ </section>
  <section id="cash" class="page">
   <div class="section-head"><div><h3>Daily cash register</h3><p>Track collections, other cash inflow and expenses</p></div><span class="tag">CASH MANAGEMENT</span></div>
-  <div class="panel glass"><div class="form-grid"><label>Date<input id="cd" type="date"></label><label>Cash received<input id="cashin" type="number" min="0" value="0"></label><label>Online received<input id="online" type="number" min="0" value="0"></label><label>Rokad received<input id="rokad" type="number" min="0" value="0"></label><label>Other cash in<input id="other" type="number" min="0" value="0"></label><label>Expenses<input id="expense" type="number" min="0" value="0"></label><label class="span2">Notes<input id="notes" placeholder="Daily notes (optional)"></label></div></div>
-  <div class="panel glass"><div class="total-line"><span class="muted">Cash in hand (cash + other cash − expenses)</span><strong id="cashCalc">₹0.00</strong></div><button class="btn" onclick="saveCash()">Save daily cash</button><div id="cashMsg" class="status">Enter daily collection details.</div></div>
+  <div class="panel glass"><div class="form-grid"><label>Date<input id="cd" type="date" min="2026-11-02" onchange="loadDailyClosing()"></label><label>Actual night cash received (₹)<input id="cashin" type="number" min="0" value="0" oninput="cashPreview()"></label><label>Other cash received (₹)<input id="other" type="number" min="0" value="0" oninput="cashPreview()"></label><label>Notes<input id="notes" placeholder="Daily notes (optional)"></label></div></div>
+  <div class="panel glass"><h3>Shop expenses — item wise</h3><p class="muted">Din bhar shop par jo kharcha hua, ek-ek karke entry karein.</p><div class="form-grid"><label>Expense name<input id="expenseName" placeholder="Tea, transport, staff, electricity..."></label><label>Amount (₹)<input id="expenseAmount" type="number" min="0.01" step="0.01" placeholder="0.00"></label><label>Payment type<select id="expenseMode"><option value="Cash">Cash</option><option value="Online">Online</option></select></label><div style="align-self:end"><button class="btn" onclick="addDailyExpense()">＋ Add expense</button></div></div><div class="table-wrap"><table><thead><tr><th>Expense</th><th>Payment</th><th>Amount</th><th>Action</th></tr></thead><tbody id="expenseRows"><tr><td colspan="4" class="empty">Select date to load expenses.</td></tr></tbody></table></div></div>
+  <input id="expenseCashTotal" type="hidden" value="0"><div class="kpis"><div class="kpi glass"><small>Cash sales</small><strong id="closeCashSales">₹0</strong></div><div class="kpi glass"><small>Online sales received</small><strong id="closeOnline">₹0</strong></div><div class="kpi glass"><small>Total expenses</small><strong id="closeExpenses">₹0</strong></div><div class="kpi glass"><small>Expected night cash</small><strong id="cashCalc">₹0</strong></div></div>
+  <div class="panel glass"><div class="form-grid"><label>Actual online received (₹)<input id="online" type="number" min="0" value="0"></label><label>Rokad received (₹)<input id="rokad" type="number" min="0" value="0"></label></div><div class="total-line"><span class="muted">Cash difference (actual night cash − expected cash)</span><strong id="cashDiff">₹0.00</strong></div><button class="btn" onclick="saveCash()">Save night closing</button><div id="cashMsg" class="status">Select date. Sales and expenses will be calculated automatically.</div></div>
  </section>
 
  <section id="history" class="page">
-  <div class="section-head"><div><h3>Sales history</h3><p>Latest recorded sales from your cloud database</p></div><button class="btn secondary" onclick="refresh()">↻ Reload history</button></div>
+  <div class="section-head"><div><h3>Sales history</h3><p>Latest recorded sales · Backdate allowed from 02 Nov 2026</p></div><button class="btn secondary" onclick="refresh()">↻ Reload history</button></div>
+  <div class="panel glass"><div class="form-grid"><label>Sale date from<input id="saleFrom" type="date" onchange="refresh()" min="2026-11-02"></label><label>Sale date to<input id="saleTo" type="date" onchange="refresh()" min="2026-11-02"></label><label>Brand filter<select id="saleBrand" onchange="refresh()"><option value="all">All brands</option></select></label><label>Category<select id="saleCategory" onchange="refresh()"><option value="all">All</option><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label></div></div>
   <div class="kpis">
    <div class="kpi glass"><small>Total sales amount</small><strong id="histTotal">₹0.00</strong></div>
    <div class="kpi glass"><small>Liquor sold</small><strong id="histLiquorQty">0</strong></div>
@@ -116,7 +137,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
    <div class="category-card liquor glass"><div><span class="tag">LIQUOR TOTAL</span><h4 id="histLiquorAmount">₹0.00</h4><p id="histLiquorDetail">0 units</p></div><div class="art">🥃</div></div>
    <div class="category-card beer glass"><div><span class="tag">BEER TOTAL</span><h4 id="histBeerAmount">₹0.00</h4><p id="histBeerDetail">0 units</p></div><div class="art">🍺</div></div>
   </div>
-  <div class="table-wrap"><table><thead><tr><th>Date</th><th>Bill no.</th><th>Category</th><th>Payment mode</th><th>Quantity</th><th>Bill total</th><th>Sale reference</th></tr></thead><tbody id="hist"><tr><td colspan="7" class="empty">Loading history…</td></tr></tbody></table></div>
+  <div class="table-wrap"><table><thead><tr><th>Date</th><th>Bill no.</th><th>Category</th><th>Payment mode</th><th>Quantity</th><th>Bill total</th><th>Item details</th><th>Actions</th></tr></thead><tbody id="hist"><tr><td colspan="8" class="empty">Loading history…</td></tr></tbody></table></div>
  </section>
 </main></div></section>
 <script>
@@ -133,8 +154,8 @@ function safe(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&
 function initDb(){if(!window.supabase)throw new Error("Supabase library could not load. Check internet connection and refresh.");if(!db)db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);return db}
 async function login(){const b=$("loginBtn");b.disabled=true;b.textContent="Signing in…";try{setMsg("loginMsg","Connecting securely…");initDb();const {data,error}=await db.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});if(error)throw error;user=data.user;await openApp()}catch(e){setMsg("loginMsg","Login error: "+(e.message||String(e)));console.error(e)}finally{b.disabled=false;b.textContent="Sign in to dashboard →"}}
 async function logout(){if(db)await db.auth.signOut();user=null;location.reload()}
-async function openApp(){$("loginView").style.display="none";$("appView").style.display="block";$("who").textContent=user?.email||"Signed in";["sd","pd","cd"].forEach(id=>$(id).value=today());await loadProducts();await refresh();fillSelects()}
-function showPage(id,button){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));$(id).classList.add("active");document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===id));const titles={home:["Business overview","Your store performance at a glance"],inventory:["Product inventory","Your liquor and beer product catalogue"],sale:["New sale","Create and record a customer sale"],purchase:["Purchases","Record supplier invoices and stock"],cash:["Daily cash","Daily collection and expense register"],history:["Sales history","Review recent recorded transactions"]};$("pageTitle").textContent=titles[id][0];$("pageSubtitle").textContent=titles[id][1];if(id==="sale"||id==="purchase")fillSelects()}
+async function openApp(){$("loginView").style.display="none";$("appView").style.display="block";$("who").textContent=user?.email||"Signed in";["sd","pd","cd"].forEach(id=>$(id).value=today());await loadProducts();await refresh();fillSelects();fillBrandFilters();drawWholesaleRates()}
+function showPage(id,button){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));$(id).classList.add("active");document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===id));const titles={home:["Business overview","Your store performance at a glance"],inventory:["Product inventory","Your liquor and beer product catalogue"],sale:["New sale","Create and record a customer sale"],purchase:["Purchases","Record supplier invoices and stock"],purchaseHistory:["Purchase history","Edit or delete saved purchase invoices"],profit:["Profit & margin","Monthly profit, day-end closing and bottle-wise margin"],cash:["Daily cash","Daily collection and expense register"],history:["Sales history","Review recent recorded transactions"]};$("pageTitle").textContent=titles[id][0];$("pageSubtitle").textContent=titles[id][1];if(id==="sale"||id==="purchase")fillSelects();if(id==="purchaseHistory")loadPurchaseHistory();if(id==="history")refresh();if(id==="profit"){setProfitPeriod();loadProfitReport()}if(id==="cash")loadDailyClosing()}
 function setCategory(cat){showPage("inventory");$("cat").value=cat;drawProducts()}
 async function loadProducts(){
   setMsg("dashMsg","Loading inventory from cloud…");
@@ -321,8 +342,116 @@ async function savePurchase(button){
  }catch(e){setMsg("purchaseMsg","Save failed: "+(e.message||String(e)));console.error("Purchase save:",e)}
  finally{if(btn){btn.disabled=false;btn.textContent="Save purchase invoice"}}
 }
-function cashPreview(){$("cashCalc").textContent=money(num($("cashin").value)+num($("other").value)-num($("expense").value))}["cashin","other","expense"].forEach(id=>$(id).addEventListener("input",cashPreview));
-async function saveCash(){const row={user_id:user.id,date:$("cd").value,cash_received:num($("cashin").value),online_received:num($("online").value),rokad_received:num($("rokad").value),other_cash_in:num($("other").value),expenses:num($("expense").value),notes:$("notes").value};const {error}=await db.from("daily_cash").upsert(row,{onConflict:"date"});setMsg("cashMsg",error?"Save error: "+error.message:"Daily cash saved.");}
+async function loadPurchaseHistory(){
+ const body=$("purchaseHistoryRows");body.innerHTML='<tr><td colspan="7" class="empty">Loading…</td></tr>';
+ try{
+  let query=db.from("purchase_invoices").select("id,invoice_number,supplier_name,invoice_date,category").order("invoice_date",{ascending:false}).limit(500);
+  if($("purchaseFrom").value)query=query.gte("invoice_date",$("purchaseFrom").value);
+  if($("purchaseTo").value)query=query.lte("invoice_date",$("purchaseTo").value);
+  if($("purchaseCategory").value!=="all")query=query.eq("category",$("purchaseCategory").value);
+  const {data:headers,error}=await query;if(error)throw error;
+  const ids=(headers||[]).map(x=>x.id);let items=[];
+  if(ids.length){const r=await db.from("purchase_items").select("invoice_id,product_id,quantity,purchase_rate").in("invoice_id",ids);if(r.error)throw r.error;items=r.data||[]}
+  const brand=$("purchaseBrand").value;
+  const filtered=(headers||[]).map(h=>({...h,_items:items.filter(x=>String(x.invoice_id)===String(h.id)&&(brand==="all"||String(x.product_id)===brand))})).filter(h=>brand==="all"||h._items.length);
+  body.innerHTML=filtered.map(h=>{const rows=h._items,qty=rows.reduce((a,x)=>a+num(x.quantity),0),total=rows.reduce((a,x)=>a+num(x.quantity)*num(x.purchase_rate),0);return `<tr><td>${safe(h.invoice_date)}</td><td>${safe(h.invoice_number)}</td><td>${safe(h.supplier_name)}</td><td>${safe(h.category)}</td><td>${qty}</td><td><b>${money(total)}</b></td><td><button class="btn secondary" onclick="editPurchase('${h.id}')">Edit</button> <button class="btn danger" onclick="deletePurchase('${h.id}')">Delete</button></td></tr>`}).join("")||'<tr><td colspan="7" class="empty">No purchase invoices found.</td></tr>';
+  setMsg("purchaseHistoryMsg","Loaded "+(headers||[]).length+" purchase invoices.");
+ }catch(e){body.innerHTML='<tr><td colspan="7" class="empty">Could not load purchase history.</td></tr>';setMsg("purchaseHistoryMsg","Error: "+e.message)}
+}
+async function editPurchase(id){
+ try{
+  const {data:h,error}=await db.from("purchase_invoices").select("id,invoice_number,supplier_name,invoice_date,category").eq("id",id).single();if(error)throw error;
+  const invoice=prompt("Invoice number:",h.invoice_number);if(invoice===null)return;
+  const supplier=prompt("Supplier name:",h.supplier_name);if(supplier===null)return;
+  const date=prompt("Invoice date (YYYY-MM-DD):",h.invoice_date);if(date===null)return;
+  if(date<STOCK_START_DATE)throw new Error("Date must be 2 November 2026 or later.");
+  const category=prompt("Category (liquor / beer):",h.category);if(category===null)return;
+  if(!["liquor","beer"].includes(category.toLowerCase()))throw new Error("Category must be liquor or beer.");
+  const {data:rows,error:re}=await db.from("purchase_items").select("id,quantity,purchase_rate").eq("invoice_id",id);if(re)throw re;
+  for(const row of rows||[]){const q=prompt("Quantity for purchase item (ID "+row.id+"):",row.quantity);if(q===null)return;const rate=prompt("Purchase rate for item (ID "+row.id+"):",row.purchase_rate);if(rate===null)return;if(!(Number(q)>0)||!(Number(rate)>=0))throw new Error("Quantity/rate invalid.");const u=await db.from("purchase_items").update({quantity:Number(q),purchase_rate:Number(rate)}).eq("id",row.id);if(u.error)throw u.error}
+  const u=await db.from("purchase_invoices").update({invoice_number:invoice.trim(),supplier_name:supplier.trim(),invoice_date:date,category:category.toLowerCase()}).eq("id",id);if(u.error)throw u.error;
+  setMsg("purchaseHistoryMsg","Purchase invoice updated.");await loadPurchaseHistory();await loadProducts();await refresh();
+ }catch(e){setMsg("purchaseHistoryMsg","Edit failed: "+e.message)}
+}
+async function deletePurchase(id){
+ if(!confirm("Delete this purchase invoice and its item rows? Stock received from this invoice will be reversed."))return;
+ try{const d=await db.from("purchase_items").delete().eq("invoice_id",id);if(d.error)throw d.error;const h=await db.from("purchase_invoices").delete().eq("id",id);if(h.error)throw h.error;setMsg("purchaseHistoryMsg","Purchase invoice deleted.");await loadPurchaseHistory();await loadProducts();await refresh()}catch(e){setMsg("purchaseHistoryMsg","Delete failed: "+e.message)}
+}
+async function editSale(id){
+ try{
+  const {data:h,error}=await db.from("sales").select("id,sale_date,bill_number,category,payment_mode").eq("id",id).single();if(error)throw error;
+  const date=prompt("Sale date (YYYY-MM-DD):",h.sale_date);if(date===null)return;if(date<STOCK_START_DATE)throw new Error("Date must be 2 November 2026 or later.");
+  const bill=prompt("Bill number:",h.bill_number||"");if(bill===null)return;
+  const category=prompt("Category (liquor / beer):",h.category);if(category===null)return;if(!["liquor","beer"].includes(category.toLowerCase()))throw new Error("Category must be liquor or beer.");
+  const payment=prompt("Payment mode:",h.payment_mode);if(payment===null)return;
+  const {data:rows,error:re}=await db.from("sale_items").select("id,quantity,sale_rate").eq("sale_id",id);if(re)throw re;
+  for(const row of rows||[]){const q=prompt("Quantity for sale item (ID "+row.id+"):",row.quantity);if(q===null)return;const rate=prompt("Sale rate for item (ID "+row.id+"):",row.sale_rate);if(rate===null)return;if(!(Number(q)>0)||!(Number(rate)>=0))throw new Error("Quantity/rate invalid.");const u=await db.from("sale_items").update({quantity:Number(q),sale_rate:Number(rate)}).eq("id",row.id);if(u.error)throw u.error}
+  const u=await db.from("sales").update({sale_date:date,bill_number:bill.trim()||null,category:category.toLowerCase(),payment_mode:payment}).eq("id",id);if(u.error)throw u.error;
+  await loadProducts();await refresh();
+ }catch(e){alert("Sale edit failed: "+e.message)}
+}
+async function deleteSale(id){
+ if(!confirm("Delete this sale and its item rows? Sold stock will be added back."))return;
+ try{const d=await db.from("sale_items").delete().eq("sale_id",id);if(d.error)throw d.error;const h=await db.from("sales").delete().eq("id",id);if(h.error)throw h.error;await loadProducts();await refresh()}catch(e){alert("Sale delete failed: "+e.message)}
+}
+function fillBrandFilters(){
+ const options='<option value="all">All brands</option>'+products.map(p=>`<option value="${safe(p.id)}">${safe(p.brand_name)} · ${safe(p.size)}</option>`).join("");
+ for(const id of ["purchaseBrand","saleBrand"])if($(id))$(id).innerHTML=options;
+}
+function drawWholesaleRates(){
+ const q=($("whSearch")?.value||"").toLowerCase(),cat=$("whCategory")?.value||"all";
+ const rows=products.filter(p=>(cat==="all"||String(p.category).toLowerCase()===cat)&&(`${p.brand_name} ${p.size}`).toLowerCase().includes(q));
+ $("wholesaleRateRows").innerHTML=rows.map(p=>`<tr><td>${safe(p.category)}</td><td><b>${safe(p.brand_name)}</b></td><td>${safe(p.size)}</td><td><input id="rate_${safe(p.id)}" type="number" min="0" step=".01" value="${num(p.wholesale_price)}"></td><td>${money(p.mrp)}</td><td>${money(num(p.mrp)-num(p.wholesale_price))}</td><td><button class="btn" onclick="saveWholesaleRate('${safe(p.id)}',this)">Save rate</button></td></tr>`).join("")||'<tr><td colspan="7" class="empty">No matching products.</td></tr>';
+}
+async function saveWholesaleRate(id,button){
+ const rate=num($("rate_"+id).value);if(rate<0){alert("Wholesale rate must be zero or more.");return}
+ button.disabled=true;try{const {data,error}=await db.from("inventory_products").update({wholesale_price:rate}).eq("id",id).select("id,wholesale_price").single();if(error)throw error;const p=products.find(x=>String(x.id)===String(id));if(p)p.wholesale_price=data.wholesale_price;drawWholesaleRates();setMsg("purchaseMsg","Wholesale rate saved. New profit calculations will use this cost.");}catch(e){alert("Rate update failed: "+e.message)}finally{button.disabled=false}
+}
+function setProfitPeriod(){
+ const mode=$("profitPeriod").value,now=new Date(),ym=now.toISOString().slice(0,7);
+ if(mode==="today"){$("profitFrom").value=today();$("profitTo").value=today()}
+ else if(mode==="month"){$("profitFrom").value=ym+"-01";$("profitTo").value=today()}
+}
+async function loadProfitReport(){
+ if(!db||!user)return;
+ const from=$("profitFrom").value,to=$("profitTo").value;if(!from||!to||from>to){setMsg("profitMsg","Valid date range select karein.");return}
+ setMsg("profitMsg","Calculating estimated profit…");
+ try{
+  const {data:headers,error}=await db.from("sales").select("id,sale_date,category").gte("sale_date",from).lte("sale_date",to).order("sale_date");if(error)throw error;
+  const ids=(headers||[]).map(x=>x.id);let items=[];
+  if(ids.length){const r=await db.from("sale_items").select("sale_id,product_id,quantity,sale_rate").in("sale_id",ids);if(r.error)throw r.error;items=r.data||[]}
+  const byProduct={},byDay={};let revenue=0,cost=0,liquorProfit=0,beerProfit=0,liquorQty=0,beerQty=0;
+  for(const item of items){
+   const p=products.find(x=>String(x.id)===String(item.product_id));if(!p)continue;
+   const qty=num(item.quantity),saleRate=num(item.sale_rate),costRate=num(p.wholesale_price),sales=qty*saleRate,costAmount=qty*costRate,profit=sales-costAmount,category=String(p.category||"").toLowerCase();
+   revenue+=sales;cost+=costAmount;
+   if(category==="beer"){beerProfit+=profit;beerQty+=qty}else{liquorProfit+=profit;liquorQty+=qty}
+   const key=String(p.id);if(!byProduct[key])byProduct[key]={p,qty:0,sales:0,cost:0,profit:0,rateSum:0,costRate};
+   const b=byProduct[key];b.qty+=qty;b.sales+=sales;b.cost+=costAmount;b.profit+=profit;b.rateSum+=sales;
+   const day=headers.find(h=>h.id===item.sale_id)?.sale_date||"Unknown";if(!byDay[day])byDay[day]={sales:0,cost:0,profit:0};byDay[day].sales+=sales;byDay[day].cost+=costAmount;byDay[day].profit+=profit;
+  }
+  const gross=revenue-cost;
+  $("profitRevenue").textContent=money(revenue);$("profitCost").textContent=money(cost);$("profitGross").textContent=money(gross);$("profitMargin").textContent=(revenue?gross/revenue*100:0).toFixed(1)+"%";
+  $("profitLiquor").textContent=money(liquorProfit);$("profitBeer").textContent=money(beerProfit);$("profitLiquorQty").textContent=liquorQty+" bottles sold";$("profitBeerQty").textContent=beerQty+" units sold";
+  $("dailyProfitRows").innerHTML=Object.keys(byDay).sort().reverse().map(day=>`<tr><td>${day}</td><td>${money(byDay[day].sales)}</td><td>${money(byDay[day].cost)}</td><td><b>${money(byDay[day].profit)}</b></td></tr>`).join("")||'<tr><td colspan="4" class="empty">No sales in this period.</td></tr>';
+  $("brandProfitRows").innerHTML=Object.values(byProduct).sort((a,b)=>b.profit-a.profit).map(b=>`<tr><td>${safe(b.p.category)}</td><td><b>${safe(b.p.brand_name)}</b></td><td>${safe(b.p.size)}</td><td>${b.qty}</td><td>${money(b.sales/b.qty)}</td><td>${money(b.costRate)}</td><td>${money(b.sales/b.qty-b.costRate)}</td><td><b>${money(b.profit)}</b></td></tr>`).join("")||'<tr><td colspan="8" class="empty">No product sales found.</td></tr>';
+  setMsg("profitMsg","Estimated gross profit calculated for "+from+" to "+to+". Current saved wholesale rates are used as product cost; operating expenses, rent, salary and taxes are not deducted.");
+ }catch(e){setMsg("profitMsg","Profit report error: "+e.message)}
+}
+function cashPreview(){const expected=num($("closeCashSales")?.dataset.value)-num($("expenseCashTotal")?.value);$("cashCalc").textContent=money(expected);$("cashDiff").textContent=money(num($("cashin").value)-expected)}
+async function loadDailyClosing(){if(!db||!user)return;const date=$("cd").value;if(!date||date<STOCK_START_DATE){setMsg("cashMsg","Date 2 November 2026 ya uske baad select karein.");return}try{
+ const {data:headers,error}=await db.from("sales").select("id,payment_mode").eq("sale_date",date);if(error)throw error;
+ const ids=(headers||[]).map(h=>h.id);let items=[];if(ids.length){const r=await db.from("sale_items").select("sale_id,quantity,sale_rate").in("sale_id",ids);if(r.error)throw r.error;items=r.data||[]}
+ const totals={cash:0,online:0,rokad:0,credit:0};for(const h of headers||[]){const amount=items.filter(x=>String(x.sale_id)===String(h.id)).reduce((a,x)=>a+num(x.quantity)*num(x.sale_rate),0);const mode=String(h.payment_mode||"").toLowerCase();if(mode.includes("online")||mode.includes("upi"))totals.online+=amount;else if(mode.includes("rokad"))totals.rokad+=amount;else if(mode.includes("credit"))totals.credit+=amount;else totals.cash+=amount}
+ const {data:expenses,error:ee}=await db.from("daily_expenses").select("id,expense_name,amount,payment_type").eq("user_id",user.id).eq("expense_date",date).order("created_at");if(ee)throw ee;
+ const exp=expenses||[],cashExp=exp.filter(x=>x.payment_type==="Cash").reduce((a,x)=>a+num(x.amount),0),allExp=exp.reduce((a,x)=>a+num(x.amount),0),expected=totals.cash-cashExp;
+ $("closeCashSales").textContent=money(totals.cash);$("closeCashSales").dataset.value=totals.cash;$("closeOnline").textContent=money(totals.online);$("closeExpenses").textContent=money(allExp);$("expenseCashTotal").value=cashExp;$("cashCalc").textContent=money(expected);$("online").value=totals.online.toFixed(2);$("rokad").value=totals.rokad.toFixed(2);
+ $("expenseRows").innerHTML=exp.map(x=>`<tr><td>${safe(x.expense_name)}</td><td>${safe(x.payment_type)}</td><td>${money(x.amount)}</td><td><button class="btn danger" onclick="deleteDailyExpense('${x.id}')">Delete</button></td></tr>`).join("")||'<tr><td colspan="4" class="empty">No expenses for this date.</td></tr>';
+ cashPreview();setMsg("cashMsg",`Sales: Cash ${money(totals.cash)} · Online ${money(totals.online)} · Rokad ${money(totals.rokad)} · Credit ${money(totals.credit)}. Cash expenses ${money(cashExp)}.`);
+ }catch(e){setMsg("cashMsg","Closing load error: "+e.message)}}
+async function addDailyExpense(){const date=$("cd").value,name=$("expenseName").value.trim(),amount=num($("expenseAmount").value),mode=$("expenseMode").value;if(!date||date<STOCK_START_DATE){setMsg("cashMsg","Date 2 November 2026 ya uske baad honi chahiye.");return}if(!name||amount<=0){setMsg("cashMsg","Expense name aur valid amount enter karein.");return}const {error}=await db.from("daily_expenses").insert({user_id:user.id,expense_date:date,expense_name:name,amount,payment_type:mode});if(error){setMsg("cashMsg","Expense save error: "+error.message);return}$("expenseName").value="";$("expenseAmount").value="";await loadDailyClosing()}
+async function deleteDailyExpense(id){if(!confirm("Delete this expense entry?"))return;const {error}=await db.from("daily_expenses").delete().eq("id",id).eq("user_id",user.id);if(error){setMsg("cashMsg","Delete error: "+error.message);return}await loadDailyClosing()}
+async function saveCash(){const date=$("cd").value;if(!date||date<STOCK_START_DATE){setMsg("cashMsg","Date 2 November 2026 ya uske baad honi chahiye.");return}const row={user_id:user.id,date,cash_received:num($("cashin").value),online_received:num($("online").value),rokad_received:num($("rokad").value),other_cash_in:num($("other").value),expenses:num($("closeExpenses").textContent.replace(/[^0-9.]/g,"")),notes:$("notes").value};const {error}=await db.from("daily_cash").upsert(row,{onConflict:"date"});setMsg("cashMsg",error?"Save error: "+error.message:"Night closing saved successfully.");cashPreview()}
 let salesChart=null;
 function dateBack(days){const d=new Date();d.setDate(d.getDate()-days);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)}
 async function refresh(){
@@ -332,7 +461,7 @@ async function refresh(){
   const d=today(),from=dateBack(29),chartFrom=dateBack(6);
   const [todayHeaders,allHeaders,monthHeaders,chartHeaders]=await Promise.all([
    db.from("sales").select("id").eq("sale_date",d),
-   db.from("sales").select("id,sale_date,bill_number,category,payment_mode").order("sale_date",{ascending:false}).limit(500),
+   (()=>{let q=db.from("sales").select("id,sale_date,bill_number,category,payment_mode").order("sale_date",{ascending:false}).limit(500);if($("saleFrom").value)q=q.gte("sale_date",$("saleFrom").value);if($("saleTo").value)q=q.lte("sale_date",$("saleTo").value);if($("saleCategory").value!=="all")q=q.eq("category",$("saleCategory").value);return q})(),
    db.from("sales").select("id").gte("sale_date",from).lte("sale_date",d),
    db.from("sales").select("id,sale_date").gte("sale_date",chartFrom).lte("sale_date",d)
   ]);
@@ -342,7 +471,8 @@ async function refresh(){
    const {data,error}=await db.from("sale_items").select("sale_id,product_id,quantity,sale_rate").in("sale_id",ids);
    if(error)throw error;return data||[];
   }
-  const [todayItems,historyItems,monthItems,chartItems]=await Promise.all([itemsFor(todayHeaders.data),itemsFor(allHeaders.data),itemsFor(monthHeaders.data),itemsFor(chartHeaders.data)]);
+  const [todayItems,rawHistoryItems,monthItems,chartItems]=await Promise.all([itemsFor(todayHeaders.data),itemsFor(allHeaders.data),itemsFor(monthHeaders.data),itemsFor(chartHeaders.data)]);
+  const historyItems=$("saleBrand").value==="all"?rawHistoryItems:rawHistoryItems.filter(x=>String(x.product_id)===$("saleBrand").value);
   const sum=rows=>rows.reduce((a,x)=>a+num(x.quantity)*num(x.sale_rate),0);
   $("todaySales").textContent=money(sum(todayItems));
   const {data:invoices,error:ie}=await db.from("purchase_invoices").select("id").eq("invoice_date",d);if(ie)throw ie;
@@ -354,7 +484,7 @@ async function refresh(){
   $("histTotal").textContent=money(sum(historyItems));$("histLiquorQty").textContent=liquorQty.toLocaleString("en-IN");$("histBeerQty").textContent=beerQty.toLocaleString("en-IN");$("histUnits").textContent=totalQty.toLocaleString("en-IN");
   $("histLiquorAmount").textContent=money(liquorAmount);$("histBeerAmount").textContent=money(beerAmount);$("histLiquorDetail").textContent=liquorQty.toLocaleString("en-IN")+" units sold";$("histBeerDetail").textContent=beerQty.toLocaleString("en-IN")+" units sold";
   $("dashLiquorSale").textContent=money(liquorAmount);$("dashBeerSale").textContent=money(beerAmount);$("dashLiquorQty").textContent=liquorQty.toLocaleString("en-IN")+" units sold";$("dashBeerQty").textContent=beerQty.toLocaleString("en-IN")+" units sold";
-  $("hist").innerHTML=(allHeaders.data||[]).map(x=>{const rows=idsBySale[x.id]||[],qty=rows.reduce((a,z)=>a+num(z.quantity),0),amount=sum(rows);return `<tr><td>${safe(x.sale_date)}</td><td>${safe(x.bill_number||"—")}</td><td><span class="tag">${safe(x.category)}</span></td><td>${safe(x.payment_mode)}</td><td>${qty.toLocaleString("en-IN")}</td><td><b>${money(amount)}</b></td><td>${safe(x.id)}</td></tr>`}).join("")||'<tr><td colspan="7" class="empty">No sales recorded yet.</td></tr>';
+  $("hist").innerHTML=(allHeaders.data||[]).filter(x=>$("saleBrand").value==="all"||(idsBySale[x.id]||[]).some(z=>String(z.product_id)===$("saleBrand").value)).map(x=>{const rows=idsBySale[x.id]||[],qty=rows.reduce((a,z)=>a+num(z.quantity),0),amount=sum(rows),details=rows.map(z=>{const p=products.find(q=>String(q.id)===String(z.product_id));return (p?.brand_name||"Product")+(p?.size?" "+p.size:"")+" × "+z.quantity}).join("<br>");return `<tr><td>${safe(x.sale_date)}</td><td>${safe(x.bill_number||"—")}</td><td><span class="tag">${safe(x.category)}</span></td><td>${safe(x.payment_mode)}</td><td>${qty.toLocaleString("en-IN")}</td><td><b>${money(amount)}</b></td><td style="white-space:normal;min-width:180px">${details||"—"}</td><td><button class="btn secondary" onclick="editSale('${x.id}')">Edit</button> <button class="btn danger" onclick="deleteSale('${x.id}')">Delete</button></td></tr>`}).join("")||'<tr><td colspan="8" class="empty">No sales recorded yet.</td></tr>';
   const labels=[],values=[];for(let i=6;i>=0;i--){const day=dateBack(i);labels.push(new Date(day+"T00:00:00").toLocaleDateString("en-IN",{day:"2-digit",month:"short"}));const dayIds=new Set((chartHeaders.data||[]).filter(x=>x.sale_date===day).map(x=>x.id));values.push(sum(chartItems.filter(x=>dayIds.has(x.sale_id))))}
   if(window.Chart&&$("salesChart")){if(salesChart)salesChart.destroy();salesChart=new Chart($("salesChart"),{type:"bar",data:{labels,datasets:[{label:"Sales amount",data:values,backgroundColor:"rgba(53,200,120,.72)",borderColor:"#42d39a",borderWidth:1,borderRadius:8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:"#dce8df"}},tooltip:{callbacks:{label:c=>" "+money(c.raw)}}},scales:{x:{ticks:{color:"#aab9af"},grid:{color:"rgba(255,255,255,.05)"}},y:{beginAtZero:true,ticks:{color:"#aab9af",callback:v=>"₹"+Number(v).toLocaleString("en-IN")},grid:{color:"rgba(255,255,255,.08)"}}}}})}
   if(products.length){const total=products.reduce((a,p)=>a+stockFor(p).available,0);$("dashStock").textContent=total.toLocaleString("en-IN");$("dashLow").textContent=products.filter(p=>stockFor(p).available<=5).length;$("dashBeer").textContent=products.filter(p=>String(p.category).toLowerCase()==="beer").reduce((a,p)=>a+stockFor(p).available,0).toLocaleString("en-IN");$("dashLiquor").textContent=products.filter(p=>String(p.category).toLowerCase()==="liquor").reduce((a,p)=>a+stockFor(p).available,0).toLocaleString("en-IN")}
