@@ -491,7 +491,7 @@ function drawProducts(){
     const map=[null,null,null,null];g.products.forEach(p=>{const k=sizeIndex(p.size);if(k>=0)map[k]=p;});
     const o=map.map(p=>p?num(p.opening_stock):0),p=map.map(x=>x?num(inventoryPurchased[String(x.id)]):0),s=map.map(x=>x?num(inventorySold[String(x.id)]):0),t=o.map((v,k)=>v+p[k]),b=t.map((v,k)=>v-s[k]),v=b.map((x,k)=>x*num(map[k]?.wholesale_price));
     for(let k=0;k<4;k++){grand.opening+=o[k];grand.purchase+=p[k];grand.total+=t[k];grand.sale+=s[k];grand.balance+=b[k];grand.value+=v[k];}
-    const inputs=(arr,prefix,label)=>map.map((x,k)=>`<td>${x?`<input aria-label="${safe(g.name)} ${sizes[k]} ${label}" id="${prefix}_${safe(x.id)}" type="number" min="0" step=".01" value="${arr[k]}" onkeydown="inventoryEnterNext(event)">`:"—"}</td>`).join("");
+    const inputs=(arr,prefix,label)=>map.map((x,k)=>`<td>${x?`<input aria-label="${safe(g.name)} ${sizes[k]} ${label}" id="${prefix}_${safe(x.id)}" type="number" min="0" step=".01" value="${arr[k]}" oninput="recalculateInventoryLive()" onkeydown="inventoryEnterNext(event)">`:"—"}</td>`).join("");
     L.push(`<tr><td>${idx+1}. ${safe(g.name)}</td>${inputs(o,"opening","opening stock")}${inputs(map.map(x=>x?(inventoryManualCurrent[String(x.id)]?.purchase||0):0),"reg_purchase","purchase")}${fmt(t)}${inputs(map.map(x=>x?(inventoryManualCurrent[String(x.id)]?.sale||0):0),"reg_sale","sale")}${fmt(b)}${fmtM(v)}</tr>`);
   });
   if(allLiquorGroups.length)L.push(`<tr class="inventory-subtotal-row liquor-total-row"><td>TOTAL ALL LIQUOR BRANDS</td>${fmt(liqTotals.o)}${fmt(liqTotals.p)}${fmt(liqTotals.t)}${fmt(liqTotals.s)}${fmt(liqTotals.b)}${fmtM(liqTotals.v)}</tr>`);
@@ -507,8 +507,56 @@ function drawProducts(){
   });
   if(beer.length)B.push(`<tr class="inventory-subtotal-row"><td colspan="2">TOTAL BEER</td><td>${bt.o}</td><td>${money(bt.ov)}</td><td>${bt.p}</td><td>${bt.s}</td><td>${money(bt.sv)}</td><td>${bt.c}</td><td>${money(bt.cv)}</td><td>${money(bt.profit)}</td></tr>`);
   $("beerInventoryRows").innerHTML=B.join("")||'<tr><td colspan="10" class="empty">No beer brands found.</td></tr>';
+  recalculateInventoryLive();
   $("stockSummary").textContent=`As on ${$("inventoryDate").value||STOCK_START_DATE} · Liquor opening ${grand.opening} · Liquor purchase ${grand.purchase} · Liquor sale ${grand.sale} · Beer closing ${bt.c} · Beer stock value ${money(bt.cv)}`;
 }
+function recalculateInventoryLive(){
+  const current={};
+  for(const p of products){
+    const id=String(p.id),oEl=$("opening_"+id),pEl=$("reg_purchase_"+id),sEl=$("reg_sale_"+id);
+    const manual=inventoryManualTotals[id]||{purchase:0,sale:0};
+    const savedCurrent=inventoryManualCurrent[id]||{purchase:0,sale:0};
+    const opening=oEl?num(oEl.value):num(p.opening_stock);
+    const currentPurchase=pEl?num(pEl.value):num(savedCurrent.purchase);
+    const currentSale=sEl?num(sEl.value):num(savedCurrent.sale);
+    const purchase=Math.max(0,(inventoryPurchased[id]||0)-num(manual.purchase))+currentPurchase;
+    const sale=Math.max(0,(inventorySold[id]||0)-num(manual.sale))+currentSale;
+    const total=opening+purchase,balance=total-sale;
+    current[id]={opening,purchase,sale,total,balance,openingValue:opening*num(p.wholesale_price),saleValue:sale*num(p.mrp),stockValue:balance*num(p.wholesale_price),profit:sale*(num(p.mrp)-num(p.wholesale_price))};
+  }
+  const allGroups=orderedBrandGroups(products.filter(x=>String(x.category).toLowerCase()==="liquor"));
+  const totals={o:[0,0,0,0],p:[0,0,0,0],t:[0,0,0,0],s:[0,0,0,0],b:[0,0,0,0],v:[0,0,0,0]};
+  allGroups.forEach(g=>{
+    const map=[null,null,null,null];g.products.forEach(x=>{const k=sizeIndex(x.size);if(k>=0)map[k]=x;});
+    const vals={o:[],p:[],t:[],s:[],b:[],v:[]};
+    map.forEach((x,k)=>{const z=x?current[String(x.id)]:null;vals.o[k]=z?.opening||0;vals.p[k]=z?.purchase||0;vals.t[k]=z?.total||0;vals.s[k]=z?.sale||0;vals.b[k]=z?.balance||0;vals.v[k]=z?.stockValue||0;});
+    ["o","p","t","s","b","v"].forEach(key=>vals[key].forEach((n,k)=>totals[key][k]+=n));
+  });
+  const visibleGroups=orderedBrandGroups(products.filter(x=>String(x.category).toLowerCase()==="liquor"&&(`${x.brand_name||""} ${x.size||""}`).toLowerCase().includes(($("search")?.value||"").toLowerCase())));
+  visibleGroups.forEach((g,idx)=>{
+    const tr=$("liquorInventoryRows")?.rows[idx];if(!tr)return;const cells=tr.cells;
+    const map=[null,null,null,null];g.products.forEach(x=>{const k=sizeIndex(x.size);if(k>=0)map[k]=x;});
+    const vals={t:[],b:[],v:[]};
+    map.forEach((x,k)=>{const z=x?current[String(x.id)]:null;vals.t[k]=z?.total||0;vals.b[k]=z?.balance||0;vals.v[k]=z?.stockValue||0;});
+    ["t","b"].forEach((key,section)=>vals[key].forEach((n,k)=>{const cell=cells[(section===0?9:17)+k];if(cell)cell.textContent=fmtQty(n);}));
+    vals.v.forEach((n,k)=>{const cell=cells[21+k];if(cell)cell.textContent=money(n);});
+  });
+  const subtotal=$("liquorInventoryRows")?.querySelector(".liquor-total-row");
+  if(subtotal){let c=1;["o","p","t","s","b"].forEach(key=>totals[key].forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=fmtQty(n);}));totals.v.forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=money(n);});}
+  let beerTotals={o:0,ov:0,p:0,s:0,sv:0,c:0,cv:0,profit:0};
+  const visibleBeer=products.filter(x=>String(x.category).toLowerCase()==="beer"&&(($("cat")?.value||"all")==="all"||$("cat").value==="beer")&&(`${x.brand_name||""} ${x.size||""}`).toLowerCase().includes(($("search")?.value||"").toLowerCase()));
+  visibleBeer.forEach((x,idx)=>{
+    const z=current[String(x.id)];if(!z)return;const tr=$("beerInventoryRows")?.rows[idx];
+    if(tr){if(tr.cells[3])tr.cells[3].textContent=money(z.openingValue);if(tr.cells[6])tr.cells[6].textContent=money(z.saleValue);if(tr.cells[7])tr.cells[7].textContent=fmtQty(z.balance);if(tr.cells[8])tr.cells[8].textContent=money(z.stockValue);if(tr.cells[9])tr.cells[9].textContent=money(z.profit);}
+    beerTotals.o+=z.opening;beerTotals.ov+=z.openingValue;beerTotals.p+=z.purchase;beerTotals.s+=z.sale;beerTotals.sv+=z.saleValue;beerTotals.c+=z.balance;beerTotals.cv+=z.stockValue;beerTotals.profit+=z.profit;
+  });
+  const beerSubtotal=$("beerInventoryRows")?.querySelector(".inventory-subtotal-row");
+  if(beerSubtotal){const a=[fmtQty(beerTotals.o),money(beerTotals.ov),fmtQty(beerTotals.p),fmtQty(beerTotals.s),money(beerTotals.sv),fmtQty(beerTotals.c),money(beerTotals.cv),money(beerTotals.profit)];a.forEach((v,i)=>{if(beerSubtotal.cells[i+2])beerSubtotal.cells[i+2].textContent=v;});}
+  const liquorSum=Object.fromEntries(["opening","purchase","sale","balance"].map(k=>[k,products.filter(x=>String(x.category).toLowerCase()==="liquor").reduce((a,x)=>a+(current[String(x.id)]?.[k]||0),0)]));
+  $("stockSummary").textContent=`As on ${$("inventoryDate").value||STOCK_START_DATE} · Liquor opening ${fmtQty(liquorSum.opening)} · Liquor purchase ${fmtQty(liquorSum.purchase)} · Liquor sale ${fmtQty(liquorSum.sale)} · Beer closing ${fmtQty(beerTotals.c)} · Beer stock value ${money(beerTotals.cv)}`;
+}
+function fmtQty(v){return Number(v||0).toLocaleString("en-IN",{maximumFractionDigits:2});}
+
 function inventoryEnterNext(event){
   const key=event.key;
   const fieldsInRow=()=>[...event.currentTarget.closest("tr").querySelectorAll('input[type="number"]')];
@@ -548,8 +596,9 @@ async function saveOpeningStock(button){
   if(!updates.length){alert("Koi opening stock field nahi mila.");return;}
   if(button){button.disabled=true;button.textContent="Saving…";}
   try{
-    for(const item of updates){const {data,error}=await db.from("inventory_products").update({opening_stock:item.value}).eq("id",item.p.id).select("id,opening_stock").single();if(error)throw error;item.p.opening_stock=data.opening_stock;}
-    drawProducts();alert("Opening stock 02 Nov 2026 ke liye cloud database mein save ho gaya.");
+    const results=await Promise.all(updates.map(async item=>{const {data,error}=await db.from("inventory_products").update({opening_stock:item.value}).eq("id",item.p.id).select("id,opening_stock").single();if(error)throw error;return {item,data};}));
+    results.forEach(({item,data})=>{item.p.opening_stock=data.opening_stock;});
+    drawProducts();alert("Opening stock cloud database mein save ho gaya.");
   }catch(e){alert("Save error: "+(e.message||String(e))+". Kuch entries save ho chuki ho sakti hain; dobara load karke check karein.");}
   finally{if(button){button.disabled=false;button.textContent="Save all opening stock";}}
 }
@@ -566,8 +615,14 @@ async function saveInventoryMovements(button){
   }
   if(button){button.disabled=true;button.textContent="Saving…";}
   try{
-    for(const row of rows){const {error}=await db.from("inventory_register_entries").upsert(row,{onConflict:"user_id,product_id,entry_date"});if(error)throw error;}
-    await loadInventoryForDate();alert("Selected date ki purchase aur sale quantities save ho gayi hain. Balance stock aur value automatically update ho gaye.");
+    if(rows.length){const {error}=await db.from("inventory_register_entries").upsert(rows,{onConflict:"user_id,product_id,entry_date"});if(error)throw error;}
+    for(const row of rows){const id=String(row.product_id),old=inventoryManualCurrent[id]||{purchase:0,sale:0},tot=inventoryManualTotals[id]||{purchase:0,sale:0};
+      inventoryPurchased[id]=(inventoryPurchased[id]||0)-num(old.purchase)+row.purchase_qty;
+      inventorySold[id]=(inventorySold[id]||0)-num(old.sale)+row.sale_qty;
+      inventoryManualTotals[id]={purchase:num(tot.purchase)-num(old.purchase)+row.purchase_qty,sale:num(tot.sale)-num(old.sale)+row.sale_qty};
+      inventoryManualCurrent[id]={purchase:row.purchase_qty,sale:row.sale_qty};
+    }
+    recalculateInventoryLive();alert("Saved in one cloud request. Live totals updated.");
   }catch(e){alert("Save error: "+(e.message||String(e))+". Pehle diye gaye SQL ko Supabase SQL Editor mein run karein.");}
   finally{if(button){button.disabled=false;button.textContent="Save purchase & sale quantities";}}
 }
