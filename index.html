@@ -29,11 +29,11 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
 @media(max-width:760px){#loginView{grid-template-columns:1fr;padding:25px}.login-brand{display:none}.login-panel{margin:auto}.shell{grid-template-columns:1fr}.sidebar{position:sticky;top:0;height:auto;padding:10px 12px;flex-direction:row;align-items:center;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line)}.brand{padding:0 8px;min-width:max-content}.brand .brand-mark{width:36px;height:36px}.brand strong{font-size:11px}.brand small{font-size:8px}.nav-label,.side-bottom{display:none}.nav{display:flex;gap:4px}.nav button{width:auto;min-width:max-content;padding:9px 10px;font-size:11px}.nav button .ico{font-size:14px}.main{padding:17px 12px 40px}.topbar{margin-bottom:18px}.topbar h2{font-size:17px}.live-pill{display:none}.hero{min-height:200px}.hero-art{font-size:42px;padding:0}.hero-art span:nth-child(2){font-size:55px}.category-cards{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr 1fr}.form-grid .span2{grid-column:span 2}}
 @media(max-width:420px){.kpis{grid-template-columns:1fr 1fr;gap:8px}.kpi{padding:13px;min-height:100px}.kpi strong{font-size:21px}.quick-grid{grid-template-columns:1fr 1fr}.quick{padding:12px}.quick i{font-size:18px}.form-grid{grid-template-columns:1fr}.form-grid .span2{grid-column:auto}.hero-art{display:none}}
 
-.inventory-register{min-width:1750px;border-collapse:separate;border-spacing:0}
-.inventory-register th{position:sticky;top:0;z-index:2;background:#fff4c2;color:#183653;font-size:12px;white-space:nowrap}
-.inventory-register th:first-child,.inventory-register td:first-child{position:sticky;left:0;z-index:3;background:#fff8dc;text-align:left;min-width:230px;font-weight:800}
-.inventory-register td{white-space:nowrap;text-align:center}
-.inventory-register input{width:68px;max-width:100%;padding:7px 5px;text-align:right;border:1px solid #cbd5e1;border-radius:7px;background:#fff}
+.inventory-register{min-width:2500px;width:2500px;table-layout:fixed;border-collapse:separate;border-spacing:0}
+.inventory-register th{position:sticky;top:0;z-index:2;background:#fff4c2;color:#183653;font-size:12px;white-space:nowrap;width:94px;height:46px}
+.inventory-register th:first-child,.inventory-register td:first-child{position:sticky;left:0;z-index:3;background:#fff8dc;text-align:left;width:260px;min-width:260px;max-width:260px;font-weight:800}
+.inventory-register td{white-space:nowrap;text-align:center;width:94px;height:60px;padding:8px}
+.inventory-register input{display:block;width:78px;height:40px;min-width:78px;max-width:78px;margin:0 auto;padding:7px 8px;text-align:center;border:1px solid #cbd5e1;border-radius:7px;background:#fff;box-sizing:border-box}
 .inventory-register .calc{font-weight:700;background:#f4f8ff}
 .inventory-register .value{font-weight:700;color:#173f70;background:#fff9df}
 /* High-contrast inventory register: readable navy text on light cells */
@@ -312,15 +312,28 @@ function drawProducts(){
     const balance=total.map((v,i)=>v-sale[i]);
     const value=balance.map((v,i)=>v*num(map[i]?.wholesale_price));
     for(let i=0;i<4;i++){totals.opening+=opening[i];totals.purchase+=purchase[i];totals.total+=total[i];totals.sale+=sale[i];totals.balance+=balance[i];totals.value+=value[i];}
-    const openCells=map.map((p,i)=>`<td>${p?`<input aria-label="${safe(g.name)} ${['750','375','180','90'][i]} opening stock" id="opening_${safe(p.id)}" type="number" min="0" step=".01" value="${opening[i]}">`:'—'}</td>`).join('');
-    const purchaseCells=map.map((p,i)=>{const v=p?(inventoryManualCurrent[String(p.id)]?.purchase||0):0;return `<td>${p?`<input aria-label="${safe(g.name)} ${['750','375','180','90'][i]} purchase quantity" id="reg_purchase_${safe(p.id)}" type="number" min="0" step=".01" value="${v}">`:'—'}</td>`;}).join('');
-    const saleCells=map.map((p,i)=>{const v=p?(inventoryManualCurrent[String(p.id)]?.sale||0):0;return `<td>${p?`<input aria-label="${safe(g.name)} ${['750','375','180','90'][i]} sale quantity" id="reg_sale_${safe(p.id)}" type="number" min="0" step=".01" value="${v}">`:'—'}</td>`;}).join('');
+    const openCells=map.map((p,i)=>`<td>${p?`<input aria-label="${safe(g.name)} ${['750','375','180','90'][i]} opening stock" id="opening_${safe(p.id)}" type="number" min="0" step=".01" value="${opening[i]}" onkeydown="inventoryEnterNext(event)">`:'—'}</td>`).join('');
+    const purchaseCells=map.map((p,i)=>{const v=p?(inventoryManualCurrent[String(p.id)]?.purchase||0):0;return `<td>${p?`<input aria-label="${safe(g.name)} ${['750','375','180','90'][i]} purchase quantity" id="reg_purchase_${safe(p.id)}" type="number" min="0" step=".01" value="${v}" onkeydown="inventoryEnterNext(event)">`:'—'}</td>`;}).join('');
+    const saleCells=map.map((p,i)=>{const v=p?(inventoryManualCurrent[String(p.id)]?.sale||0):0;return `<td>${p?`<input aria-label="${safe(g.name)} ${['750','375','180','90'][i]} sale quantity" id="reg_sale_${safe(p.id)}" type="number" min="0" step=".01" value="${v}" onkeydown="inventoryEnterNext(event)">`:'—'}</td>`;}).join('');
     const cells=arr=>arr.map(v=>`<td class="calc">${Number(v||0).toLocaleString('en-IN',{maximumFractionDigits:2})}</td>`).join('');
     const values=value.map(v=>`<td class="value">${money(v)}</td>`).join('');
     return `<tr><td>${idx+1}. ${safe(g.name)}</td>${openCells}${purchaseCells}${cells(total)}${saleCells}${cells(balance)}${values}</tr>`;
   }).join('');
   $("inventoryRegisterRows").innerHTML=html||'<tr><td colspan="25" class="empty">No matching brands found.</td></tr>';
   $("stockSummary").textContent=`As on ${$("inventoryDate").value||STOCK_START_DATE} · Opening ${totals.opening} · Purchase ${totals.purchase} · Total ${totals.total} · Sale ${totals.sale} · Balance ${totals.balance} · Balance stock value ${money(totals.value)}${inventoryMovementError?" · "+inventoryMovementError:""}`;
+}
+function inventoryEnterNext(event){
+  if(event.key!=="Enter")return;
+  event.preventDefault();
+  const fields=[...$("inventoryRegisterRows").querySelectorAll('input[type="number"]')];
+  const index=fields.indexOf(event.currentTarget);
+  if(index>=0&&index<fields.length-1){
+    const next=fields[index+1];
+    next.focus();
+    next.select();
+  }else if(index===fields.length-1){
+    event.currentTarget.blur();
+  }
 }
 async function saveOpeningStock(button){
   const date=$("inventoryDate").value||STOCK_START_DATE;
