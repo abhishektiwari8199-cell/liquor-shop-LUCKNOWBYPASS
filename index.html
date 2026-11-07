@@ -410,10 +410,10 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
  </section>
 
  <section id="purchase" class="page">
-  <div class="section-head"><div><h3>Purchase entry</h3><p>Record incoming stock against supplier invoices</p></div><button class="btn secondary" onclick="showPage('purchaseHistory')">▤ Purchase history</button></div>
+  <div class="section-head" style="align-items:center;gap:12px"><div><h3>Purchase entry</h3><p>Record incoming stock against supplier invoices</p></div><div class="row" style="justify-content:flex-end;align-items:center;gap:10px;flex-wrap:wrap"><button class="btn" type="button" onclick="toggleExciseScanner()">📷 Scan QR for Purchase</button><button class="btn secondary" onclick="showPage('purchaseHistory')">▤ Purchase history</button></div></div>
   <div class="panel glass"><div class="section-head" style="margin-top:0"><div><h3>Brand wholesale rates</h3><p>Update each product's purchase cost once; sale margin uses this rate</p></div></div><div class="row"><label>Search brand<input id="whSearch" placeholder="Search brand / size" oninput="drawWholesaleRates()"></label><label>Category<select id="whCategory" onchange="drawWholesaleRates()"><option value="all">All</option><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label></div><div class="table-wrap"><table><thead><tr><th>Category</th><th>Brand</th><th>Size</th><th>Wholesale rate</th><th>MRP</th><th>Margin / bottle</th><th>Action</th></tr></thead><tbody id="wholesaleRateRows"></tbody></table></div></div>
   <div class="panel glass"><div class="form-grid"><label>Invoice number<input id="inv" placeholder="Supplier invoice no."></label><label>Supplier name<input id="supplier" placeholder="Supplier / distributor"></label><label>Invoice date<input id="pd" type="date" min="2026-11-02"></label><label>Category<select id="pc" onchange="fillSelects()"><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label></div></div>
-  <div class="panel glass" id="exciseScannerPanel" style="padding:13px 16px;margin:10px 0">
+  <div class="panel glass" id="exciseScannerPanel" style="display:none;padding:12px 14px;margin:8px 0">
    <div class="toolbar" style="justify-content:flex-start;gap:12px">
     <strong style="font:800 14px Manrope">📷 Scan QR for Purchase</strong>
     <button class="btn" type="button" style="padding:9px 15px" onclick="startExciseQrScanner()">Scan QR</button>
@@ -887,6 +887,12 @@ async function saveSale(){
 let exciseQrScanner=null,excisePreviewItems=[],excisePassUrl="";
 function setExciseStatus(message){const el=$("exciseScanStatus");if(el)el.textContent=message;}
 function setExciseFetchStatus(message){const el=$("exciseFetchStatus");if(el){el.style.display="block";el.textContent=message;}}
+function toggleExciseScanner(){
+ const panel=$("exciseScannerPanel");
+ const opening=panel.style.display==="none"||!panel.style.display;
+ panel.style.display=opening?"block":"none";
+ if(!opening)stopExciseQrScanner();
+}
 function parseExciseQr(raw){
  const value=String(raw||"").trim();
  try{
