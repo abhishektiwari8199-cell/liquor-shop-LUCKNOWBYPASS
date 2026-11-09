@@ -370,7 +370,6 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
  <nav class="nav">
   <button class="active" data-page="home" onclick="showPage('home',this)"><span class="ico">⌂</span>Overview</button>
   <button data-page="inventory" onclick="showPage('inventory',this)"><span class="ico">▦</span>Inventory</button>
-  <button data-page="sale" onclick="showPage('sale',this)"><span class="ico">▤</span>New Sale</button>
   <button data-page="profit" onclick="showPage('profit',this)"><span class="ico">₹</span>Profit & Margin</button>
   <button data-page="cash" onclick="showPage('cash',this)"><span class="ico">₹</span>Daily Cash</button>
   <button data-page="history" onclick="showPage('history',this)"><span class="ico">◷</span>Sales History</button>
@@ -381,18 +380,18 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
  <div class="topbar"><div><h2 id="pageTitle">Business overview</h2><p id="pageSubtitle">Your store performance at a glance</p></div><div class="top-actions"><span class="live-pill">● CLOUD CONNECTED</span><button class="btn secondary" onclick="refresh()">↻ Refresh</button></div></div>
 
  <section id="home" class="page active">
-  <div class="hero"><div class="hero-copy"><div class="eyebrow">Your business. One dashboard.</div><h1>Welcome to your<br><span>store command centre.</span></h1><p>Manage liquor and beer operations from one place. Track products, record sales, manage purchases and stay on top of daily cash.</p><button class="btn" onclick="showPage('sale')">＋ Create new sale</button></div><div class="hero-art"><span>🥃</span><span>🍺</span></div></div>
+  <div class="hero"><div class="hero-copy"><div class="eyebrow">Your business. One dashboard.</div><h1>Welcome to your<br><span>store command centre.</span></h1><p>Manage liquor and beer operations from one place. Track products, record sales, manage purchases and stay on top of daily cash.</p></div><div class="hero-art"><span>🥃</span><span>🍺</span></div></div>
   <div class="kpis">
-   <div class="kpi glass"><span class="kpi-icon">▦</span><small>Total brands in store</small><strong id="count">—</strong></div>
+   <div class="kpi glass"><span class="kpi-icon">▦</span><small>Total products</small><strong id="count">—</strong></div>
    <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('sales')"><span class="kpi-icon">↗</span><small>Today's total sales</small><strong id="todaySales">₹0.00</strong></div>
    <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('liquorSales')"><span class="kpi-icon">🥃</span><small>Today's liquor sale</small><strong id="todayLiquorSales">₹0.00</strong></div>
    <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('beerSales')"><span class="kpi-icon">🍺</span><small>Today's beer sale</small><strong id="todayBeerSales">₹0.00</strong></div>
    <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('purchases')"><span class="kpi-icon">⇩</span><small>Today's purchases</small><strong id="todayPurchase">₹0.00</strong></div>
-   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('stock')"><span class="kpi-icon">◈</span><small>Total stock balance & quatity</small><strong id="dashStock">—</strong></div>
+   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('stock')"><span class="kpi-icon">◈</span><small>Total stock units</small><strong id="dashStock">—</strong></div>
    <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('low')"><span class="kpi-icon">⚠</span><small>Low stock products</small><strong id="dashLow">—</strong></div>
    <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('beer')"><span class="kpi-icon">🍺</span><small>Beer stock</small><strong id="dashBeer">—</strong></div>
    <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('liquor')"><span class="kpi-icon">🥃</span><small>Liquor stock</small><strong id="dashLiquor">—</strong></div>
-   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('history')"><span class="kpi-icon">▤</span><small>this month sales</small><strong id="dash30Sales">₹0.00</strong></div>
+   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('history')"><span class="kpi-icon">▤</span><small>Sales (30 days)</small><strong id="dash30Sales">₹0.00</strong></div>
   </div>
   <div class="section-head"><div><h3>Sales performance</h3><p>Daily sales value for the last 7 days</p></div><span class="tag">LIVE REPORT</span></div>
   <div class="panel glass"><div style="height:280px;position:relative"><canvas id="salesChart" aria-label="Sales graph"></canvas></div></div>
@@ -404,7 +403,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
   <div class="section-head"><div><h3>Store departments</h3><p>Choose the product category you want to manage</p></div></div>
   <div class="category-cards"><div class="category-card liquor glass"><div><span class="tag">SPIRITS COLLECTION</span><h4 style="margin-top:10px">Liquor Inventory</h4><p>Browse and manage liquor products</p><button class="btn" style="margin-top:13px" onclick="setCategory('liquor')">Open liquor →</button></div><div class="art">🥃</div></div><div class="category-card beer glass"><div><span class="tag">BEER COLLECTION</span><h4 style="margin-top:10px">Beer Inventory</h4><p>Browse and manage beer products</p><button class="btn" style="margin-top:13px" onclick="setCategory('beer')">Open beer →</button></div><div class="art">🍺</div></div></div>
   <div class="section-head"><div><h3>Quick actions</h3><p>Common tasks for your daily operations</p></div></div>
-  <div class="quick-grid"><button class="quick" onclick="showPage('sale')"><i>🧾</i><span><b>New sale</b><small>Create a customer bill</small></span></button><button class="quick" onclick="setCategory('liquor')"><i>📦</i><span><b>Inventory purchase</b><small>Enter purchases in Inventory</small></span></button><button class="quick" onclick="showPage('inventory')"><i>🏷️</i><span><b>Manage products</b><small>View wholesale prices</small></span></button><button class="quick" onclick="showPage('cash')"><i>💰</i><span><b>Daily cash</b><small>Record cash and expenses</small></span></button></div>
+  <div class="quick-grid"><button class="quick" onclick="setCategory('liquor')"><i>📦</i><span><b>Inventory purchase</b><small>Enter purchases in Inventory</small></span></button><button class="quick" onclick="showPage('inventory')"><i>🏷️</i><span><b>Manage products</b><small>View wholesale prices</small></span></button><button class="quick" onclick="showPage('cash')"><i>💰</i><span><b>Daily cash</b><small>Record cash and expenses</small></span></button></div>
   <div id="dashMsg" class="status">Connecting to your business data…</div>
  </section>
 
@@ -427,7 +426,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
    <div style="display:flex;align-items:end"><button class="btn" type="button" onclick="applyInventoryFilters()">Apply filters</button></div>
   </div></div>
   <div class="toolbar" style="margin:12px 0"><span class="muted" id="stockSummary">Select a date to view stock.</span><button class="btn" type="button" onclick="saveFinalInventory(this)">Final Save — Save All Inventory</button></div>
-  <div class="status">Important: Inventory ke Sale column ko ek baar Final Save karein. Ye entry Sales History, Overview aur Daily Cash mein automatically dikhegi. Isi sale ko New Sale page par dobara enter na karein, warna double counting ho sakti hai.</div>
+  <div class="status">Important: Inventory ke Sale column ko ek baar Final Save karein. Ye entry Sales History, Overview aur Daily Cash mein automatically dikhegi.</div>
   <div class="status" id="inventoryDateStatus">02 Nov 2026 ka original opening stock base hai. Har agle din ka Opening Qty pichhle din ke closing balance se automatically carry forward hota hai; selected date ki purchase aur sale alag dikhte hain.</div>
   <div id="liquorInventoryWrap" class="table-wrap"><table class="inventory-register liquor-register"><colgroup><col style="width:230px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"></colgroup><thead>
    <tr><th rowspan="2">S.No. / Brand</th><th colspan="4">Opening Stock (02 Nov)</th><th colspan="4">Purchase</th><th colspan="4">Total Stock</th><th colspan="4">Sale</th><th colspan="4">Balance Stock</th><th colspan="4">Balance Stock Value (₹)</th></tr>
@@ -457,13 +456,6 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
    <div class="toolbar" style="margin-top:12px"><span class="muted" id="dcDifference">Total received vs total sale difference ₹0.00</span><strong id="dcClosingCash">Closing Rokad ₹0.00</strong><button class="btn" type="button" onclick="saveInventoryDayCounter()">Save daily counter</button></div>
    <div class="status" id="dcStatus">Choose date and load the counter.</div>
   </div>
- </section>
-
- <section id="sale" class="page">
-  <div class="section-head"><div><h3>Create a sale</h3><p>Prepare a new liquor or beer sales entry</p></div><button class="btn secondary" onclick="showPage('history')">▤ Sale history</button></div>
-  <div class="panel glass"><div class="form-grid"><label>Sale date<input id="sd" type="date" min="2026-11-02"></label><label>Category<select id="sc" onchange="fillSelects()"><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label><label>Bill number<input id="bill" placeholder="Optional bill no."></label><label>Payment mode<select id="pay"><option>Cash</option><option>Online</option><option>Rokad</option></select></label></div></div>
-  <div class="panel glass"><div class="form-grid"><label class="span2">Select product<select id="sp"></select></label><label>Quantity<input id="sq" type="number" min=".01" step=".01" value="1"></label><label>Sale rate<input id="sr" type="number" min="0" step=".01"></label></div><div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="btn" onclick="addItem('sale')">＋ Add to bill</button></div></div>
-  <div class="panel glass"><div class="section-head" style="margin-top:0"><div><h3>Bill items</h3><p>Review products before saving</p></div></div><div class="table-wrap"><table><thead><tr><th>Product</th><th>Quantity</th><th>Rate</th><th>Amount</th><th>Action</th></tr></thead><tbody id="saleRows"><tr><td colspan="5" class="empty">No items added yet</td></tr></tbody></table></div><div class="total-line"><span class="muted">Bill total</span><strong id="saleSum">₹0.00</strong></div><button class="btn" onclick="saveSale()">Save sale entry</button><div id="saleMsg" class="status">Add products to begin.</div></div>
  </section>
 
  <section id="profit" class="page">
@@ -548,7 +540,7 @@ function safe(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&
 function initDb(){if(!window.supabase)throw new Error("Supabase library could not load. Check internet connection and refresh.");if(!db)db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);return db}
 async function login(){const b=$("loginBtn");b.disabled=true;b.textContent="Signing in…";try{setMsg("loginMsg","Connecting securely…");initDb();const {data,error}=await db.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});if(error)throw error;user=data.user;await openApp()}catch(e){setMsg("loginMsg","Login error: "+(e.message||String(e)));console.error(e)}finally{b.disabled=false;b.textContent="Sign in to dashboard →"}}
 async function logout(){if(db)await db.auth.signOut();user=null;location.reload()}
-async function openApp(){$("loginView").style.display="none";$("appView").style.display="block";$("who").textContent=user?.email||"Signed in";["sd","cd","dayCounterDate"].forEach(id=>$(id).value=today()<STOCK_START_DATE?STOCK_START_DATE:today());$("inventoryDate").value=today()<STOCK_START_DATE?STOCK_START_DATE:today();await loadProducts();$("sd").value=$("inventoryDate").value;$("cd").value=$("inventoryDate").value;$("dayCounterDate").value=$("inventoryDate").value;await refresh();fillSelects();fillBrandFilters();drawWholesaleRates();await loadInventoryDayCounter();await loadDailyClosing()}
+async function openApp(){$("loginView").style.display="none";$("appView").style.display="block";$("who").textContent=user?.email||"Signed in";["cd","dayCounterDate"].forEach(id=>$(id).value=today()<STOCK_START_DATE?STOCK_START_DATE:today());$("inventoryDate").value=today()<STOCK_START_DATE?STOCK_START_DATE:today();await loadProducts();$("cd").value=$("inventoryDate").value;$("dayCounterDate").value=$("inventoryDate").value;await refresh();fillBrandFilters();drawWholesaleRates();await loadInventoryDayCounter();await loadDailyClosing()}
 function showPage(id,button){
  if(id==="purchase"||id==="purchaseHistory")id="inventory";
  const target=$(id);if(!target)id="home";
@@ -556,9 +548,9 @@ function showPage(id,button){
  $(id).classList.add("active");
  const navId=id==="inventoryWork"?"inventory":id;
  document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===navId));
- const titles={home:["Business overview","Your store performance at a glance"],inventory:["Choose inventory","Select Liquor or Beer to continue"],inventoryWork:["Inventory register","Manage the selected department"],sale:["New sale","Create and record a customer sale"],profit:["Profit & margin","Monthly profit, day-end closing and bottle-wise margin"],cash:["Daily cash","Daily collection and expense register"],history:["Sales history","Review recent recorded transactions"]};
+ const titles={home:["Business overview","Your store performance at a glance"],inventory:["Choose inventory","Select Liquor or Beer to continue"],inventoryWork:["Inventory register","Manage the selected department"],profit:["Profit & margin","Monthly profit, day-end closing and bottle-wise margin"],cash:["Daily cash","Daily collection and expense register"],history:["Sales history","Review recent recorded transactions"]};
  $("pageTitle").textContent=titles[id][0];$("pageSubtitle").textContent=titles[id][1];
- if(id==="sale")fillSelects();if(id==="history")refresh();if(id==="profit"){setProfitPeriod();loadProfitReport()}if(id==="cash"){if($("cd"))$("cd").value=$("inventoryDate")?.value||today();loadDailyClosing()}
+ if(id==="history")refresh();if(id==="profit"){setProfitPeriod();loadProfitReport()}if(id==="cash"){if($("cd"))$("cd").value=$("inventoryDate")?.value||today();loadDailyClosing()}
 }
 function setCategory(cat){$("cat").value=cat;if($("whCategory"))$("whCategory").value=cat;$("search").value="";$("inventoryWorkTitle").textContent=cat==="liquor"?"Liquor Inventory":"Beer Inventory";$("inventoryWorkSubtitle").textContent=cat==="liquor"?"Manage all liquor brands and bottle sizes":"Manage beer brands and quantities";showPage("inventoryWork");drawProducts();if($("dayCounterDate")){$("dayCounterDate").value=$("inventoryDate").value||dateBack(0);loadInventoryDayCounter()}}
 async function loadProducts(){
@@ -619,7 +611,7 @@ function brandKey(value){return String(value||"").toUpperCase().replace(/[^A-Z0-
 async function applyInventoryFilters(){
   const date=$("inventoryDate").value||STOCK_START_DATE;
   if(date<STOCK_START_DATE){$("inventoryDate").value=STOCK_START_DATE;setMsg("inventoryDateStatus","Inventory date 02 November 2026 se pehle nahi ho sakti.");return;}
-  $("dayCounterDate").value=date;$("cd").value=date;$("sd").value=date;
+  $("dayCounterDate").value=date;$("cd").value=date;
   await loadInventoryForDate();
   await loadInventoryDayCounter();
   await loadDailyClosing();
@@ -1010,31 +1002,6 @@ function updateCartItem(kind,index,field,value){
 }
 function removeCart(kind,index){
   (kind==="sale"?saleCart:purchaseCart).splice(index,1); drawCart(kind);
-}
-async function saveSale(){
-  if(!$("sd").value||$("sd").value<STOCK_START_DATE){
-    setMsg("saleMsg","Sale date 2 November 2026 ya uske baad ki honi chahiye."); return;
-  }
-  if(!saleCart.length){setMsg("saleMsg","Pehle product add karo.");return;}
-  setMsg("saleMsg","Stock check ho raha hai...");
-  await loadStockMovements();
-  if(stockMovementError){setMsg("saleMsg","Stock check failed: "+stockMovementError);return;}
-  for(const x of saleCart){
-    const p=products.find(y=>String(y.id)===String(x.product_id)),available=stockFor(p).available;
-    if(x.quantity>available){setMsg("saleMsg",`Insufficient stock: ${x.name}. Available: ${available}`);return;}
-  }
-  const billTotal=saleCart.reduce((a,x)=>a+x.quantity*x.rate,0);
-  const {data:s,error}=await db.from("sales").insert({
-    user_id:user.id,category:$("sc").value,sale_date:$("sd").value,
-    bill_number:$("bill").value.trim()||null,payment_mode:$("pay").value
-  }).select("id").single();
-  if(error){setMsg("saleMsg","Sale save failed: "+error.message);return;}
-  const rows=saleCart.map(x=>({sale_id:s.id,product_id:x.product_id,quantity:x.quantity,sale_rate:x.rate,user_id:user.id}));
-  const result=await db.from("sale_items").insert(rows);
-  if(result.error){setMsg("saleMsg","Sale header created but items failed. Reference "+s.id+". Error: "+result.error.message);return;}
-  saleCart=[]; drawCart("sale");
-  setMsg("saleMsg","Sale saved successfully · Bill total: "+money(billTotal)+" · Reference "+s.id);
-  await loadProducts(); await refresh();
 }
 let exciseQrScanner=null,excisePreviewItems=[],excisePassUrl="";
 function setExciseStatus(message){const el=$("exciseScanStatus");if(el)el.textContent=message;}
