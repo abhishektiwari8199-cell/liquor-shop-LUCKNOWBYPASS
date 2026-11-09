@@ -360,6 +360,39 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
 <style id="fl2-workspace-additions">#fl2ReconciliationPanel .kpis{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}#fl2ReconciliationPanel .table-wrap{overflow-x:auto}#fl2ReconciliationPanel table{min-width:1050px}#fl2ReconciliationPanel .status{white-space:normal}</style>
 <style id="fl2-workspace-additions">#fl2 .table-wrap{overflow-x:auto}#fl2 table input{min-width:88px;width:100%;max-width:130px}#fl2 .section-head{gap:12px;flex-wrap:wrap}#fl2 .status{margin:12px 0}</style>
 <style id="daily-counter-additions">.dashboard-link{cursor:pointer;transition:transform .15s,box-shadow .15s}.dashboard-link:hover{transform:translateY(-2px);box-shadow:0 8px 22px #0002}.dashboard-link:focus{outline:2px solid #d6a900;outline-offset:2px}#inventoryDayCounter .kpi{min-width:0}#inventoryDayCounter input{max-width:100%}</style>
+<style>
+
+/* Requested mobile-only sidebar drawer. Desktop sidebar remains on the left as before. */
+#mobileNavToggle,#workspaceBackdrop{display:none}
+@media(max-width:760px){
+  #appView .topbar-heading{display:flex;align-items:center;gap:10px;min-width:0}
+  #mobileNavToggle{display:inline-flex;align-items:center;justify-content:center;flex:0 0 42px;width:42px;height:42px;padding:0;border:1px solid var(--line);border-radius:11px;background:rgba(119,169,218,.12);color:var(--white);font-size:27px;line-height:1}
+  #appView .sidebar{
+    position:fixed!important;left:0!important;top:0!important;bottom:0!important;
+    width:min(82vw,300px)!important;height:100vh!important;height:100dvh!important;
+    padding:20px 15px!important;display:flex!important;flex-direction:column!important;
+    align-items:stretch!important;overflow-x:hidden!important;overflow-y:auto!important;
+    border-right:1px solid var(--line)!important;border-bottom:0!important;
+    background:rgba(5,19,35,.98)!important;z-index:1002!important;
+    transform:translateX(-105%);transition:transform .24s ease;box-shadow:16px 0 38px rgba(0,0,0,.35)
+  }
+  #appView .sidebar.workspace-open{transform:translateX(0)}
+  #appView .sidebar .brand{padding:0 8px 22px!important;min-width:0!important}
+  #appView .sidebar .nav-label,#appView .sidebar .side-bottom{display:block!important}
+  #appView .sidebar .side-bottom{margin-top:auto!important}
+  #appView .sidebar .nav{display:grid!important;gap:5px!important}
+  #appView .sidebar .nav button{width:100%!important;min-width:0!important;padding:12px 13px!important}
+  #workspaceBackdrop.workspace-visible{display:block;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1001}
+  #appView .main{width:100%;min-width:0;overflow-x:hidden}
+}
+
+</style>
+<style>
+.inventory-drag-handle{display:inline-block;margin-right:5px;color:#d39b00;font-size:19px;font-weight:900;cursor:grab;user-select:none;vertical-align:middle}
+.inventory-draggable-row{cursor:grab}
+.inventory-draggable-row.inventory-dragging{opacity:.42;background:#f5c542!important}
+@media(max-width:760px){.inventory-drag-handle{font-size:22px;padding:3px 5px}}
+</style>
 </head>
 <body>
 <section id="loginView">
@@ -367,6 +400,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
  <div class="login-panel glass"><div class="brand-mark">A</div><div class="eyebrow" style="margin-top:22px">Secure cloud access</div><h2 style="font:800 27px Manrope;margin:8px 0">Welcome back</h2><p class="muted" style="font-size:12px;margin:0 0 24px">Sign in to open your business dashboard.</p><div class="field"><label>Email address<input id="email" type="email" autocomplete="username" placeholder="Enter your email"></label></div><div class="field"><label>Password<input id="password" type="password" autocomplete="current-password" placeholder="Enter your password"></label></div><button class="btn full" id="loginBtn" onclick="login()">Sign in to dashboard&nbsp; →</button><div id="loginMsg" class="status">Your account details are secured by Supabase authentication.</div><p class="muted" style="font-size:10px;margin-top:18px">ABHISHEK COMPOSITE · LIQUOR & BEER MANAGEMENT</p></div>
 </section>
 <section id="appView">
+<div id="workspaceBackdrop" onclick="closeWorkspaceMenu()" aria-hidden="true"></div>
 <div class="shell">
 <aside class="sidebar">
  <div class="brand"><div class="brand-mark">A</div><div><strong>ABHISHEK COMPOSITE</strong><small>LIQUOR & BEER POS</small></div></div>
@@ -383,7 +417,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
  <div class="side-bottom"><div class="user-chip"><small>LOGGED IN AS</small><strong id="who">Cloud user</strong></div><button class="btn secondary full" style="margin-top:10px" onclick="logout()">↪ Sign out</button></div>
 </aside>
 <main class="main">
- <div class="topbar"><div><h2 id="pageTitle">Business overview</h2><p id="pageSubtitle">Your store performance at a glance</p></div><div class="top-actions"><span class="live-pill">● CLOUD CONNECTED</span><button class="btn secondary" onclick="refresh()">↻ Refresh</button></div></div>
+ <div class="topbar"><div class="topbar-heading"><button id="mobileNavToggle" type="button" aria-label="Open workspace menu" aria-expanded="false" onclick="toggleWorkspaceMenu()">⋮</button><div><h2 id="pageTitle">Business overview</h2><p id="pageSubtitle">Your store performance at a glance</p></div></div><div class="top-actions"><span class="live-pill">● CLOUD CONNECTED</span><button class="btn secondary" onclick="refresh()">↻ Refresh</button></div></div>
 
  <section id="home" class="page active">
   <div class="hero"><div class="hero-copy"><div class="eyebrow">Your business. One dashboard.</div><h1>Welcome to your<br><span>store command centre.</span></h1><p>Manage liquor and beer operations from one place. Track products, record sales, manage purchases and stay on top of daily cash.</p></div><div class="hero-art"><span>🥃</span><span>🍺</span></div></div>
@@ -451,7 +485,32 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
  <section id="inventoryWork" class="page">
   <div class="panel glass"><div class="section-head" style="margin-top:0"><div><h3>Brand wholesale rates</h3><p>Update each product's purchase cost once; sale margin uses this rate</p></div></div>
   <div class="section-head"><div><h3 id="inventoryWorkTitle">Inventory Register</h3><p id="inventoryWorkSubtitle">Manage stock by date</p></div><button class="btn secondary" onclick="showPage('inventory')">← Back to Liquor / Beer</button></div>
-  <div class="section-head"><div><span class="tag" id="inventoryCount">0 BRANDS</span></div></div>
+  <div class="panel glass" id="addLiquorProductPanel">
+    <div class="section-head" style="margin-top:0"><div><h3>＋ Add New Liquor Brand / Size</h3><p>Add a liquor product without editing code. Add each bottle size as a separate product.</p></div></div>
+    <div class="form-grid">
+     <label class="span2">Liquor brand name<input id="newLiquorBrand" type="text" maxlength="100" placeholder="e.g. Royal Stag"></label>
+     <label>Bottle size<select id="newLiquorSize"><option value="750 ML">750 ML</option><option value="375 ML">375 ML</option><option value="180 ML">180 ML</option><option value="90 ML">90 ML</option></select></label>
+     <label>Opening stock<input id="newLiquorOpening" type="number" min="0" step="0.01" value="0"></label>
+     <label>MRP per bottle (₹)<input id="newLiquorMrp" type="number" min="0" step="0.01" placeholder="Enter MRP"></label>
+     <label>Wholesale price (₹)<input id="newLiquorWholesale" type="number" min="0" step="0.01" placeholder="Enter wholesale price"></label>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn" type="button" onclick="addInventoryProduct('liquor',this)">＋ Add Liquor Product</button></div>
+    <div id="newLiquorMsg" class="status">Liquor product will be added to the shared inventory database.</div>
+   </div>
+   <div class="panel glass" id="addBeerProductPanel" style="display:none">
+    <div class="section-head" style="margin-top:0"><div><h3>＋ Add New Beer Brand / Pack</h3><p>Choose the beer pack format and enter its stock and rates.</p></div></div>
+    <div class="form-grid">
+     <label class="span2">Beer brand name<input id="newBeerBrand" type="text" maxlength="100" placeholder="e.g. Kingfisher Strong"></label>
+     <label>Beer pack format<select id="newBeerSize"><option value="650 ML Bottle">650 ML Bottle</option><option value="500 ML Can">500 ML Can</option><option value="500 ML Bottle">500 ML Bottle</option><option value="375 ML Can">375 ML Can</option><option value="330 ML Can">330 ML Can</option><option value="330 ML Bottle">330 ML Bottle</option><option value="Other">Other (enter below)</option></select></label>
+     <label id="newBeerCustomSizeWrap" style="display:none">Custom pack format<input id="newBeerCustomSize" type="text" maxlength="40" placeholder="e.g. 1 L Bottle"></label>
+     <label>Opening stock (bottles / cans)<input id="newBeerOpening" type="number" min="0" step="0.01" value="0"></label>
+     <label>MRP per unit (₹)<input id="newBeerMrp" type="number" min="0" step="0.01" placeholder="Enter MRP"></label>
+     <label>Wholesale price per unit (₹)<input id="newBeerWholesale" type="number" min="0" step="0.01" placeholder="Enter wholesale price"></label>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn" type="button" onclick="addInventoryProduct('beer',this)">＋ Add Beer Product</button></div>
+    <div id="newBeerMsg" class="status">Beer product will be added to the shared inventory database.</div>
+   </div>
+   <div class="section-head"><div><span class="tag" id="inventoryCount">0 BRANDS</span></div></div>
   <div class="panel glass"><div class="form-grid">
    <label>Inventory / Sale / Cash date<input id="inventoryDate" type="date" min="2026-11-02" value="2026-11-07" onchange="applyInventoryFilters()"></label>
    <label style="display:none">Category<select id="cat"><option value="all">All categories</option><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label>
@@ -714,7 +773,25 @@ function initDb(){if(!window.supabase)throw new Error("Supabase library could no
 async function login(){const b=$("loginBtn");b.disabled=true;b.textContent="Signing in…";try{setMsg("loginMsg","Connecting securely…");initDb();const {data,error}=await db.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});if(error)throw error;user=data.user;await openApp()}catch(e){setMsg("loginMsg","Login error: "+(e.message||String(e)));console.error(e)}finally{b.disabled=false;b.textContent="Sign in to dashboard →"}}
 async function logout(){if(db)await db.auth.signOut();user=null;location.reload()}
 async function openApp(){$("loginView").style.display="none";$("appView").style.display="block";$("who").textContent=user?.email||"Signed in";["dayCounterDate","daybookDate"].forEach(id=>$(id).value=today()<STOCK_START_DATE?STOCK_START_DATE:today());$("inventoryDate").value=today()<STOCK_START_DATE?STOCK_START_DATE:today();await loadProducts();$("dayCounterDate").value=$("inventoryDate").value;$("daybookDate").value=$("inventoryDate").value;await refresh();fillBrandFilters();drawWholesaleRates();await loadInventoryDayCounter();await loadDaybook();if($("autoReportDate")){$("autoReportDate").value=$("inventoryDate").value||today();await loadDashboardAutoReport($("autoReportDate").value)}}
+function toggleWorkspaceMenu(){
+ const sidebar=document.querySelector("#appView .sidebar");
+ const backdrop=$("workspaceBackdrop");
+ const toggle=$("mobileNavToggle");
+ if(!sidebar||!backdrop)return;
+ const isOpen=sidebar.classList.toggle("workspace-open");
+ backdrop.classList.toggle("workspace-visible",isOpen);
+ if(toggle)toggle.setAttribute("aria-expanded",String(isOpen));
+}
+function closeWorkspaceMenu(){
+ const sidebar=document.querySelector("#appView .sidebar");
+ const backdrop=$("workspaceBackdrop");
+ const toggle=$("mobileNavToggle");
+ if(sidebar)sidebar.classList.remove("workspace-open");
+ if(backdrop)backdrop.classList.remove("workspace-visible");
+ if(toggle)toggle.setAttribute("aria-expanded","false");
+}
 function showPage(id,button){
+ closeWorkspaceMenu();
  if(id==="purchase"||id==="purchaseHistory")id="inventory";
  const target=$(id);if(!target)id="home";
  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
@@ -725,7 +802,7 @@ function showPage(id,button){
  $("pageTitle").textContent=titles[id][0];$("pageSubtitle").textContent=titles[id][1];
  if(id==="purchaseRequirements"){loadPurchaseRequirements()}if(id==="history"){if(!$("saleFrom").value)$("saleFrom").value=today();if(!$("saleTo").value)$("saleTo").value=today();refresh()}if(id==="fl2"){fl2Tab("home");fl2FillBrands();fl2FillFilterBrands()}if(id==="profit"){setProfitPeriod();loadProfitReport()}if(id==="cash"){if($("daybookDate"))$("daybookDate").value=$("inventoryDate")?.value||today();loadDaybook()}
 }
-function setCategory(cat){$("cat").value=cat;if($("whCategory"))$("whCategory").value=cat;$("search").value="";$("inventoryWorkTitle").textContent=cat==="liquor"?"Liquor Inventory":"Beer Inventory";$("inventoryWorkSubtitle").textContent=cat==="liquor"?"Manage all liquor brands and bottle sizes":"Manage beer brands and quantities";showPage("inventoryWork");drawProducts();if($("dayCounterDate")){$("dayCounterDate").value=$("inventoryDate").value||dateBack(0);loadInventoryDayCounter()}}
+function setCategory(cat){$("cat").value=cat;if($("addLiquorProductPanel"))$("addLiquorProductPanel").style.display=cat==="liquor"?"block":"none";if($("addBeerProductPanel"))$("addBeerProductPanel").style.display=cat==="beer"?"block":"none";if($("whCategory"))$("whCategory").value=cat;$("search").value="";$("inventoryWorkTitle").textContent=cat==="liquor"?"Liquor Inventory":"Beer Inventory";$("inventoryWorkSubtitle").textContent=cat==="liquor"?"Manage all liquor brands and bottle sizes":"Manage beer brands and quantities";showPage("inventoryWork");drawProducts();if($("dayCounterDate")){$("dayCounterDate").value=$("inventoryDate").value||dateBack(0);loadInventoryDayCounter()}}
 async function loadProducts(){
   setMsg("dashMsg","Loading inventory from cloud…");
   const {data,error}=await db.from("inventory_products")
@@ -869,13 +946,56 @@ function beerSequenceIndex(p){
   const idx=BEER_SEQUENCE_PATTERNS.findIndex(re=>re.test(text));
   return idx<0?999:idx;
 }
+
+const INVENTORY_ORDER_KEY="abhishek_inventory_manual_order_v1";
+function getInventoryManualOrder(){
+ try{return JSON.parse(localStorage.getItem(INVENTORY_ORDER_KEY)||'{"liquor":[],"beer":[]}')}
+ catch(e){return {liquor:[],beer:[]}}
+}
+function applySavedInventoryOrder(rows,category,keyFn){
+ const saved=getInventoryManualOrder()[category]||[];
+ if(!saved.length)return rows;
+ const rank=new Map(saved.map((key,index)=>[String(key),index]));
+ return [...rows].sort((a,b)=>{
+  const ar=rank.has(String(keyFn(a)))?rank.get(String(keyFn(a))):Number.MAX_SAFE_INTEGER;
+  const br=rank.has(String(keyFn(b)))?rank.get(String(keyFn(b))):Number.MAX_SAFE_INTEGER;
+  return ar===br?0:ar-br;
+ });
+}
+function saveDraggedInventoryOrder(category,keys){
+ const state=getInventoryManualOrder(),old=state[category]||[];
+ const moved=new Set(keys.map(String));let nextIndex=0;
+ const merged=old.map(key=>moved.has(String(key))?keys[nextIndex++]:key);
+ const present=new Set(merged.map(String));
+ keys.forEach(key=>{if(!present.has(String(key))){merged.push(String(key));present.add(String(key));}});
+ state[category]=merged;localStorage.setItem(INVENTORY_ORDER_KEY,JSON.stringify(state));
+}
+function attachInventoryDrag(bodyId,category){
+ const body=$(bodyId);if(!body)return;let dragged=null,touchRow=null,touchTarget=null;
+ const persist=()=>{const keys=[...body.querySelectorAll("tr[data-order-key]")].map(r=>r.dataset.orderKey);saveDraggedInventoryOrder(category,keys);drawProducts();};
+ [...body.querySelectorAll("tr[data-order-key]")].forEach(row=>{
+  row.draggable=true;row.classList.add("inventory-draggable-row");
+  row.addEventListener("dragstart",event=>{dragged=row;row.classList.add("inventory-dragging");event.dataTransfer.effectAllowed="move";event.dataTransfer.setData("text/plain",row.dataset.orderKey);});
+  row.addEventListener("dragover",event=>{if(!dragged||dragged===row)return;event.preventDefault();event.dataTransfer.dropEffect="move";const rect=row.getBoundingClientRect();const after=event.clientY>rect.top+rect.height/2;row.parentNode.insertBefore(dragged,after?row.nextSibling:row);});
+  row.addEventListener("drop",event=>event.preventDefault());
+  row.addEventListener("dragend",()=>{if(!dragged)return;dragged.classList.remove("inventory-dragging");dragged=null;persist();});
+  const handle=row.querySelector(".inventory-drag-handle");
+  if(handle){
+   handle.addEventListener("touchstart",event=>{touchRow=row;touchRow.classList.add("inventory-dragging");},{passive:true});
+   handle.addEventListener("touchmove",event=>{if(!touchRow)return;const t=event.touches[0],target=document.elementFromPoint(t.clientX,t.clientY)?.closest("tr[data-order-key]");if(target&&target!==touchRow){const r=target.getBoundingClientRect();body.insertBefore(touchRow,t.clientY>r.top+r.height/2?target.nextSibling:target);}},{passive:true});
+   handle.addEventListener("touchend",()=>{if(!touchRow)return;touchRow.classList.remove("inventory-dragging");touchRow=null;persist();},{passive:true});
+  }
+ });
+}
+
 function orderedBeerProducts(rows){
-  return [...rows].sort((a,b)=>{
+  const defaultRows=[...rows].sort((a,b)=>{
     const ai=beerSequenceIndex(a),bi=beerSequenceIndex(b);
     if(ai!==bi)return ai-bi;
     if(ai===999)return String(a.brand_name||"").localeCompare(String(b.brand_name||""));
     return String(a.size||"").localeCompare(String(b.size||""));
   });
+  return applySavedInventoryOrder(defaultRows,"beer",p=>p.id);
 }
 
 function orderedBrandGroups(rows){
@@ -885,7 +1005,7 @@ function orderedBrandGroups(rows){
   for(const name of EXCEL_BRAND_ORDER){const k=brandKey(name),list=byKey.get(k);if(list){out.push({name,products:list});used.add(k);}}
   const leftovers=[...byKey.entries()].filter(([k])=>!used.has(k)).sort((a,b)=>String(a[1][0].brand_name).localeCompare(String(b[1][0].brand_name)));
   for(const [,list] of leftovers)out.push({name:list[0].brand_name,products:list});
-  return out;
+  return applySavedInventoryOrder(out,"liquor",g=>brandKey(g.name));
 }
 // Owner-defined brand order is shared by every brand list in the app.
 function orderedProductsByOwnerSequence(rows){
@@ -931,7 +1051,7 @@ function drawProducts(){
     const o=map.map(p=>p?num(inventoryOpeningForDate[String(p.id)]??p.opening_stock):0),p=map.map(x=>x?num(inventoryPurchased[String(x.id)]):0),s=map.map(x=>x?num(inventorySold[String(x.id)]):0),t=o.map((v,k)=>v+p[k]),b=t.map((v,k)=>v-s[k]),v=b.map((x,k)=>x*num(map[k]?.wholesale_price));
     for(let k=0;k<4;k++){grand.opening+=o[k];grand.purchase+=p[k];grand.total+=t[k];grand.sale+=s[k];grand.balance+=b[k];grand.value+=v[k];}
     const inputs=(arr,prefix,label)=>map.map((x,k)=>`<td>${x?`<input aria-label="${safe(g.name)} ${sizes[k]} ${label}" id="${prefix}_${safe(x.id)}" type="number" min="0" step=".01" value="${arr[k]}" ${prefix==="opening"&&($("inventoryDate").value||STOCK_START_DATE)!==STOCK_START_DATE?"readonly title='Auto carried forward from previous day'":"oninput='recalculateInventoryLive()' onkeydown='inventoryEnterNext(event)'"}>`:"—"}</td>`).join("");
-    L.push(`<tr><td>${idx+1}. ${safe(g.name)} <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='hideInventoryBrand(${JSON.stringify(g.products.map(x=>String(x.id)))})'>Hide</button></td>${inputs(o,"opening","opening stock")}${inputs(map.map(x=>x?(inventoryManualCurrent[String(x.id)]?.purchase||0):0),"reg_purchase","purchase")}${fmt(t)}${inputs(map.map(x=>x?(inventoryManualCurrent[String(x.id)]?.sale||0):0),"reg_sale","sale")}${fmt(b)}${fmtM(v)}</tr>`);
+    L.push(`<tr data-order-key="${safe(brandKey(g.name))}"><td><span class="inventory-drag-handle" title="Drag to reorder">⠿</span> ${idx+1}. ${safe(g.name)} <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='hideInventoryBrand(${JSON.stringify(g.products.map(x=>String(x.id)))})'>Hide</button></td>${inputs(o,"opening","opening stock")}${inputs(map.map(x=>x?(inventoryManualCurrent[String(x.id)]?.purchase||0):0),"reg_purchase","purchase")}${fmt(t)}${inputs(map.map(x=>x?(inventoryManualCurrent[String(x.id)]?.sale||0):0),"reg_sale","sale")}${fmt(b)}${fmtM(v)}</tr>`);
   });
   if(allLiquorGroups.length)L.push(`<tr class="inventory-subtotal-row liquor-total-row"><td>TOTAL ALL LIQUOR BRANDS</td>${fmt(liqTotals.o)}${fmt(liqTotals.p)}${fmt(liqTotals.t)}${fmt(liqTotals.s)}${fmt(liqTotals.b)}${fmtM(liqTotals.v)}</tr>`);
   $("liquorInventoryRows").innerHTML=L.join("")||'<tr><td colspan="25" class="empty">No liquor brands found.</td></tr>';
@@ -942,10 +1062,12 @@ function drawProducts(){
     bt.o+=opening;bt.ov+=openingValue;bt.p+=purchase;bt.s+=sale;bt.sv+=saleValue;bt.c+=closing;bt.cv+=stockValue;bt.profit+=profit;
     for(const [k,n] of Object.entries({opening,purchase,sale,available,closing,openingValue,saleValue,stockValue,profit}))grand[k]=(grand[k]||0)+n;
     const entry=inventoryManualCurrent[String(x.id)]||{};
-    B.push(`<tr><td>${idx+1}</td><td class="beer-brand">${safe(cleanBeerBrandName(x.brand_name))}${x.size?" - "+safe(x.size):""} <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='hideInventoryBrand([${JSON.stringify(String(x.id))}])'>Hide</button></td><td><input id="opening_${safe(x.id)}" type="number" min="0" step=".01" value="${opening}" ${($("inventoryDate").value||STOCK_START_DATE)!==STOCK_START_DATE?"readonly title='Auto carried forward from previous day'":"oninput='recalculateInventoryLive()' onkeydown='inventoryEnterNext(event)'"}></td><td class="calc">${money(openingValue)}</td><td><input id="reg_purchase_${safe(x.id)}" type="number" min="0" step=".01" value="${num(entry.purchase)}" oninput="recalculateInventoryLive()" onkeydown="inventoryEnterNext(event)"></td><td><input id="reg_sale_${safe(x.id)}" type="number" min="0" step=".01" value="${num(entry.sale)}" oninput="recalculateInventoryLive()" onkeydown="inventoryEnterNext(event)"></td><td class="calc">${money(saleValue)}</td><td class="calc">${closing}</td><td class="value">${money(stockValue)}</td><td class="value">${money(profit)}</td></tr>`);
+    B.push(`<tr data-order-key="${safe(String(x.id))}"><td><span class="inventory-drag-handle" title="Drag to reorder">⠿</span> ${idx+1}</td><td class="beer-brand">${safe(cleanBeerBrandName(x.brand_name))}${x.size?" - "+safe(x.size):""} <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='hideInventoryBrand([${JSON.stringify(String(x.id))}])'>Hide</button></td><td><input id="opening_${safe(x.id)}" type="number" min="0" step=".01" value="${opening}" ${($("inventoryDate").value||STOCK_START_DATE)!==STOCK_START_DATE?"readonly title='Auto carried forward from previous day'":"oninput='recalculateInventoryLive()' onkeydown='inventoryEnterNext(event)'"}></td><td class="calc">${money(openingValue)}</td><td><input id="reg_purchase_${safe(x.id)}" type="number" min="0" step=".01" value="${num(entry.purchase)}" oninput="recalculateInventoryLive()" onkeydown="inventoryEnterNext(event)"></td><td><input id="reg_sale_${safe(x.id)}" type="number" min="0" step=".01" value="${num(entry.sale)}" oninput="recalculateInventoryLive()" onkeydown="inventoryEnterNext(event)"></td><td class="calc">${money(saleValue)}</td><td class="calc">${closing}</td><td class="value">${money(stockValue)}</td><td class="value">${money(profit)}</td></tr>`);
   });
   if(beer.length)B.push(`<tr class="inventory-subtotal-row"><td colspan="2">TOTAL BEER</td><td>${bt.o}</td><td>${money(bt.ov)}</td><td>${bt.p}</td><td>${bt.s}</td><td>${money(bt.sv)}</td><td>${bt.c}</td><td>${money(bt.cv)}</td><td>${money(bt.profit)}</td></tr>`);
   $("beerInventoryRows").innerHTML=B.join("")||'<tr><td colspan="10" class="empty">No beer brands found.</td></tr>';
+  attachInventoryDrag("liquorInventoryRows","liquor");
+  attachInventoryDrag("beerInventoryRows","beer");
   recalculateInventoryLive();renderHiddenInventoryBrands();
   $("stockSummary").textContent=`As on ${$("inventoryDate").value||STOCK_START_DATE} · Liquor opening ${grand.opening} · Liquor purchase ${grand.purchase} · Liquor sale ${grand.sale} · Beer closing ${bt.c} · Beer stock value ${money(bt.cv)}`;
 }
@@ -1119,6 +1241,35 @@ async function saveInventoryMovements(button){
   }catch(e){alert("Save error: "+(e.message||String(e))+". Pehle diye gaye SQL ko Supabase SQL Editor mein run karein.");}
   finally{if(button){button.disabled=false;button.textContent="Save purchase & sale quantities";}}
 }
+
+async function addInventoryProduct(category,button){
+ const isLiquor=category==="liquor",brand=$(isLiquor?"newLiquorBrand":"newBeerBrand").value.trim();
+ const size=isLiquor?$("newLiquorSize").value:($("newBeerSize").value==="Other"?$("newBeerCustomSize").value.trim():$("newBeerSize").value);
+ const opening_stock=num($(isLiquor?"newLiquorOpening":"newBeerOpening").value);
+ const mrp=num($(isLiquor?"newLiquorMrp":"newBeerMrp").value);
+ const wholesale_price=num($(isLiquor?"newLiquorWholesale":"newBeerWholesale").value);
+ const msgId=isLiquor?"newLiquorMsg":"newBeerMsg";
+ if(!brand){setMsg(msgId,"Brand name enter karein.");return;}
+ if(!size){setMsg(msgId,"Product size / pack format select ya enter karein.");return;}
+ if([opening_stock,mrp,wholesale_price].some(v=>!Number.isFinite(v)||v<0)||mrp<=0||wholesale_price<=0){setMsg(msgId,"Opening stock zero ya positive aur MRP / wholesale price zero se zyada hona chahiye.");return;}
+ if(products.some(p=>String(p.category).toLowerCase()===category&&String(p.brand_name||"").trim().toLowerCase()===brand.toLowerCase()&&String(p.size||"").trim().toLowerCase()===size.toLowerCase())){setMsg(msgId,"Ye brand aur pack size pehle se inventory mein maujood hai.");return;}
+ if(!db||!user){setMsg(msgId,"Pehle Admin login karein.");return;}
+ if(button){button.disabled=true;button.textContent="Adding…";}
+ setMsg(msgId,"Supabase database mein product add ho raha hai…");
+ try{
+  const payload={user_id:user.id,category,brand_name:brand,size,opening_stock,mrp,wholesale_price};
+  const {data,error}=await db.from("inventory_products").insert(payload).select("id,category,brand_name,size,opening_stock,mrp,wholesale_price").single();
+  if(error)throw error;
+  const order=getInventoryManualOrder();order[category]=[...(order[category]||[]),category==="liquor"?brandKey(brand):String(data.id)];
+  localStorage.setItem(INVENTORY_ORDER_KEY,JSON.stringify(order));
+  await loadProducts();setCategory(category);
+  if(isLiquor){$("newLiquorBrand").value="";$("newLiquorOpening").value="0";$("newLiquorMrp").value="";$("newLiquorWholesale").value="";}
+  else{$("newBeerBrand").value="";$("newBeerOpening").value="0";$("newBeerMrp").value="";$("newBeerWholesale").value="";$("newBeerCustomSize").value="";}
+  setMsg(msgId,"Product successfully added to cloud inventory. Ab ye Inventory, Sales aur Purchase product lists mein available hai.");
+ }catch(e){setMsg(msgId,"Product add nahi hua: "+(e.message||String(e))+". Supabase table permissions / required columns check karein.");console.error("Add inventory product failed",e);}
+ finally{if(button){button.disabled=false;button.textContent=isLiquor?"＋ Add Liquor Product":"＋ Add Beer Product";}}
+}
+$("newBeerSize")?.addEventListener("change",()=>{$("newBeerCustomSizeWrap").style.display=$("newBeerSize").value==="Other"?"grid":"none";});
 
 async function saveProduct(id,button){
   const stockInput=$("stock_"+id),mrpInput=$("mrp_"+id),whInput=$("wh_"+id);
@@ -1663,6 +1814,18 @@ function viewSalesHistory(){
  refresh();
 }
 function clearSalesHistoryFilters(){["saleFrom","saleTo"].forEach(id=>$(id).value="");refresh();}
+function drawSalesChartFallback(labels,values){
+ const canvas=$("salesChart");if(!canvas)return;
+ const parent=canvas.parentElement;const w=Math.max(300,parent.clientWidth||600),h=Math.max(220,parent.clientHeight||280);
+ const ratio=window.devicePixelRatio||1;canvas.width=w*ratio;canvas.height=h*ratio;canvas.style.width="100%";canvas.style.height="100%";
+ const ctx=canvas.getContext("2d");ctx.setTransform(ratio,0,0,ratio,0,0);ctx.clearRect(0,0,w,h);
+ const left=58,right=14,top=18,bottom=42,plotW=w-left-right,plotH=h-top-bottom;
+ const max=Math.max(1,...values);const step=Math.pow(10,Math.floor(Math.log10(max)));const ceiling=Math.ceil(max/step)*step;
+ ctx.font="11px DM Sans, sans-serif";ctx.textAlign="right";ctx.textBaseline="middle";ctx.strokeStyle="rgba(255,255,255,.10)";ctx.fillStyle="#aab9af";
+ for(let i=0;i<=4;i++){const y=top+plotH*i/4;ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(w-right,y);ctx.stroke();ctx.fillText("₹"+Math.round(ceiling*(4-i)/4).toLocaleString("en-IN"),left-8,y)}
+ const slot=plotW/Math.max(1,labels.length),barW=Math.min(34,slot*.58);
+ values.forEach((v,i)=>{const bh=Math.max(0,(Number(v)||0)/ceiling*plotH),x=left+slot*i+(slot-barW)/2,y=top+plotH-bh;ctx.fillStyle="rgba(53,200,120,.78)";ctx.fillRect(x,y,barW,bh);ctx.fillStyle="#aab9af";ctx.textAlign="center";ctx.textBaseline="top";ctx.fillText(labels[i]||"",x+barW/2,top+plotH+10)});
+}
 async function refresh(){
  if(!db||!user)return;
  setMsg("dashMsg","Refreshing dashboard, inventory sales and sales history…");
@@ -1778,7 +1941,17 @@ async function refresh(){
   for(const x of manualMonth){if(x.category==="beer"){dashBeerQty+=x.quantity;dashBeerAmount+=x.amount}else if(x.category==="liquor"){dashLiquorQty+=x.quantity;dashLiquorAmount+=x.amount}}
   $("dashLiquorSale").textContent=money(dashLiquorAmount);$("dashBeerSale").textContent=money(dashBeerAmount);$("dashLiquorQty").textContent=dashLiquorQty.toLocaleString("en-IN")+" units sold";$("dashBeerQty").textContent=dashBeerQty.toLocaleString("en-IN")+" units sold";
   const labels=[],values=[];for(let i=6;i>=0;i--){const day=dateBack(i);labels.push(new Date(day+"T00:00:00").toLocaleDateString("en-IN",{day:"2-digit",month:"short"}));const dayIds=new Set((chartHeaders.data||[]).filter(x=>x.sale_date===day).map(x=>x.id));values.push(sum(chartItems.filter(x=>dayIds.has(x.sale_id)))+inventorySalesSum(manualChart.filter(x=>x.sale_date===day)))}
-  if(window.Chart&&$("salesChart")){if(salesChart)salesChart.destroy();salesChart=new Chart($("salesChart"),{type:"bar",data:{labels,datasets:[{label:"Sales amount",data:values,backgroundColor:"rgba(53,200,120,.72)",borderColor:"#42d39a",borderWidth:1,borderRadius:8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:"#dce8df"}},tooltip:{callbacks:{label:c=>" "+money(c.raw)}}},scales:{x:{ticks:{color:"#aab9af"},grid:{color:"rgba(255,255,255,.05)"}},y:{beginAtZero:true,ticks:{color:"#aab9af",callback:v=>"₹"+Number(v).toLocaleString("en-IN")},grid:{color:"rgba(255,255,255,.08)"}}}}})}
+  if($("salesChart")){
+   let chartDrawn=false;
+   if(window.Chart){
+    try{
+     if(salesChart)salesChart.destroy();
+     salesChart=new Chart($("salesChart"),{type:"bar",data:{labels,datasets:[{label:"Sales amount",data:values,backgroundColor:"rgba(53,200,120,.72)",borderColor:"#42d39a",borderWidth:1,borderRadius:8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:"#dce8df"}},tooltip:{callbacks:{label:c=>" "+money(c.raw)}}},scales:{x:{ticks:{color:"#aab9af"},grid:{color:"rgba(255,255,255,.05)"}},y:{beginAtZero:true,ticks:{color:"#aab9af",callback:v=>"₹"+Number(v).toLocaleString("en-IN")},grid:{color:"rgba(255,255,255,.08)"}}}}});
+     chartDrawn=true;
+    }catch(chartError){console.warn("Chart.js render fallback:",chartError)}
+   }
+   if(!chartDrawn)drawSalesChartFallback(labels,values);
+  }
   if(products.length){
    const brandCount=new Set(products.map(p=>String(p.brand_name||"").trim().toLowerCase()).filter(Boolean)).size;
    const beerProducts=products.filter(p=>String(p.category||"").toLowerCase()==="beer");
