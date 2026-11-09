@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Abhishek Composite | Liquor & Beer Management</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -397,6 +397,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
 <style id="final-mobile-drawer-fix">
 @media (max-width:760px){
   #appView .shell{display:block!important;min-height:100dvh!important;width:100%!important;}
+  #appView .main{padding-top:calc(17px + env(safe-area-inset-top, 24px))!important;padding-bottom:calc(40px + env(safe-area-inset-bottom, 16px))!important;}
   #appView .sidebar{
     position:fixed!important;inset:0 auto 0 0!important;
     width:min(84vw,320px)!important;max-width:320px!important;
@@ -461,7 +462,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
    <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('liquor')"><span class="kpi-icon">🥃</span><small>Liquor stock</small><strong id="dashLiquor">—</strong><div class="kpi-sub" id="dashLiquorMrp">MRP Value: ₹0.00</div></div>
    <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('history')"><span class="kpi-icon">▤</span><small>This month sale</small><strong id="dash30Sales">₹0.00</strong></div>
   </div>
-  <div class="section-head"><div><h3>Sales performance</h3><p>Daily sales value · auto-fetched live from the last 30 days</p></div><span class="tag">LIVE REPORT</span></div>
+  <div class="section-head"><div><h3>Sales performance</h3><p>Daily revenue · Liquor (green) and Beer (blue) · last 30 days</p></div><span class="tag">LIVE REPORT</span></div>
   <div class="panel glass"><div style="height:280px;position:relative"><canvas id="salesChart" aria-label="Sales graph"></canvas></div></div>
   <div class="section-head"><div><h3>Category sales summary</h3><p>Beer and liquor sold, with quantity and revenue</p></div></div>
   <div class="category-cards">
@@ -757,6 +758,7 @@ let db=null,user=null,products=[],saleCart=[],purchaseCart=[];
 let saleHistoryDailyData={};
 const EXCEL_BRAND_ORDER=["BLENDER RESERVE BLUE", "BLENDER PRIDE", "BLENDER 4 ELEMENT", "ANTIQUTI BLUE", "SIGNATURE PREMIUM", "ROYAL THAMBOARE", "ROYAL STAG DOUBLE DARK", "ROYAL STAG", "ROYAL CHALLENGE", "OFFICEAR CHOICE BLUE", "OFICIER CHOICE", "IMPERIAL BLUE", "MACDOWEL NO.1", "MACDOWEL DOUBLE BARELL", "ROYAL STAG BARELL", "EXCLAMATION WHISKEY", "R.G 8 JAMUN", "8 PM BLACK", "8 PM GOLD", "8 PM WHISKEY", "STRELLING B7", "ROYAL GREEN", "WHITE & BLUE", "ALL SEASON SARTAAJ", "GOLFER SHOT 18", "ICONIC WINTER", "GOLFER SHOT A.K", "OCANE GLOW", "ROCKFORD RESERVE", "RED RUSSIAN APPLE", "OCTAINE", "MAGIC MOMENT JAMUN", "AMRUT PESTING WHISKEY", "OAK SMITH", "DOUBLE BLUE", "WHISLER BAREL", "ICONIC WHISKEY", "AFTER DARK", "BATCH 9", "SRISTY FINEST", "AMERICAN PRIDE", "MOUNTAIN OAK", "BX HIPPI", "SINGAL", "MARPHOS X&O BRANDY", "MARPHOUS BLUE BRANDY", "MATSYA", "THE CRAFTRES", "BOHO", "ALL SEASON", "DHURANDHAR", "SIWAS REGAL", "GODAOON", "JONNY WALKER GOLD LEBAL", "JONNY WALKER BLACK LEBAL", "JONNY WALKER DOUBLE BLACK", "JONNY WALKER RED LEBAL", "100 PIPER (12 YEARS)", "100 PIPER", "BLACK DOG TRIPLE GOLD", "BLACK DOG CENETERY", "TEACHERS 50", "TEACHER HIGHLAND", "VAT 69", "BLACK & WHITE", "INDREE", "JAG MISTER", "JACK DANIAEL", "GLAN MORANJI", "BOMBEY SUFFAIR", "DEWARS", "MACDOWEL", "SIMRAN OF CRAFT", "SIMRAN MINTY JAMUN", "SIMRAN MANGO MIRCHI", "SIMRAN JESTY LEMON", "MAGIC VERB LEMON", "MAGIC VERB", "MAGIC MOMENT LEMON", "MAGIC MOMENT APPLE", "MAGIC MOMENT PINK", "MAGIC MOMENT", "1 GL BUNTY", "G R 8 APPLE", "ONE MORE NEXT CANBERRY", "ONE MORE APPLE", "ONE MORE PLANE", "AMAZING PLANE", "MOON WALK APPLE", "MOON WALK ORANGE", "SNOSKI JAMUN VODKA", "SNOSKI SADA VODKA", "CULTER RUM", "ORTHIK CANBERRY", "LIPTOP PLANE", "MAGIC MOMENT AAM PANA", "BUNTY JAMUN", "BAKARDI WHITE", "BAKARDI MANGO CHILLI", "BAKARDI LEMON", "BAKARDI ORANGE", "BAKARDI BLACK", "OLD MONK LEGEND", "BERRY OLD MONK RESERVED'", "OLD MONK COFFEE", "MACDOWELL DARK RUM", "CAPTAIN MORGAIN", "1965 XXX RUM", "BUM LEMON RUM", "LEMON DEDDY RUM", "HIGH IMPACT", "MACDAWELL CITRONN RUM"];
 let stockPurchased={},stockSold={},stockMovementError="";
+var dashboardAutoReportData=null;
 let inventoryPurchased={},inventorySold={},inventoryMovementError="";
 let inventoryManualCurrent={},inventoryManualTotals={},inventoryOpeningForDate={};
 const $=id=>document.getElementById(id),num=v=>Number(v)||0;
@@ -1200,6 +1202,7 @@ async function saveFinalInventory(button){
   }
   if(!openingUpdates.length&&!movementRows.length){alert("Save karne ke liye koi visible inventory input nahi mila.");return;}
   if(button){button.disabled=true;button.textContent="Saving to Supabase…";}
+  let inventoryWriteCompleted=false;
   try{
     const tasks=[];
     if(openingUpdates.length){
@@ -1213,6 +1216,7 @@ async function saveFinalInventory(button){
       tasks.push(db.from("inventory_register_entries").upsert(movementRows,{onConflict:"user_id,product_id,entry_date"}).then(({error})=>{if(error)throw error;}));
     }
     await Promise.all(tasks);
+    inventoryWriteCompleted=true;
     for(const row of movementRows){
       const id=String(row.product_id),old=inventoryManualCurrent[id]||{purchase:0,sale:0},tot=inventoryManualTotals[id]||{purchase:0,sale:0};
       inventoryPurchased[id]=(inventoryPurchased[id]||0)-num(old.purchase)+row.purchase_qty;
@@ -1226,8 +1230,14 @@ async function saveFinalInventory(button){
     await refresh(); if($("autoReportDate")){ $("autoReportDate").value=date; await loadDashboardAutoReport(date); } if($("dayCounterDate")){ $("dayCounterDate").value=date; await loadInventoryDayCounter(); } if($("cd")){ $("cd").value=date; await loadDailyClosing(); } if($("daybookDate")){ $("daybookDate").value=date; await loadDaybook(); }
     alert(saveOpening?"Final Save successful: Opening Stock + Purchase + Sale Supabase mein save ho gaye.":"Final Save successful: Purchase + Sale Supabase mein save ho gaye. Opening Stock 02 Nov date par hi edit/save hota hai.");
   }catch(e){
-    alert("Save error: "+(e.message||String(e))+". Supabase mein kuch requests save ho chuki ho sakti hain; date reload karke values verify karein.");
-    console.error("Final inventory save failed",e);
+    if(inventoryWriteCompleted){
+      setMsg("inventoryDateStatus","Inventory data Supabase mein save ho gaya, lekin refresh/report load nahi ho paya: "+(e.message||String(e))+". Date reload karke saved values verify karein.");
+      alert("Data Supabase mein save ho chuka hai. Sirf dashboard refresh mein issue aaya: "+(e.message||String(e))+". Date reload karke verify karein.");
+      console.error("Post-save refresh failed",e);
+    }else{
+      alert("Save error: "+(e.message||String(e))+". Supabase save request fail hui; date reload karke values verify karein.");
+      console.error("Final inventory save failed",e);
+    }
   }finally{
     if(button){button.disabled=false;button.textContent="Final Save — Save All Inventory";}
   }
@@ -1867,7 +1877,7 @@ async function refresh(){
    db.from("sales").select("id").eq("sale_date",d),
    (()=>{let q=db.from("sales").select("id,sale_date,bill_number,category,payment_mode").gte("sale_date",filterFrom).lte("sale_date",filterTo).order("sale_date",{ascending:false});return q})(),
    db.from("sales").select("id,sale_date,category").gte("sale_date",from).lte("sale_date",d),
-   db.from("sales").select("id,sale_date").gte("sale_date",chartFrom).lte("sale_date",d),
+   db.from("sales").select("id,sale_date,category").gte("sale_date",chartFrom).lte("sale_date",d),
    getInventorySaleRows(d,d),getInventorySaleRows(from,d),getInventorySaleRows(chartFrom,d),getInventorySaleRows(filterFrom,filterTo,"all")
   ]);
   for(const r of [todayHeaders,allHeaders,monthHeaders,chartHeaders])if(r.error)throw r.error;
@@ -1976,7 +1986,18 @@ async function refresh(){
   const labels=[],liquorValues=[],beerValues=[],dailyChart=new Map();
   const chartHeaderById=new Map((chartHeaders.data||[]).map(x=>[String(x.id),String(x.category||"").toLowerCase()]));
   for(let i=29;i>=0;i--){const day=dateBack(i);labels.push(new Date(day+"T00:00:00").toLocaleDateString("en-IN",{day:"2-digit",month:"short"}));dailyChart.set(day,{liquor:0,beer:0})}
-  for(const row of chartItems){const header=(chartHeaders.data||[]).find(x=>String(x.id)===String(row.sale_id));if(!header)continue;const bucket=dailyChart.get(header.sale_date);if(!bucket)continue;const amount=num(row.quantity)*num(row.sale_rate),cat=chartHeaderById.get(String(row.sale_id));if(cat==="liquor")bucket.liquor+=amount;else if(cat==="beer")bucket.beer+=amount}
+  const chartHeadersById=new Map((chartHeaders.data||[]).map(x=>[String(x.id),x]));
+  const chartProductsById=new Map(products.map(p=>[String(p.id),p]));
+  for(const row of chartItems){
+   const header=chartHeadersById.get(String(row.sale_id));if(!header)continue;
+   const bucket=dailyChart.get(String(header.sale_date||"").slice(0,10));if(!bucket)continue;
+   const product=chartProductsById.get(String(row.product_id));
+   // Prefer the bill's category, but fall back to the sold product's category.
+   const cat=String(header.category||product?.category||"").trim().toLowerCase();
+   const amount=num(row.quantity)*num(row.sale_rate);
+   if(cat==="liquor")bucket.liquor+=amount;
+   else if(cat==="beer")bucket.beer+=amount;
+  }
   for(const row of manualChart){const bucket=dailyChart.get(row.sale_date);if(!bucket)continue;if(row.category==="liquor")bucket.liquor+=num(row.amount);else if(row.category==="beer")bucket.beer+=num(row.amount)}
   for(const day of dailyChart.values()){liquorValues.push(day.liquor);beerValues.push(day.beer)}
   if($("salesChart")){
@@ -2127,7 +2148,6 @@ async function loadFl2Reconciliation(){
 
 
 
-let dashboardAutoReportData=null;
 async function loadDashboardAutoReport(date){
  if(!db||!user||!date)return;
  $("autoReportDate").value=date;
