@@ -383,16 +383,16 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
  <section id="home" class="page active">
   <div class="hero"><div class="hero-copy"><div class="eyebrow">Your business. One dashboard.</div><h1>Welcome to your<br><span>store command centre.</span></h1><p>Manage liquor and beer operations from one place. Track products, record sales, manage purchases and stay on top of daily cash.</p><button class="btn" onclick="showPage('sale')">＋ Create new sale</button></div><div class="hero-art"><span>🥃</span><span>🍺</span></div></div>
   <div class="kpis">
-   <div class="kpi glass"><span class="kpi-icon">▦</span><small>Total products</small><strong id="count">—</strong></div>
+   <div class="kpi glass"><span class="kpi-icon">▦</span><small>Total brands in store</small><strong id="count">—</strong></div>
    <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('sales')"><span class="kpi-icon">↗</span><small>Today's total sales</small><strong id="todaySales">₹0.00</strong></div>
    <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('liquorSales')"><span class="kpi-icon">🥃</span><small>Today's liquor sale</small><strong id="todayLiquorSales">₹0.00</strong></div>
    <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('beerSales')"><span class="kpi-icon">🍺</span><small>Today's beer sale</small><strong id="todayBeerSales">₹0.00</strong></div>
    <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('purchases')"><span class="kpi-icon">⇩</span><small>Today's purchases</small><strong id="todayPurchase">₹0.00</strong></div>
-   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('stock')"><span class="kpi-icon">◈</span><small>Total stock units</small><strong id="dashStock">—</strong></div>
+   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('stock')"><span class="kpi-icon">◈</span><small>Total stock balance & quatity</small><strong id="dashStock">—</strong></div>
    <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('low')"><span class="kpi-icon">⚠</span><small>Low stock products</small><strong id="dashLow">—</strong></div>
    <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('beer')"><span class="kpi-icon">🍺</span><small>Beer stock</small><strong id="dashBeer">—</strong></div>
    <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('liquor')"><span class="kpi-icon">🥃</span><small>Liquor stock</small><strong id="dashLiquor">—</strong></div>
-   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('history')"><span class="kpi-icon">▤</span><small>Sales (30 days)</small><strong id="dash30Sales">₹0.00</strong></div>
+   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('history')"><span class="kpi-icon">▤</span><small>this month sales</small><strong id="dash30Sales">₹0.00</strong></div>
   </div>
   <div class="section-head"><div><h3>Sales performance</h3><p>Daily sales value for the last 7 days</p></div><span class="tag">LIVE REPORT</span></div>
   <div class="panel glass"><div style="height:280px;position:relative"><canvas id="salesChart" aria-label="Sales graph"></canvas></div></div>
