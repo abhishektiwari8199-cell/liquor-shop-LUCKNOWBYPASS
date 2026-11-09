@@ -774,6 +774,16 @@ function orderedBrandGroups(rows){
   for(const [,list] of leftovers)out.push({name:list[0].brand_name,products:list});
   return out;
 }
+// Owner-defined brand order is shared by every brand list in the app.
+function orderedProductsByOwnerSequence(rows){
+ const liquor=orderedBrandGroups(rows.filter(p=>String(p.category||"").toLowerCase()==="liquor"))
+   .flatMap(g=>[...g.products].sort((a,b)=>sizeIndex(a.size)-sizeIndex(b.size)));
+ const beer=orderedBeerProducts(rows.filter(p=>String(p.category||"").toLowerCase()==="beer"));
+ const other=rows.filter(p=>!["liquor","beer"].includes(String(p.category||"").toLowerCase()))
+   .sort((a,b)=>String(a.brand_name||"").localeCompare(String(b.brand_name||"")));
+ return [...liquor,...beer,...other];
+}
+
 const HIDDEN_INVENTORY_KEY='abhishek_hidden_inventory_product_ids_v1';
 function getHiddenInventoryIds(){try{return new Set(JSON.parse(localStorage.getItem(HIDDEN_INVENTORY_KEY)||'[]').map(String))}catch(e){return new Set()}}
 function saveHiddenInventoryIds(ids){localStorage.setItem(HIDDEN_INVENTORY_KEY,JSON.stringify([...ids]));}
@@ -1025,7 +1035,7 @@ async function saveProduct(id,button){
 function fillSelects(){
   if(!db||!products.length)return;
   const cat=$("sc")?.value||"liquor";
-  const list=products.filter(p=>String(p.category).toLowerCase()===cat);
+  const list=orderedProductsByOwnerSequence(products.filter(p=>String(p.category).toLowerCase()===cat));
   if($("sp"))$("sp").innerHTML=list.map(p=>`<option value="${safe(p.id)}">${safe(p.brand_name)} · ${safe(p.size)}</option>`).join("")||'<option value="">No products found</option>';
   const selected=products.find(p=>String(p.id)===$("sp")?.value);
   if($("sr"))$("sr").value=selected?.mrp??0;
@@ -1374,12 +1384,12 @@ async function deleteSale(id){
  try{const d=await db.from("sale_items").delete().eq("sale_id",id);if(d.error)throw d.error;const h=await db.from("sales").delete().eq("id",id);if(h.error)throw h.error;await loadProducts();await refresh()}catch(e){alert("Sale delete failed: "+e.message)}
 }
 function fillBrandFilters(){
- const options='<option value="all">All brands</option>'+products.map(p=>`<option value="${safe(p.id)}">${safe(p.brand_name)} · ${safe(p.size)}</option>`).join("");
+ const options='<option value="all">All brands</option>'+orderedProductsByOwnerSequence(products).map(p=>`<option value="${safe(p.id)}">${safe(p.brand_name)} · ${safe(p.size)}</option>`).join("");
  for(const id of ["purchaseBrand","saleBrand"])if($(id))$(id).innerHTML=options;
 }
 function drawWholesaleRates(){
  const q=($("whSearch")?.value||"").toLowerCase(),cat=$("cat")?.value||$("whCategory")?.value||"liquor";
- const rows=products.filter(p=>(cat==="all"||String(p.category).toLowerCase()===cat)&&(`${p.brand_name} ${p.size}`).toLowerCase().includes(q));
+ const rows=orderedProductsByOwnerSequence(products.filter(p=>(cat==="all"||String(p.category).toLowerCase()===cat)&&(`${p.brand_name} ${p.size}`).toLowerCase().includes(q)));
  $("wholesaleRateRows").innerHTML=rows.map(p=>`<tr><td>${safe(p.category)}</td><td><b>${safe(p.brand_name)}</b></td><td>${safe(p.size)}</td><td><input id="rate_${safe(p.id)}" type="number" min="0" step=".01" value="${num(p.wholesale_price)}"></td><td>${money(p.mrp)}</td><td>${money(num(p.mrp)-num(p.wholesale_price))}</td><td><button class="btn" onclick="saveWholesaleRate('${safe(p.id)}',this)">Save rate</button></td></tr>`).join("")||'<tr><td colspan="7" class="empty">No matching products.</td></tr>';
 }
 async function saveWholesaleRate(id,button){
@@ -1559,7 +1569,7 @@ function fl2Tab(which){
  if(which==="report"){if(!$("fl2From").value)$("fl2From").value=today().slice(0,7)+"-01";if(!$("fl2To").value)$("fl2To").value=today();fl2FillFilterBrands()}
 }
 function fl2FillBrands(){
- const cat=$("fl2Category").value,list=products.filter(p=>String(p.category||"").toLowerCase()===cat);
+ const cat=$("fl2Category").value,list=orderedProductsByOwnerSequence(products.filter(p=>String(p.category||"").toLowerCase()===cat));
  $("fl2Product").innerHTML=list.map(p=>`<option value="${safe(p.id)}">${safe(p.brand_name)} · ${safe(p.size)}</option>`).join("")||'<option value="">No brands found</option>';
  fl2InvoiceRateFill();
 }
@@ -1575,7 +1585,7 @@ async function saveFl2Invoice(){
  catch(e){setMsg("fl2InvoiceMsg","Save failed: "+e.message+". Create the FL2 table in Supabase using the supplied SQL file.")}
 }
 function fl2FillFilterBrands(){
- const cat=$("fl2FilterCategory").value,list=products.filter(p=>cat==="all"||String(p.category).toLowerCase()===cat),old=$("fl2FilterBrand").value||"all";
+ const cat=$("fl2FilterCategory").value,list=orderedProductsByOwnerSequence(products.filter(p=>cat==="all"||String(p.category).toLowerCase()===cat)),old=$("fl2FilterBrand").value||"all";
  $("fl2FilterBrand").innerHTML='<option value="all">All brands</option>'+list.map(p=>`<option value="${safe(p.id)}">${safe(p.brand_name)} · ${safe(p.size)}</option>`).join("");
  if([...$("fl2FilterBrand").options].some(o=>o.value===old))$("fl2FilterBrand").value=old;
 }
@@ -1594,7 +1604,7 @@ async function loadFl2Report(){
 }
 function fl2DrawWholesale(){
  const cat=$("fl2RateCategory").value,q=($("fl2RateSearch").value||"").toLowerCase();
- const rows=products.filter(p=>String(p.category||"").toLowerCase()===cat&&(`${p.brand_name} ${p.size}`).toLowerCase().includes(q));
+ const rows=orderedProductsByOwnerSequence(products.filter(p=>String(p.category||"").toLowerCase()===cat&&(`${p.brand_name} ${p.size}`).toLowerCase().includes(q)));
  $("fl2RateRows").innerHTML=rows.map(p=>`<tr><td><b>${safe(p.brand_name)}</b></td><td>${safe(p.size)}</td><td><input id="fl2qty_${safe(p.id)}" type="number" min="0" step=".01" value="1" oninput="fl2CalcRateRow('${safe(p.id)}')"></td><td><input id="fl2wh_${safe(p.id)}" type="number" min="0" step=".01" value="${num(p.wholesale_price)}" oninput="fl2CalcRateRow('${safe(p.id)}')"></td><td id="fl2petty_${safe(p.id)}">${money(num(p.wholesale_price))}</td><td><input id="fl2mrp_${safe(p.id)}" type="number" min="0" step=".01" value="${num(p.mrp)}" oninput="fl2CalcRateRow('${safe(p.id)}')"></td><td id="fl2pettymrp_${safe(p.id)}">${money(num(p.mrp))}</td><td><button class="btn" onclick="fl2SaveRate('${safe(p.id)}',this)">Save</button></td></tr>`).join("")||'<tr><td colspan="8" class="empty">No brands found.</td></tr>';
 }
 function fl2CalcRateRow(id){const qty=num($("fl2qty_"+id).value),wh=num($("fl2wh_"+id).value),mrp=num($("fl2mrp_"+id).value);$("fl2petty_"+id).textContent=money(qty*wh);$("fl2pettymrp_"+id).textContent=money(qty*mrp)}
