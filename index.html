@@ -355,6 +355,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
 }
 
 </style>
+<style id="dashboard-mrp-additions">.kpi-sub{margin-top:7px;color:#a9bfd4;font-size:12px;font-weight:700;letter-spacing:.2px}</style>
 <style id="daily-counter-additions">.dashboard-link{cursor:pointer;transition:transform .15s,box-shadow .15s}.dashboard-link:hover{transform:translateY(-2px);box-shadow:0 8px 22px #0002}.dashboard-link:focus{outline:2px solid #d6a900;outline-offset:2px}#inventoryDayCounter .kpi{min-width:0}#inventoryDayCounter input{max-width:100%}</style>
 </head>
 <body>
@@ -382,16 +383,16 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
  <section id="home" class="page active">
   <div class="hero"><div class="hero-copy"><div class="eyebrow">Your business. One dashboard.</div><h1>Welcome to your<br><span>store command centre.</span></h1><p>Manage liquor and beer operations from one place. Track products, record sales, manage purchases and stay on top of daily cash.</p></div><div class="hero-art"><span>🥃</span><span>🍺</span></div></div>
   <div class="kpis">
-   <div class="kpi glass"><span class="kpi-icon">▦</span><small>Total products</small><strong id="count">—</strong></div>
+   <div class="kpi glass"><span class="kpi-icon">▦</span><small>Total brand in shop</small><strong id="count">—</strong></div>
    <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('sales')"><span class="kpi-icon">↗</span><small>Today's total sales</small><strong id="todaySales">₹0.00</strong></div>
    <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('liquorSales')"><span class="kpi-icon">🥃</span><small>Today's liquor sale</small><strong id="todayLiquorSales">₹0.00</strong></div>
    <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('beerSales')"><span class="kpi-icon">🍺</span><small>Today's beer sale</small><strong id="todayBeerSales">₹0.00</strong></div>
    <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('purchases')"><span class="kpi-icon">⇩</span><small>Today's purchases</small><strong id="todayPurchase">₹0.00</strong></div>
-   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('stock')"><span class="kpi-icon">◈</span><small>Total stock units</small><strong id="dashStock">—</strong></div>
+   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('stock')"><span class="kpi-icon">◈</span><small>Balance stock &amp; qty</small><strong id="dashStock">—</strong><div class="kpi-sub" id="dashStockMrp">MRP Value: ₹0.00</div></div>
    <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('low')"><span class="kpi-icon">⚠</span><small>Low stock products</small><strong id="dashLow">—</strong></div>
-   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('beer')"><span class="kpi-icon">🍺</span><small>Beer stock</small><strong id="dashBeer">—</strong></div>
-   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('liquor')"><span class="kpi-icon">🥃</span><small>Liquor stock</small><strong id="dashLiquor">—</strong></div>
-   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('history')"><span class="kpi-icon">▤</span><small>Sales (30 days)</small><strong id="dash30Sales">₹0.00</strong></div>
+   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('beer')"><span class="kpi-icon">🍺</span><small>Beer stock</small><strong id="dashBeer">—</strong><div class="kpi-sub" id="dashBeerMrp">MRP Value: ₹0.00</div></div>
+   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('liquor')"><span class="kpi-icon">🥃</span><small>Liquor stock</small><strong id="dashLiquor">—</strong><div class="kpi-sub" id="dashLiquorMrp">MRP Value: ₹0.00</div></div>
+   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('history')"><span class="kpi-icon">▤</span><small>This month sale</small><strong id="dash30Sales">₹0.00</strong></div>
   </div>
   <div class="section-head"><div><h3>Sales performance</h3><p>Daily sales value for the last 7 days</p></div><span class="tag">LIVE REPORT</span></div>
   <div class="panel glass"><div style="height:280px;position:relative"><canvas id="salesChart" aria-label="Sales graph"></canvas></div></div>
@@ -1441,7 +1442,7 @@ async function refresh(){
  if(!db||!user)return;
  setMsg("dashMsg","Refreshing dashboard, inventory sales and sales history…");
  try{
-  const d=today(),from=dateBack(29),chartFrom=dateBack(6),filterFrom=$("saleFrom").value||STOCK_START_DATE,filterTo=$("saleTo").value||d;
+  const d=today(),from=d.slice(0,7)+"-01",chartFrom=dateBack(6),filterFrom=$("saleFrom").value||STOCK_START_DATE,filterTo=$("saleTo").value||d;
   const [todayHeaders,allHeaders,monthHeaders,chartHeaders,manualToday,manualMonth,manualChart,manualHistory]=await Promise.all([
    db.from("sales").select("id").eq("sale_date",d),
    (()=>{let q=db.from("sales").select("id,sale_date,bill_number,category,payment_mode").gte("sale_date",filterFrom).lte("sale_date",filterTo).order("sale_date",{ascending:false});if($("saleCategory").value!=="all")q=q.ilike("category",$("saleCategory").value);return q})(),
@@ -1482,7 +1483,21 @@ async function refresh(){
   $("hist").innerHTML=[...billRows,...manualRows].sort((a,b)=>0).join("")||'<tr><td colspan="8" class="empty">No sales recorded for this date range.</td></tr>';
   const labels=[],values=[];for(let i=6;i>=0;i--){const day=dateBack(i);labels.push(new Date(day+"T00:00:00").toLocaleDateString("en-IN",{day:"2-digit",month:"short"}));const dayIds=new Set((chartHeaders.data||[]).filter(x=>x.sale_date===day).map(x=>x.id));values.push(sum(chartItems.filter(x=>dayIds.has(x.sale_id)))+inventorySalesSum(manualChart.filter(x=>x.sale_date===day)))}
   if(window.Chart&&$("salesChart")){if(salesChart)salesChart.destroy();salesChart=new Chart($("salesChart"),{type:"bar",data:{labels,datasets:[{label:"Sales amount",data:values,backgroundColor:"rgba(53,200,120,.72)",borderColor:"#42d39a",borderWidth:1,borderRadius:8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:"#dce8df"}},tooltip:{callbacks:{label:c=>" "+money(c.raw)}}},scales:{x:{ticks:{color:"#aab9af"},grid:{color:"rgba(255,255,255,.05)"}},y:{beginAtZero:true,ticks:{color:"#aab9af",callback:v=>"₹"+Number(v).toLocaleString("en-IN")},grid:{color:"rgba(255,255,255,.08)"}}}}})}
-  if(products.length){const total=products.reduce((a,p)=>a+stockFor(p).available,0);$("dashStock").textContent=total.toLocaleString("en-IN");$("dashLow").textContent=products.filter(p=>stockFor(p).available<=5).length;$("dashBeer").textContent=products.filter(p=>String(p.category).toLowerCase()==="beer").reduce((a,p)=>a+stockFor(p).available,0).toLocaleString("en-IN");$("dashLiquor").textContent=products.filter(p=>String(p.category).toLowerCase()==="liquor").reduce((a,p)=>a+stockFor(p).available,0).toLocaleString("en-IN")}
+  if(products.length){
+   const brandCount=new Set(products.map(p=>String(p.brand_name||"").trim().toLowerCase()).filter(Boolean)).size;
+   const beerProducts=products.filter(p=>String(p.category||"").toLowerCase()==="beer");
+   const liquorProducts=products.filter(p=>String(p.category||"").toLowerCase()==="liquor");
+   const stockQty=rows=>rows.reduce((a,p)=>a+stockFor(p).available,0);
+   const stockMrp=rows=>rows.reduce((a,p)=>a+stockFor(p).mrpValue,0);
+   $("count").textContent=brandCount.toLocaleString("en-IN");
+   $("dashStock").textContent=stockQty(products).toLocaleString("en-IN");
+   $("dashStockMrp").textContent="MRP Value: "+money(stockMrp(products));
+   $("dashLow").textContent=products.filter(p=>stockFor(p).available<=5).length;
+   $("dashBeer").textContent=stockQty(beerProducts).toLocaleString("en-IN");
+   $("dashBeerMrp").textContent="MRP Value: "+money(stockMrp(beerProducts));
+   $("dashLiquor").textContent=stockQty(liquorProducts).toLocaleString("en-IN");
+   $("dashLiquorMrp").textContent="MRP Value: "+money(stockMrp(liquorProducts));
+  }
   setMsg("dashMsg","Cloud sync complete · Bill sales + Inventory Final Save sales included in dashboard, graph and history.");
  }catch(e){setMsg("dashMsg","Dashboard refresh error: "+(e.message||String(e)));console.error("Dashboard refresh:",e)}
 }
