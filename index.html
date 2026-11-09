@@ -356,6 +356,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
 
 </style>
 <style id="dashboard-mrp-additions">.kpi-sub{margin-top:7px;color:#a9bfd4;font-size:12px;font-weight:700;letter-spacing:.2px}</style>
+<style id="fl2-workspace-additions">#fl2 .table-wrap{overflow-x:auto}#fl2 table input{min-width:88px;width:100%;max-width:130px}#fl2 .section-head{gap:12px;flex-wrap:wrap}#fl2 .status{margin:12px 0}</style>
 <style id="daily-counter-additions">.dashboard-link{cursor:pointer;transition:transform .15s,box-shadow .15s}.dashboard-link:hover{transform:translateY(-2px);box-shadow:0 8px 22px #0002}.dashboard-link:focus{outline:2px solid #d6a900;outline-offset:2px}#inventoryDayCounter .kpi{min-width:0}#inventoryDayCounter input{max-width:100%}</style>
 </head>
 <body>
@@ -373,6 +374,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
   <button data-page="inventory" onclick="showPage('inventory',this)"><span class="ico">▦</span>Inventory</button>
   <button data-page="profit" onclick="showPage('profit',this)"><span class="ico">₹</span>Profit & Margin</button>
   <button data-page="cash" onclick="showPage('cash',this)"><span class="ico">▤</span>Daybook</button>
+  <button data-page="fl2" onclick="showPage('fl2',this)"><span class="ico">▤</span>FL2 to Shop</button>
   <button data-page="history" onclick="showPage('history',this)"><span class="ico">◷</span>Sales History</button>
  </nav>
  <div class="side-bottom"><div class="user-chip"><small>LOGGED IN AS</small><strong id="who">Cloud user</strong></div><button class="btn secondary full" style="margin-top:10px" onclick="logout()">↪ Sign out</button></div>
@@ -487,6 +489,52 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
   <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))"><div class="kpi glass"><small>Today's Inventory Profit</small><strong id="dbProfit">₹0.00</strong></div><div class="kpi glass"><small>Profit after listed expenses</small><strong id="dbNetProfit">₹0.00</strong></div><div class="kpi glass"><small>Total expenses</small><strong id="dbSummaryExpenses">₹0.00</strong></div></div>
  </section>
 
+
+ <section id="fl2" class="page">
+  <div class="section-head"><div><h3>FL2 to Shop</h3><p>Manual invoice register and brand-wise wholesale price management · Does not affect stock</p></div><span class="tag">SEPARATE REGISTER</span></div>
+  <div class="category-cards">
+   <div class="category-card liquor glass"><div><span class="tag">INVOICE REGISTER</span><h4>FL2 Invoice Entry</h4><p>Record incoming shop invoices manually without changing inventory or stock.</p><button class="btn" type="button" onclick="fl2Tab('invoice')">Open Invoice Register →</button></div><div class="art">🧾</div></div>
+   <div class="category-card beer glass"><div><span class="tag">BRAND RATE CARD</span><h4>Wholesale Price</h4><p>Manage per-bottle wholesale price and MRP by Liquor / Beer brand.</p><button class="btn" type="button" onclick="fl2Tab('wholesale')">Open Wholesale Price →</button></div><div class="art">₹</div></div>
+  </div>
+  <div id="fl2InvoicePanel" class="panel glass">
+   <div class="section-head" style="margin-top:0"><div><h3>Manual FL2 Invoice Entry</h3><p>One invoice line per brand; add another line for another brand.</p></div><button class="btn secondary" type="button" onclick="fl2Tab('home')">← FL2 Home</button></div>
+   <div class="form-grid">
+    <label>Invoice date<input type="date" id="fl2Date"></label>
+    <label>Invoice number<input type="text" id="fl2InvoiceNo" placeholder="Enter invoice number"></label>
+    <label>Category<select id="fl2Category" onchange="fl2FillBrands()"><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label>
+    <label>Brand / Product<select id="fl2Product" onchange="fl2InvoiceRateFill()"></select></label>
+    <label>Quantity<input type="number" id="fl2Qty" min="0.01" step="0.01" placeholder="Enter quantity"></label>
+    <label>Per bottle wholesale price (₹)<input type="number" id="fl2Wholesale" min="0" step="0.01" placeholder="0.00"></label>
+    <label>Per bottle MRP (₹)<input type="number" id="fl2Mrp" min="0" step="0.01" placeholder="0.00"></label>
+    <label>Invoice line total (₹)<input type="text" id="fl2LineTotal" readonly value="₹0.00"></label>
+   </div>
+   <div class="section-head"><div><p>QR scanning option is reserved for a future update.</p></div><button class="btn secondary" type="button" disabled title="QR scanning will be added later">▦ QR Scan (Coming soon)</button></div>
+   <div class="section-head"><div></div><button class="btn" type="button" onclick="saveFl2Invoice()">Save FL2 Invoice Line</button></div>
+   <div class="status" id="fl2InvoiceMsg">Invoice records are separate from Inventory and do not update stock.</div>
+  </div>
+  <div id="fl2WholesalePanel" class="panel glass" style="display:none">
+   <div class="section-head" style="margin-top:0"><div><h3>Wholesale Price</h3><p>Saved wholesale price and MRP will also update the selected brand in Inventory.</p></div><button class="btn secondary" type="button" onclick="fl2Tab('home')">← FL2 Home</button></div>
+   <div class="form-grid">
+    <label>Category<select id="fl2RateCategory" onchange="fl2DrawWholesale()"><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label>
+    <label>Search brand<input id="fl2RateSearch" type="search" placeholder="Search brand..." oninput="fl2DrawWholesale()"></label>
+   </div>
+   <div class="table-wrap"><table><thead><tr><th>Brand</th><th>Size</th><th>Qty</th><th>Wholesale / Bottle</th><th>Petty Wholesale</th><th>MRP / Bottle</th><th>Petty MRP</th><th>Save</th></tr></thead><tbody id="fl2RateRows"><tr><td colspan="8" class="empty">Loading brands…</td></tr></tbody></table></div>
+   <div class="status" id="fl2RateMsg">Petty values are calculated as per-bottle price × entered quantity.</div>
+  </div>
+  <div id="fl2ReportPanel" class="panel glass" style="display:none">
+   <div class="section-head" style="margin-top:0"><div><h3>FL2 Invoice Report</h3><p>Filter saved invoice lines by date, brand and category.</p></div><button class="btn secondary" type="button" onclick="fl2Tab('home')">← FL2 Home</button></div>
+   <div class="form-grid">
+    <label>Date from<input type="date" id="fl2From"></label><label>Date to<input type="date" id="fl2To"></label>
+    <label>Category<select id="fl2FilterCategory"><option value="all">Liquor & Beer</option><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label>
+    <label>Brand<select id="fl2FilterBrand"><option value="all">All brands</option></select></label>
+    <div style="align-self:end"><button class="btn" type="button" onclick="loadFl2Report()">Apply</button></div>
+   </div>
+   <div class="status" id="fl2ReportMsg">Choose filters and press Apply.</div>
+   <div class="table-wrap"><table><thead><tr><th>Date</th><th>Invoice No.</th><th>Category</th><th>Brand</th><th>Qty</th><th>Wholesale / Bottle</th><th>Invoice Line Total</th><th>MRP / Bottle</th><th>Petty MRP</th></tr></thead><tbody id="fl2ReportRows"><tr><td colspan="9" class="empty">No report loaded.</td></tr></tbody></table></div>
+  </div>
+  <div class="section-head"><div><h3>Invoice Reports</h3><p>Open date-wise FL2 invoice records</p></div><button class="btn secondary" type="button" onclick="fl2Tab('report')">View FL2 Reports →</button></div>
+ </section>
+
  <section id="history" class="page">
   <div class="section-head"><div><h3>Sales history</h3><p>Latest recorded sales · Backdate allowed from 02 Nov 2026</p></div><button class="btn secondary" onclick="refresh()">↻ Reload history</button></div>
   <div class="panel glass"><div class="form-grid"><label>Sale date from<input id="saleFrom" type="date" min="2026-11-02"></label><label>Sale date to<input id="saleTo" type="date" min="2026-11-02"></label><label>Brand filter<select id="saleBrand"><option value="all">All brands</option></select></label><label>Category<select id="saleCategory"><option value="all">All</option><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label><div style="align-self:end"><button class="btn" type="button" onclick="viewSalesHistory()">View</button> <button class="btn secondary" type="button" onclick="clearSalesHistoryFilters()">Clear</button></div></div><div class="status" id="saleHistoryStatus">Select start date and end date, then press View.</div></div>
@@ -560,9 +608,9 @@ function showPage(id,button){
  $(id).classList.add("active");
  const navId=id==="inventoryWork"?"inventory":id;
  document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===navId));
- const titles={home:["Business overview","Your store performance at a glance"],inventory:["Choose inventory","Select Liquor or Beer to continue"],inventoryWork:["Inventory register","Manage the selected department"],profit:["Profit & margin","Monthly profit, day-end closing and bottle-wise margin"],cash:["Daybook","Date-wise cash, collections, expenses and profit"],history:["Sales history","Review recent recorded transactions"]};
+ const titles={home:["Business overview","Your store performance at a glance"],inventory:["Choose inventory","Select Liquor or Beer to continue"],inventoryWork:["Inventory register","Manage the selected department"],profit:["Profit & margin","Monthly profit, day-end closing and bottle-wise margin"],cash:["Daybook","Date-wise cash, collections, expenses and profit"],history:["Sales history","Review recent recorded transactions"],fl2:["FL2 to Shop","Separate invoice register and wholesale price management"]};
  $("pageTitle").textContent=titles[id][0];$("pageSubtitle").textContent=titles[id][1];
- if(id==="history")refresh();if(id==="profit"){setProfitPeriod();loadProfitReport()}if(id==="cash"){if($("daybookDate"))$("daybookDate").value=$("inventoryDate")?.value||today();loadDaybook()}
+ if(id==="history")refresh();if(id==="fl2"){fl2Tab("home");fl2FillBrands();fl2FillFilterBrands()}if(id==="profit"){setProfitPeriod();loadProfitReport()}if(id==="cash"){if($("daybookDate"))$("daybookDate").value=$("inventoryDate")?.value||today();loadDaybook()}
 }
 function setCategory(cat){$("cat").value=cat;if($("whCategory"))$("whCategory").value=cat;$("search").value="";$("inventoryWorkTitle").textContent=cat==="liquor"?"Liquor Inventory":"Beer Inventory";$("inventoryWorkSubtitle").textContent=cat==="liquor"?"Manage all liquor brands and bottle sizes":"Manage beer brands and quantities";showPage("inventoryWork");drawProducts();if($("dayCounterDate")){$("dayCounterDate").value=$("inventoryDate").value||dateBack(0);loadInventoryDayCounter()}}
 async function loadProducts(){
@@ -1502,6 +1550,62 @@ async function refresh(){
  }catch(e){setMsg("dashMsg","Dashboard refresh error: "+(e.message||String(e)));console.error("Dashboard refresh:",e)}
 }
 (async()=>{try{initDb();const {data}=await db.auth.getSession();if(data.session){user=data.session.user;await openApp()}}catch(e){console.error("Startup:",e);setMsg("loginMsg","Startup error: "+e.message)}})();
+
+function fl2Tab(which){
+ const panels={home:[],invoice:["fl2InvoicePanel"],wholesale:["fl2WholesalePanel"],report:["fl2ReportPanel"]};
+ ["fl2InvoicePanel","fl2WholesalePanel","fl2ReportPanel"].forEach(id=>$(id).style.display=(panels[which]||[]).includes(id)?"block":"none");
+ if(which==="invoice"){if(!$("fl2Date").value)$("fl2Date").value=today();fl2FillBrands()}
+ if(which==="wholesale")fl2DrawWholesale();
+ if(which==="report"){if(!$("fl2From").value)$("fl2From").value=today().slice(0,7)+"-01";if(!$("fl2To").value)$("fl2To").value=today();fl2FillFilterBrands()}
+}
+function fl2FillBrands(){
+ const cat=$("fl2Category").value,list=products.filter(p=>String(p.category||"").toLowerCase()===cat);
+ $("fl2Product").innerHTML=list.map(p=>`<option value="${safe(p.id)}">${safe(p.brand_name)} · ${safe(p.size)}</option>`).join("")||'<option value="">No brands found</option>';
+ fl2InvoiceRateFill();
+}
+function fl2InvoiceRateFill(){const p=products.find(x=>String(x.id)===$("fl2Product").value);$("fl2Wholesale").value=p?.wholesale_price??0;$("fl2Mrp").value=p?.mrp??0;fl2CalcInvoiceTotal()}
+function fl2CalcInvoiceTotal(){$("fl2LineTotal").value=money(num($("fl2Qty").value)*num($("fl2Wholesale").value))}
+["fl2Qty","fl2Wholesale"].forEach(id=>$(id)?.addEventListener("input",fl2CalcInvoiceTotal));
+async function saveFl2Invoice(){
+ const p=products.find(x=>String(x.id)===$("fl2Product").value),date=$("fl2Date").value,invoiceNo=$("fl2InvoiceNo").value.trim(),qty=num($("fl2Qty").value),wholesale=num($("fl2Wholesale").value),mrp=num($("fl2Mrp").value);
+ if(!date||!invoiceNo||!p||qty<=0||wholesale<0||mrp<0){setMsg("fl2InvoiceMsg","Invoice date, invoice number, brand, valid quantity and prices are required.");return}
+ const payload={user_id:user.id,invoice_date:date,invoice_no:invoiceNo,category:String(p.category).toLowerCase(),product_id:p.id,brand_name:p.brand_name,size:p.size,quantity:qty,wholesale_price:wholesale,line_total:qty*wholesale,mrp};
+ setMsg("fl2InvoiceMsg","Saving invoice line…");
+ try{const {error}=await db.from("fl2_shop_invoice_lines").insert(payload);if(error)throw error;setMsg("fl2InvoiceMsg","Invoice line saved. Inventory and stock were not changed.");$("fl2Qty").value="";$("fl2InvoiceNo").value="";fl2CalcInvoiceTotal()}
+ catch(e){setMsg("fl2InvoiceMsg","Save failed: "+e.message+". Create the FL2 table in Supabase using the supplied SQL file.")}
+}
+function fl2FillFilterBrands(){
+ const cat=$("fl2FilterCategory").value,list=products.filter(p=>cat==="all"||String(p.category).toLowerCase()===cat),old=$("fl2FilterBrand").value||"all";
+ $("fl2FilterBrand").innerHTML='<option value="all">All brands</option>'+list.map(p=>`<option value="${safe(p.id)}">${safe(p.brand_name)} · ${safe(p.size)}</option>`).join("");
+ if([...$("fl2FilterBrand").options].some(o=>o.value===old))$("fl2FilterBrand").value=old;
+}
+$("fl2FilterCategory")?.addEventListener("change",fl2FillFilterBrands);
+async function loadFl2Report(){
+ const from=$("fl2From").value,to=$("fl2To").value,cat=$("fl2FilterCategory").value,brand=$("fl2FilterBrand").value;
+ if(!from||!to||from>to){setMsg("fl2ReportMsg","Valid date range select karein.");return}
+ setMsg("fl2ReportMsg","Loading FL2 invoice report…");
+ try{
+  let q=db.from("fl2_shop_invoice_lines").select("invoice_date,invoice_no,category,product_id,brand_name,size,quantity,wholesale_price,line_total,mrp").gte("invoice_date",from).lte("invoice_date",to).order("invoice_date",{ascending:false});
+  if(cat!=="all")q=q.eq("category",cat);if(brand!=="all")q=q.eq("product_id",brand);
+  const {data,error}=await q;if(error)throw error;
+  $("fl2ReportRows").innerHTML=(data||[]).map(r=>`<tr><td>${safe(r.invoice_date)}</td><td>${safe(r.invoice_no)}</td><td>${safe(r.category)}</td><td>${safe(r.brand_name)} · ${safe(r.size)}</td><td>${num(r.quantity).toLocaleString("en-IN")}</td><td>${money(r.wholesale_price)}</td><td>${money(r.line_total)}</td><td>${money(r.mrp)}</td><td>${money(num(r.quantity)*num(r.mrp))}</td></tr>`).join("")||'<tr><td colspan="9" class="empty">No FL2 invoice records found for these filters.</td></tr>';
+  setMsg("fl2ReportMsg",`${(data||[]).length} invoice lines · Total wholesale amount ${money((data||[]).reduce((a,r)=>a+num(r.line_total),0))} · Inventory stock unchanged.`);
+ }catch(e){setMsg("fl2ReportMsg","Report failed: "+e.message+". Create the FL2 table in Supabase using the supplied SQL file.")}
+}
+function fl2DrawWholesale(){
+ const cat=$("fl2RateCategory").value,q=($("fl2RateSearch").value||"").toLowerCase();
+ const rows=products.filter(p=>String(p.category||"").toLowerCase()===cat&&(`${p.brand_name} ${p.size}`).toLowerCase().includes(q));
+ $("fl2RateRows").innerHTML=rows.map(p=>`<tr><td><b>${safe(p.brand_name)}</b></td><td>${safe(p.size)}</td><td><input id="fl2qty_${safe(p.id)}" type="number" min="0" step=".01" value="1" oninput="fl2CalcRateRow('${safe(p.id)}')"></td><td><input id="fl2wh_${safe(p.id)}" type="number" min="0" step=".01" value="${num(p.wholesale_price)}" oninput="fl2CalcRateRow('${safe(p.id)}')"></td><td id="fl2petty_${safe(p.id)}">${money(num(p.wholesale_price))}</td><td><input id="fl2mrp_${safe(p.id)}" type="number" min="0" step=".01" value="${num(p.mrp)}" oninput="fl2CalcRateRow('${safe(p.id)}')"></td><td id="fl2pettymrp_${safe(p.id)}">${money(num(p.mrp))}</td><td><button class="btn" onclick="fl2SaveRate('${safe(p.id)}',this)">Save</button></td></tr>`).join("")||'<tr><td colspan="8" class="empty">No brands found.</td></tr>';
+}
+function fl2CalcRateRow(id){const qty=num($("fl2qty_"+id).value),wh=num($("fl2wh_"+id).value),mrp=num($("fl2mrp_"+id).value);$("fl2petty_"+id).textContent=money(qty*wh);$("fl2pettymrp_"+id).textContent=money(qty*mrp)}
+async function fl2SaveRate(id,button){
+ const wh=num($("fl2wh_"+id).value),mrp=num($("fl2mrp_"+id).value);
+ if(wh<0||mrp<0){alert("Wholesale price and MRP must be non-negative.");return}
+ button.disabled=true;
+ try{const {data,error}=await db.from("inventory_products").update({wholesale_price:wh,mrp}).eq("id",id).select("id,wholesale_price,mrp").single();if(error)throw error;const p=products.find(x=>String(x.id)===String(id));if(p){p.wholesale_price=data.wholesale_price;p.mrp=data.mrp}fl2CalcRateRow(id);setMsg("fl2RateMsg","Wholesale price and MRP saved to Inventory for this brand. Profit calculations use the updated rates.")}
+ catch(e){setMsg("fl2RateMsg","Rate save failed: "+e.message)}finally{button.disabled=false}
+}
+
 </script>
 </body>
 </html>
