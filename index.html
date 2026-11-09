@@ -356,6 +356,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
 
 </style>
 <style id="dashboard-mrp-additions">.kpi-sub{margin-top:7px;color:#a9bfd4;font-size:12px;font-weight:700;letter-spacing:.2px}</style>
+<style id="fl2-workspace-additions">#fl2ReconciliationPanel .kpis{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}#fl2ReconciliationPanel .table-wrap{overflow-x:auto}#fl2ReconciliationPanel table{min-width:1050px}#fl2ReconciliationPanel .status{white-space:normal}</style>
 <style id="fl2-workspace-additions">#fl2 .table-wrap{overflow-x:auto}#fl2 table input{min-width:88px;width:100%;max-width:130px}#fl2 .section-head{gap:12px;flex-wrap:wrap}#fl2 .status{margin:12px 0}</style>
 <style id="daily-counter-additions">.dashboard-link{cursor:pointer;transition:transform .15s,box-shadow .15s}.dashboard-link:hover{transform:translateY(-2px);box-shadow:0 8px 22px #0002}.dashboard-link:focus{outline:2px solid #d6a900;outline-offset:2px}#inventoryDayCounter .kpi{min-width:0}#inventoryDayCounter input{max-width:100%}</style>
 </head>
@@ -495,6 +496,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
   <div class="category-cards">
    <div class="category-card liquor glass"><div><span class="tag">INVOICE REGISTER</span><h4>FL2 Invoice Entry</h4><p>Record incoming shop invoices manually without changing inventory or stock.</p><button class="btn" type="button" onclick="fl2Tab('invoice')">Open Invoice Register →</button></div><div class="art">🧾</div></div>
    <div class="category-card beer glass"><div><span class="tag">BRAND RATE CARD</span><h4>Wholesale Price</h4><p>Manage per-bottle wholesale price and MRP by Liquor / Beer brand.</p><button class="btn" type="button" onclick="fl2Tab('wholesale')">Open Wholesale Price →</button></div><div class="art">₹</div></div>
+   <div class="category-card liquor glass"><div><span class="tag">BUSINESS PERFORMANCE</span><h4>Reconciliation</h4><p>Six-month purchase, stock value, MRP sales, cash received and profit analysis.</p><button class="btn" type="button" onclick="fl2Tab('reconciliation')">Open Reconciliation →</button></div><div class="art">📊</div></div>
   </div>
   <div id="fl2InvoicePanel" class="panel glass">
    <div class="section-head" style="margin-top:0"><div><h3>Manual FL2 Invoice Entry</h3><p>One invoice line per brand; add another line for another brand.</p></div><button class="btn secondary" type="button" onclick="fl2Tab('home')">← FL2 Home</button></div>
@@ -531,6 +533,33 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
    </div>
    <div class="status" id="fl2ReportMsg">Choose filters and press Apply.</div>
    <div class="table-wrap"><table><thead><tr><th>Date</th><th>Invoice No.</th><th>Category</th><th>Brand</th><th>Qty</th><th>Wholesale / Bottle</th><th>Invoice Line Total</th><th>MRP / Bottle</th><th>Petty MRP</th></tr></thead><tbody id="fl2ReportRows"><tr><td colspan="9" class="empty">No report loaded.</td></tr></tbody></table></div>
+  </div>
+
+  <div id="fl2ReconciliationPanel" class="panel glass" style="display:none">
+   <div class="section-head" style="margin-top:0"><div><h3>Business Reconciliation</h3><p>Inventory purchases, wholesale cost, MRP value, sales, cash collections and estimated profit · Last 6 months</p></div><button class="btn secondary" type="button" onclick="fl2Tab('home')">← FL2 Home</button></div>
+   <div class="form-grid">
+    <label>From date<input type="date" id="fl2ReconFrom"></label>
+    <label>To date<input type="date" id="fl2ReconTo"></label>
+    <label>Category<select id="fl2ReconCategory"><option value="all">Liquor + Beer</option><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label>
+    <div style="align-self:end"><button class="btn" type="button" onclick="loadFl2Reconciliation()">Apply Filters</button></div>
+   </div>
+   <div class="status" id="fl2ReconStatus">Choose a date range and press Apply. Maximum range is the latest six months.</div>
+   <div class="kpis" style="margin-top:14px">
+    <div class="kpi glass"><small>Inventory Purchase Qty</small><strong id="frPurchaseQty">0</strong></div>
+    <div class="kpi glass"><small>Wholesale Purchase Cost</small><strong id="frWholesaleCost">₹0.00</strong></div>
+    <div class="kpi glass"><small>Incoming Stock MRP Value</small><strong id="frIncomingMrp">₹0.00</strong></div>
+    <div class="kpi glass"><small>Actual MRP Sales</small><strong id="frActualSales">₹0.00</strong></div>
+    <div class="kpi glass"><small>Gross Profit Estimate</small><strong id="frGrossProfit">₹0.00</strong></div>
+    <div class="kpi glass"><small>Cash + Online Received</small><strong id="frReceived">₹0.00</strong></div>
+    <div class="kpi glass"><small>Rokad / Closing Cash</small><strong id="frRokad">₹0.00</strong></div>
+    <div class="kpi glass"><small>Expenses</small><strong id="frExpenses">₹0.00</strong></div>
+    <div class="kpi glass"><small>Net Profit Estimate</small><strong id="frNetProfit">₹0.00</strong></div>
+   </div>
+   <div class="section-head"><div><h3>Monthly Reconciliation</h3><p>Month-wise Liquor and Beer purchase, with six-month Beer inward quantity.</p></div></div>
+   <div class="table-wrap"><table><thead><tr><th>Month</th><th>Liquor Purchase Qty</th><th>Beer Purchase Qty</th><th>Beer MRP Value</th><th>Total Wholesale Cost</th><th>Actual MRP Sales</th><th>Gross Profit</th><th>Cash Received</th><th>Online Received</th><th>Expenses</th><th>Net Profit</th></tr></thead><tbody id="fl2ReconMonthRows"><tr><td colspan="11" class="empty">No report loaded.</td></tr></tbody></table></div>
+   <div class="section-head"><div><h3>Selected Date Reconciliation</h3><p>Daily stock movement and cash-register values for the selected range.</p></div></div>
+   <div class="table-wrap"><table><thead><tr><th>Date</th><th>Category</th><th>Purchase Qty</th><th>Wholesale Cost</th><th>Incoming MRP</th><th>Sale Qty</th><th>Actual MRP Sales</th><th>Gross Profit</th><th>Cash</th><th>Online</th><th>Rokad</th><th>Expenses</th></tr></thead><tbody id="fl2ReconDayRows"><tr><td colspan="12" class="empty">No report loaded.</td></tr></tbody></table></div>
+   <p class="status">Calculation note: Purchase Cost = inventory purchase quantity × current saved wholesale price. Incoming MRP = purchase quantity × current saved MRP (potential retail value, not confirmed sales). Actual MRP Sales and Gross Profit use inventory sale quantity. Net Profit Estimate = Gross Profit − recorded expenses. Cash/Online/Rokad are fetched from Inventory Daily Counter &amp; Cash Reconciliation. Values use the product's currently saved rates, not historical rate snapshots.</p>
   </div>
   <div class="section-head"><div><h3>Invoice Reports</h3><p>Open date-wise FL2 invoice records</p></div><button class="btn secondary" type="button" onclick="fl2Tab('report')">View FL2 Reports →</button></div>
  </section>
@@ -1581,11 +1610,12 @@ async function refresh(){
 (async()=>{try{initDb();const {data}=await db.auth.getSession();if(data.session){user=data.session.user;await openApp()}}catch(e){console.error("Startup:",e);setMsg("loginMsg","Startup error: "+e.message)}})();
 
 function fl2Tab(which){
- const panels={home:[],invoice:["fl2InvoicePanel"],wholesale:["fl2WholesalePanel"],report:["fl2ReportPanel"]};
- ["fl2InvoicePanel","fl2WholesalePanel","fl2ReportPanel"].forEach(id=>$(id).style.display=(panels[which]||[]).includes(id)?"block":"none");
+ const panels={home:[],invoice:["fl2InvoicePanel"],wholesale:["fl2WholesalePanel"],report:["fl2ReportPanel"],reconciliation:["fl2ReconciliationPanel"]};
+ ["fl2InvoicePanel","fl2WholesalePanel","fl2ReportPanel","fl2ReconciliationPanel"].forEach(id=>$(id).style.display=(panels[which]||[]).includes(id)?"block":"none");
  if(which==="invoice"){if(!$("fl2Date").value)$("fl2Date").value=today();fl2FillBrands()}
  if(which==="wholesale")fl2DrawWholesale();
  if(which==="report"){if(!$("fl2From").value)$("fl2From").value=today().slice(0,7)+"-01";if(!$("fl2To").value)$("fl2To").value=today();fl2FillFilterBrands()}
+ if(which==="reconciliation"){if(!$("fl2ReconTo").value)$("fl2ReconTo").value=today();if(!$("fl2ReconFrom").value)$("fl2ReconFrom").value=fl2SixMonthsAgo();loadFl2Reconciliation()}
 }
 function fl2FillBrands(){
  const cat=$("fl2Category").value,list=orderedProductsByOwnerSequence(products.filter(p=>String(p.category||"").toLowerCase()===cat));
@@ -1633,6 +1663,71 @@ async function fl2SaveRate(id,button){
  button.disabled=true;
  try{const {data,error}=await db.from("inventory_products").update({wholesale_price:wh,mrp}).eq("id",id).select("id,wholesale_price,mrp").single();if(error)throw error;const p=products.find(x=>String(x.id)===String(id));if(p){p.wholesale_price=data.wholesale_price;p.mrp=data.mrp}fl2CalcRateRow(id);setMsg("fl2RateMsg","Wholesale price and MRP saved to Inventory for this brand. Profit calculations use the updated rates.")}
  catch(e){setMsg("fl2RateMsg","Rate save failed: "+e.message)}finally{button.disabled=false}
+}
+
+
+function fl2SixMonthsAgo(){
+ const d=new Date();d.setMonth(d.getMonth()-5);d.setDate(1);
+ return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+}
+function fl2MonthKey(date){return String(date||"").slice(0,7)}
+function fl2MonthLabel(key){const [y,m]=key.split("-").map(Number);return new Date(y,m-1,1).toLocaleDateString("en-IN",{month:"short",year:"numeric"})}
+async function loadFl2Reconciliation(){
+ if(!db||!user)return;
+ const from=$("fl2ReconFrom").value,to=$("fl2ReconTo").value,category=$("fl2ReconCategory").value;
+ if(!from||!to||from>to){setMsg("fl2ReconStatus","Please select a valid date range.");return}
+ const minAllowed=fl2SixMonthsAgo();
+ if(from<minAllowed){setMsg("fl2ReconStatus",`Reconciliation is limited to the latest six months. Select ${minAllowed} or later.`);return}
+ setMsg("fl2ReconStatus","Fetching Inventory movements and Cash Register data…");
+ try{
+  const [movementResult,counterResult,expenseResult]=await Promise.all([
+   db.from("inventory_register_entries").select("product_id,entry_date,purchase_qty,sale_qty").eq("user_id",user.id).gte("entry_date",from).lte("entry_date",to).order("entry_date"),
+   db.from("inventory_day_summary").select("record_date,category,cash_received,online_received,closing_cash,expense_amount").eq("user_id",user.id).gte("record_date",from).lte("record_date",to).order("record_date"),
+   db.from("daily_expenses").select("expense_date,amount,payment_type").eq("user_id",user.id).gte("expense_date",from).lte("expense_date",to)
+  ]);
+  for(const r of [movementResult,counterResult,expenseResult])if(r.error)throw r.error;
+  const movements=movementResult.data||[],counters=counterResult.data||[],expenses=expenseResult.data||[];
+  const productIds=[...new Set(movements.map(x=>String(x.product_id)).filter(Boolean))];
+  const productMap=new Map(products.map(x=>[String(x.id),x]));
+  const unknown=productIds.filter(id=>!productMap.has(id));
+  if(unknown.length){const {data,error}=await db.from("inventory_products").select("id,category,mrp,wholesale_price").eq("user_id",user.id).in("id",unknown);if(error)throw error;for(const x of data||[])productMap.set(String(x.id),x)}
+  const daily=new Map(),monthly=new Map();
+  const blank=()=>({liquorPurchaseQty:0,beerPurchaseQty:0,purchaseQty:0,wholesaleCost:0,incomingMrp:0,saleQty:0,actualSales:0,grossProfit:0,cash:0,online:0,rokad:0,expenses:0});
+  const get=(map,key)=>{if(!map.has(key))map.set(key,blank());return map.get(key)};
+  for(const row of movements){
+   const product=productMap.get(String(row.product_id));if(!product)continue;
+   const cat=String(product.category||"").toLowerCase();if(!["liquor","beer"].includes(cat)||(category!=="all"&&category!==cat))continue;
+   const purchase=num(row.purchase_qty),sale=num(row.sale_qty),wh=num(product.wholesale_price),mrp=num(product.mrp);
+   const values={purchaseQty:purchase,wholesaleCost:purchase*wh,incomingMrp:purchase*mrp,saleQty:sale,actualSales:sale*mrp,grossProfit:sale*(mrp-wh)};
+   const addTo=(target)=>{Object.keys(values).forEach(k=>target[k]+=values[k]);if(cat==="liquor")target.liquorPurchaseQty+=purchase;else target.beerPurchaseQty+=purchase};
+   addTo(get(daily,row.entry_date));addTo(get(monthly,fl2MonthKey(row.entry_date)));
+  }
+  for(const row of counters){
+   const cat=String(row.category||"").toLowerCase();if(category!=="all"&&category!==cat)continue;
+   const target=get(daily,row.record_date),month=get(monthly,fl2MonthKey(row.record_date));
+   for(const [k,v] of [["cash","cash_received"],["online","online_received"],["rokad","closing_cash"]]){target[k]+=num(row[v]);month[k]+=num(row[v])}
+   target.expenses+=num(row.expense_amount);month.expenses+=num(row.expense_amount);
+  }
+  for(const row of expenses){
+   const mode=String(row.payment_type||"").toLowerCase();
+   const d=get(daily,row.expense_date),m=get(monthly,fl2MonthKey(row.expense_date));
+   d.expenses+=num(row.amount);m.expenses+=num(row.amount);
+  }
+  // Month keys cover every month in the selected six-month window, even when no transactions occurred.
+  const monthKeys=[];let cursor=new Date(from.slice(0,7)+"-01T00:00:00");const end=new Date(to.slice(0,7)+"-01T00:00:00");
+  while(cursor<=end){monthKeys.push(cursor.toISOString().slice(0,7));cursor.setMonth(cursor.getMonth()+1)}
+  const totals=blank();
+  for(const key of monthKeys){const v=get(monthly,key);Object.keys(totals).forEach(k=>totals[k]+=v[k])}
+  $("frPurchaseQty").textContent=totals.purchaseQty.toLocaleString("en-IN",{maximumFractionDigits:2});
+  $("frWholesaleCost").textContent=money(totals.wholesaleCost);$("frIncomingMrp").textContent=money(totals.incomingMrp);
+  $("frActualSales").textContent=money(totals.actualSales);$("frGrossProfit").textContent=money(totals.grossProfit);
+  $("frReceived").textContent=money(totals.cash+totals.online);$("frRokad").textContent=money(totals.rokad);
+  $("frExpenses").textContent=money(totals.expenses);$("frNetProfit").textContent=money(totals.grossProfit-totals.expenses);
+  $("fl2ReconMonthRows").innerHTML=monthKeys.map(key=>{const v=get(monthly,key),net=v.grossProfit-v.expenses;return `<tr><td><b>${fl2MonthLabel(key)}</b></td><td>${v.liquorPurchaseQty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${v.beerPurchaseQty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${money(v.beerPurchaseQty?movements.filter(x=>fl2MonthKey(x.entry_date)===key).reduce((a,x)=>{const pr=productMap.get(String(x.product_id));return String(pr?.category||"").toLowerCase()==="beer"?a+num(x.purchase_qty)*num(pr.mrp):a},0):0)}</td><td>${money(v.wholesaleCost)}</td><td>${money(v.actualSales)}</td><td>${money(v.grossProfit)}</td><td>${money(v.cash)}</td><td>${money(v.online)}</td><td>${money(v.expenses)}</td><td>${money(net)}</td></tr>`}).join("");
+  const dayKeys=[...daily.keys()].sort();
+  $("fl2ReconDayRows").innerHTML=dayKeys.map(date=>{const v=daily.get(date);return `<tr><td>${safe(date)}</td><td>${category==="all"?"Liquor + Beer":safe(category)}</td><td>${v.purchaseQty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${money(v.wholesaleCost)}</td><td>${money(v.incomingMrp)}</td><td>${v.saleQty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${money(v.actualSales)}</td><td>${money(v.grossProfit)}</td><td>${money(v.cash)}</td><td>${money(v.online)}</td><td>${money(v.rokad)}</td><td>${money(v.expenses)}</td></tr>`}).join("")||'<tr><td colspan="12" class="empty">No Inventory movement or cash records found for this period.</td></tr>';
+  setMsg("fl2ReconStatus",`Reconciliation loaded: ${from} to ${to}. ${movements.length} Inventory movement rows and ${counters.length} Cash Register rows fetched. Profit is an estimate based on current saved MRP / wholesale rates.`);
+ }catch(e){setMsg("fl2ReconStatus","Reconciliation error: "+(e.message||String(e)));console.error(e)}
 }
 
 </script>
