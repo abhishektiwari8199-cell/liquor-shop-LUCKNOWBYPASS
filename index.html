@@ -386,9 +386,9 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
   <div class="hero"><div class="hero-copy"><div class="eyebrow">Your business. One dashboard.</div><h1>Welcome to your<br><span>store command centre.</span></h1><p>Manage liquor and beer operations from one place. Track products, record sales, manage purchases and stay on top of daily cash.</p></div><div class="hero-art"><span>🥃</span><span>🍺</span></div></div>
   <div class="kpis">
    <div class="kpi glass"><span class="kpi-icon">▦</span><small>Total brand in shop</small><strong id="count">—</strong></div>
-   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('sales')"><span class="kpi-icon">↗</span><small>Today's total sales</small><strong id="todaySales">₹0.00</strong></div>
-   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('liquorSales')"><span class="kpi-icon">🥃</span><small>Today's liquor sale</small><strong id="todayLiquorSales">₹0.00</strong></div>
-   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('beerSales')"><span class="kpi-icon">🍺</span><small>Today's beer sale</small><strong id="todayBeerSales">₹0.00</strong></div>
+   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('sales')"><span class="kpi-icon">↗</span><small>Today's total sales</small><strong id="todaySales">₹0.00</strong><div class="kpi-sub" id="todaySalesSplit">Liquor: ₹0.00 · Beer: ₹0.00</div></div>
+   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('liquorSales')"><span class="kpi-icon">🥃</span><small>Today's liquor sale</small><strong id="todayLiquorSales">₹0.00</strong><div class="kpi-sub" id="todayLiquorSizeQty">750 ML: 0 · 375 ML: 0 · 180 ML: 0 · 90 ML: 0</div></div>
+   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('beerSales')"><span class="kpi-icon">🍺</span><small>Today's beer sale</small><strong id="todayBeerSales">₹0.00</strong><div class="kpi-sub" id="todayBeerQty">0 bottles / cans sold</div></div>
    <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('purchases')"><span class="kpi-icon">⇩</span><small>Today's purchases</small><strong id="todayPurchase">₹0.00</strong></div>
    <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('stock')"><span class="kpi-icon">◈</span><small>Balance stock &amp; qty</small><strong id="dashStock">—</strong><div class="kpi-sub" id="dashStockMrp">MRP Value: ₹0.00</div></div>
    <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('low')"><span class="kpi-icon">⚠</span><small>Low stock products</small><strong id="dashLow">—</strong></div>
@@ -1522,6 +1522,25 @@ async function refresh(){
   $("todaySales").textContent=money(sum(todayItems)+manualTodayTotal);
   $("todayLiquorSales").textContent=money(todayLiquorAmount);
   $("todayBeerSales").textContent=money(todayBeerAmount);
+  // Live category and pack-size quantities for today's dashboard cards.
+  let todayBeerQty=0;
+  const liquorPackQty={"750":0,"375":0,"180":0,"90":0};
+  const productById=new Map(products.map(p=>[String(p.id),p]));
+  const addTodayQty=(productId,qty,categoryHint)=>{
+    const product=productById.get(String(productId));
+    const category=String(product?.category||categoryHint||"").toLowerCase();
+    if(category==="beer"){todayBeerQty+=num(qty);return}
+    if(category==="liquor"){
+      const sizeText=String(product?.size||"").toLowerCase().replace(/[^0-9]/g,"");
+      const pack=["750","375","180","90"].find(s=>sizeText.includes(s));
+      if(pack)liquorPackQty[pack]+=num(qty);
+    }
+  };
+  for(const row of todayItems)addTodayQty(row.product_id,row.quantity,todaySaleCategoryById.get(String(row.sale_id)));
+  for(const row of manualToday)addTodayQty(row.product_id,row.quantity,row.category);
+  $("todaySalesSplit").textContent=`Liquor: ${money(todayLiquorAmount)} · Beer: ${money(todayBeerAmount)}`;
+  $("todayLiquorSizeQty").textContent=`750 ML: ${liquorPackQty["750"]} · 375 ML: ${liquorPackQty["375"]} · 180 ML: ${liquorPackQty["180"]} · 90 ML: ${liquorPackQty["90"]}`;
+  $("todayBeerQty").textContent=`${todayBeerQty.toLocaleString("en-IN")} bottles / cans sold`;
   const {data:invoices,error:ie}=await db.from("purchase_invoices").select("id").eq("invoice_date",d);if(ie)throw ie;
   let purchaseTotal=0;if(invoices?.length){const pr=await db.from("purchase_items").select("quantity,purchase_rate").in("invoice_id",invoices.map(x=>x.id));if(pr.error)throw pr.error;purchaseTotal=(pr.data||[]).reduce((a,x)=>a+num(x.quantity)*num(x.purchase_rate),0)}
   $("todayPurchase").textContent=money(purchaseTotal);$("dash30Sales").textContent=money(sum(monthItems)+manualMonthTotal);
