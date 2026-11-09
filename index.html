@@ -491,7 +491,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
    <div class="kpis" style="margin-top:10px">
     <div class="kpi glass"><small>Cash Received</small><strong id="arCash">₹0.00</strong></div>
     <div class="kpi glass"><small>Online Received</small><strong id="arOnline">₹0.00</strong></div>
-    <div class="kpi glass"><small>Closing Rokad</small><strong id="arRokad">₹0.00</strong></div>
+    <div class="kpi glass"><small>Present Day Rokad</small><strong id="arRokad">₹0.00</strong></div>
    </div>
    <h4 style="margin-top:18px">Brand-wise Sale</h4>
    <div class="table-wrap"><table><thead><tr><th>Category</th><th>Brand / Size</th><th>Qty</th><th>Sale</th><th>Profit</th></tr></thead><tbody id="arBrandRows"><tr><td colspan="5" class="empty">No report loaded.</td></tr></tbody></table></div>
@@ -568,13 +568,13 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
     <div class="kpi glass"><small>Total expenses</small><strong id="dcExpenseTotal">₹0.00</strong></div>
    </div>
    <div class="form-grid">
-    <label>Previous day closing Rokad ₹<input id="dcPreviousRokad" type="number" min="0" step="0.01" value="0" oninput="dayCounterCashPreview()"><small>Auto-loaded from the latest saved closing for this department; editable if you need a correction.</small></label>
+    <label>Present day Rokad (cash in hand) ₹<input id="dcPresentRokad" type="number" min="0" step="0.01" value="0" oninput="dayCounterDiff();dayCounterCashPreview()"><small>Aaj counter par maujood actual rokad enter karein. Previous day balance carry forward nahi hoga.</small></label>
     <label>Actual cash received today ₹<input id="dcCashReceived" type="number" min="0" step="0.01" value="0" oninput="dayCounterDiff();dayCounterCashPreview()"></label>
     <label>Actual online received ₹<input id="dcOnlineReceived" type="number" min="0" step="0.01" value="0" oninput="dayCounterDiff();dayCounterCashPreview()"></label>
-    <label>Expense amount ₹<input id="dcExpenseAmount" type="number" min="0" step="0.01" value="0" oninput="dayCounterCashPreview()"></label>
+    <label>Expense amount ₹<input id="dcExpenseAmount" type="number" min="0" step="0.01" value="0" oninput="dayCounterDiff();dayCounterCashPreview()"></label>
     <label>Expense description<input id="dcExpenseNote" placeholder="e.g. transport, staff tea"></label>
    </div>
-   <div class="toolbar" style="margin-top:12px"><span class="muted" id="dcDifference">Total received vs total sale difference ₹0.00</span><strong id="dcClosingCash">Closing Rokad ₹0.00</strong><button class="btn" type="button" onclick="saveInventoryDayCounter()">Save daily counter</button></div>
+   <div class="toolbar" style="margin-top:12px"><span class="muted" id="dcDifference">Total received vs total sale difference ₹0.00</span><strong id="dcClosingCash">Present Day Rokad ₹0.00</strong><button class="btn" type="button" onclick="saveInventoryDayCounter()">Save daily counter</button></div>
    <div class="status" id="dcStatus">Choose date and load the counter.</div>
   </div>
  </section>
@@ -591,14 +591,14 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
  <section id="cash" class="page">
   <div class="section-head"><div><h3>Daybook</h3><p>Complete date-wise record of collections, cash balance, expenses and daily profit</p></div><span class="tag">DAILY BUSINESS REGISTER</span></div>
   <div class="panel glass"><div class="form-grid" style="grid-template-columns:minmax(220px,1fr) auto"><label>Choose date<input id="daybookDate" type="date" min="2026-11-02" value="2026-11-09" onchange="loadDaybook()"></label><div style="align-self:end"><button class="btn secondary" type="button" onclick="loadDaybook()">↻ View selected date</button></div></div><div id="daybookStatus" class="status">Select a date to view its Daybook.</div></div>
-  <div class="section-head"><div><h3>Daily Counter & Cash Reconciliation</h3><p>Cash, online and closing rokad fetched from Inventory counter for the selected date</p></div></div>
+  <div class="section-head"><div><h3>Daily Counter & Cash Reconciliation</h3><p>Cash, online, present day rokad and expenses fetched from Inventory counter for the selected date</p></div></div>
   <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">
    <div class="kpi glass"><small>Total Cash</small><strong id="dbCash">₹0.00</strong></div>
    <div class="kpi glass"><small>Total Online</small><strong id="dbOnline">₹0.00</strong></div>
-   <div class="kpi glass"><small>Total Rokad / Closing</small><strong id="dbRokad">₹0.00</strong></div>
-   <div class="kpi glass"><small>Grand Total (Cash + Online + Rokad)</small><strong id="dbGrand">₹0.00</strong></div>
+   <div class="kpi glass"><small>Present Day Rokad</small><strong id="dbRokad">₹0.00</strong></div>
+   <div class="kpi glass"><small>Reconciliation Total (Cash + Online + Rokad + Expenses)</small><strong id="dbGrand">₹0.00</strong></div>
   </div>
-  <div class="panel glass"><div class="section-head" style="margin-top:0"><div><h3>Department-wise counter summary</h3><p>Liquor and Beer counter entries for the selected date</p></div></div><div class="table-wrap"><table style="min-width:600px"><thead><tr><th>Department</th><th>Cash</th><th>Online</th><th>Closing Rokad</th><th>Counter Expenses</th></tr></thead><tbody id="daybookCounterRows"><tr><td colspan="5" class="empty">Select a date.</td></tr></tbody></table></div></div>
+  <div class="panel glass"><div class="section-head" style="margin-top:0"><div><h3>Department-wise counter summary</h3><p>Liquor and Beer counter entries for the selected date</p></div></div><div class="table-wrap"><table style="min-width:600px"><thead><tr><th>Department</th><th>Cash</th><th>Online</th><th>Present Day Rokad</th><th>Counter Expenses</th></tr></thead><tbody id="daybookCounterRows"><tr><td colspan="5" class="empty">Select a date.</td></tr></tbody></table></div></div>
   <div class="section-head"><div><h3>Money received</h3><p>Other incoming amount and notes recorded for this date</p></div></div>
   <div class="panel glass"><div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin-top:0"><div class="kpi glass"><small>Other money received</small><strong id="dbOtherIn">₹0.00</strong></div><div class="kpi glass"><small>Saved daybook notes</small><strong id="dbNotes" style="font-size:14px">—</strong></div></div></div>
   <div class="section-head"><div><h3>Expenses register</h3><p>See exactly what was spent, payment mode and total expense on the selected date</p></div></div>
@@ -676,7 +676,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
    <div class="table-wrap"><table><thead><tr><th>Month</th><th>Liquor Purchase Qty</th><th>Beer Purchase Qty</th><th>Beer MRP Value</th><th>Total Wholesale Cost</th><th>Actual MRP Sales</th><th>Gross Profit</th><th>Cash Received</th><th>Online Received</th><th>Expenses</th><th>Net Profit</th></tr></thead><tbody id="fl2ReconMonthRows"><tr><td colspan="11" class="empty">No report loaded.</td></tr></tbody></table></div>
    <div class="section-head"><div><h3>Selected Date Reconciliation</h3><p>Daily stock movement and cash-register values for the selected range.</p></div></div>
    <div class="table-wrap"><table><thead><tr><th>Date</th><th>Category</th><th>Purchase Qty</th><th>Wholesale Cost</th><th>Incoming MRP</th><th>Sale Qty</th><th>Actual MRP Sales</th><th>Gross Profit</th><th>Cash</th><th>Online</th><th>Rokad</th><th>Expenses</th></tr></thead><tbody id="fl2ReconDayRows"><tr><td colspan="12" class="empty">No report loaded.</td></tr></tbody></table></div>
-   <p class="status">Calculation note: Purchase Cost = inventory purchase quantity × current saved wholesale price. Incoming MRP = purchase quantity × current saved MRP (potential retail value, not confirmed sales). Actual MRP Sales and Gross Profit use inventory sale quantity. Net Profit Estimate = Gross Profit − recorded expenses. Cash/Online/Rokad are fetched from Inventory Daily Counter &amp; Cash Reconciliation. Values use the product's currently saved rates, not historical rate snapshots.</p>
+   <p class="status">Calculation note: Purchase Cost = inventory purchase quantity × current saved wholesale price. Incoming MRP = purchase quantity × current saved MRP (potential retail value, not confirmed sales). Actual MRP Sales and Gross Profit use inventory sale quantity. Net Profit Estimate = Gross Profit − recorded expenses. Cash/Online/Present Day Rokad/Expenses are fetched from Inventory Daily Counter &amp; Cash Reconciliation. Values use the product's currently saved rates, not historical rate snapshots.</p>
   </div>
   <div class="section-head"><div><h3>Invoice Reports</h3><p>Open date-wise FL2 invoice records</p></div><button class="btn secondary" type="button" onclick="fl2Tab('report')">View FL2 Reports →</button></div>
  </section>
@@ -1737,13 +1737,13 @@ async function loadDaybook(){
  if(!date||date<STOCK_START_DATE){setMsg("daybookStatus","Date 2 November 2026 ya uske baad select karein.");return;}
  setMsg("daybookStatus","Loading Daybook for "+date+"…");
  try{
-  const {data:counterRows,error:ce}=await db.from("inventory_day_summary").select("category,cash_received,online_received,closing_cash,expense_amount,expense_note").eq("user_id",user.id).eq("record_date",date);
+  const {data:counterRows,error:ce}=await db.from("inventory_day_summary").select("category,cash_received,online_received,previous_day_rokad,expense_amount,expense_note").eq("user_id",user.id).eq("record_date",date);
   if(ce)throw ce;
   const rows=counterRows||[];
-  const totals=rows.reduce((a,r)=>{a.cash+=num(r.cash_received);a.online+=num(r.online_received);a.rokad+=num(r.closing_cash);a.counterExpense+=num(r.expense_amount);return a;},{cash:0,online:0,rokad:0,counterExpense:0});
-  $("dbCash").textContent=money(totals.cash);$("dbOnline").textContent=money(totals.online);$("dbRokad").textContent=money(totals.rokad);$("dbGrand").textContent=money(totals.cash+totals.online+totals.rokad);
+  const totals=rows.reduce((a,r)=>{a.cash+=num(r.cash_received);a.online+=num(r.online_received);a.rokad+=num(r.previous_day_rokad);a.counterExpense+=num(r.expense_amount);return a;},{cash:0,online:0,rokad:0,counterExpense:0});
+  $("dbCash").textContent=money(totals.cash);$("dbOnline").textContent=money(totals.online);$("dbRokad").textContent=money(totals.rokad);$("dbGrand").textContent=money(totals.cash+totals.online+totals.rokad+totals.counterExpense);
   const byCat={liquor:"Liquor",beer:"Beer"};
-  $("daybookCounterRows").innerHTML=["liquor","beer"].map(cat=>{const r=rows.find(x=>String(x.category||"").toLowerCase()===cat)||{};return `<tr><td><b>${byCat[cat]}</b></td><td>${money(r.cash_received||0)}</td><td>${money(r.online_received||0)}</td><td>${money(r.closing_cash||0)}</td><td>${money(r.expense_amount||0)}${r.expense_note?`<br><small>${safe(r.expense_note)}</small>`:""}</td></tr>`}).join("");
+  $("daybookCounterRows").innerHTML=["liquor","beer"].map(cat=>{const r=rows.find(x=>String(x.category||"").toLowerCase()===cat)||{};return `<tr><td><b>${byCat[cat]}</b></td><td>${money(r.cash_received||0)}</td><td>${money(r.online_received||0)}</td><td>${money(r.previous_day_rokad||0)}</td><td>${money(r.expense_amount||0)}${r.expense_note?`<br><small>${safe(r.expense_note)}</small>`:""}</td></tr>`}).join("");
   const {data:cashRow,error:cashErr}=await db.from("daily_cash").select("other_cash_in,notes").eq("user_id",user.id).eq("date",date).maybeSingle();if(cashErr)throw cashErr;
   $("dbOtherIn").textContent=money(cashRow?.other_cash_in||0);$("dbNotes").textContent=cashRow?.notes||"—";
   const {data:expenses,error:ee}=await db.from("daily_expenses").select("id,expense_name,amount,payment_type").eq("user_id",user.id).eq("expense_date",date).order("created_at");if(ee)throw ee;
@@ -1754,7 +1754,7 @@ async function loadDaybook(){
   let profit=0;
   if((movementRows||[]).length){const pids=[...new Set(movementRows.map(x=>x.product_id).filter(Boolean))];const {data:productRows,error:pe}=await db.from("inventory_products").select("id,mrp,wholesale_price").in("id",pids);if(pe)throw pe;const productMap=new Map((productRows||[]).map(x=>[String(x.id),x]));for(const m of movementRows){const product=productMap.get(String(m.product_id));if(product)profit+=num(m.sale_qty)*(num(product.mrp)-num(product.wholesale_price));}}
   $("dbProfit").textContent=money(profit);$("dbNetProfit").textContent=money(profit-expenseTotal-totals.counterExpense);
-  setMsg("daybookStatus",`Daybook loaded for ${date}. Cash, online and closing rokad are combined from the saved Liquor and Beer Daily Counter entries.`);
+  setMsg("daybookStatus",`Daybook loaded for ${date}. Cash, online, present-day rokad and expenses are combined from the saved Liquor and Beer Daily Counter entries.`);
  }catch(e){setMsg("daybookStatus","Daybook load error: "+(e.message||String(e)));console.error(e);}
 }
 async function addDaybookExpense(){const date=$("daybookDate").value,name=$("daybookExpenseName").value.trim(),amount=num($("daybookExpenseAmount").value),mode=$("daybookExpenseMode").value;if(!date||date<STOCK_START_DATE){setMsg("daybookStatus","Valid date select karein.");return;}if(!name||amount<=0){setMsg("daybookStatus","Expense name aur valid amount enter karein.");return;}const {error}=await db.from("daily_expenses").insert({user_id:user.id,expense_date:date,expense_name:name,amount,payment_type:mode});if(error){setMsg("daybookStatus","Expense save error: "+error.message);return;}$("daybookExpenseName").value="";$("daybookExpenseAmount").value="";await loadDaybook();}
@@ -1775,14 +1775,72 @@ async function deleteDailyExpense(id){if(!confirm("Delete this expense entry?"))
 async function saveCash(){const date=$("inventoryDate").value||$("cd").value;if(!date||date<STOCK_START_DATE){setMsg("cashMsg","Date 2 November 2026 ya uske baad honi chahiye.");return}const row={user_id:user.id,date,cash_received:num($("cashin").value),online_received:num($("online").value),rokad_received:num($("rokad").value),other_cash_in:num($("other").value),expenses:num($("closeExpenses").textContent.replace(/[^0-9.]/g,"")),notes:$("notes").value};const {error}=await db.from("daily_cash").upsert(row,{onConflict:"date"});setMsg("cashMsg",error?"Save error: "+error.message:"Night closing saved successfully.");cashPreview()}
 function dashboardGo(target){if(target==='liquorSales'||target==='beerSales'){const category=target==='beerSales'?'beer':'liquor';showPage('history');$('saleFrom').value=today();$('saleTo').value=today();$('saleCategory').value=category;refresh();return}if(target==='sales'){showPage('cash');$('daybookDate').value=dateBack(0);loadDaybook();return}if(target==='purchases'){setCategory('liquor');return}if(target==='history'){showPage('history');return}if(target==='beer'||target==='liquor'){setCategory(target);return}if(target==='stock'||target==='low'){setCategory('liquor');return}}
 function dayCounterCategory(){return String($('cat')?.value||'liquor').toLowerCase()==='beer'?'beer':'liquor'}
-function dayCounterDiff(){const cash=num($('dcCashReceived')?.value),online=num($('dcOnlineReceived')?.value),sale=num(String($('dcTotalSale')?.textContent||'').replace(/[^0-9.]/g,''));$('dcDifference').textContent=`Today's received ${money(cash+online)} · Today's sale ${money(sale)} · Difference ${money(cash+online-sale)}`}
-function dayCounterCashPreview(){const carry=num($('dcPreviousRokad')?.value),cash=num($('dcCashReceived')?.value),expense=num($('dcExpenseAmount')?.value);const closing=carry+cash-expense;const el=$('dcClosingCash');if(el)el.textContent=`Closing Rokad ${money(closing)}`;return closing}
-async function loadInventoryDayCounter(){if(!db||!user)return;const date=$("inventoryDate").value,category=dayCounterCategory();if(!date||date<STOCK_START_DATE){setMsg("dcStatus","Date 2 November 2026 ya uske baad select karein.");return}try{$("dayCounterCategory").textContent=category.toUpperCase();const {data:headers,error}=await db.from("sales").select("id,payment_mode").eq("sale_date",date).eq("category",category);if(error)throw error;const ids=(headers||[]).map(x=>x.id);let items=[];if(ids.length){const r=await db.from("sale_items").select("sale_id,quantity,sale_rate").in("sale_id",ids);if(r.error)throw r.error;items=r.data||[]}const manual=(await getInventorySaleRows(date,date,category));let cash=0,online=0;for(const h of headers||[]){const amount=items.filter(x=>String(x.sale_id)===String(h.id)).reduce((a,x)=>a+num(x.quantity)*num(x.sale_rate),0);const mode=String(h.payment_mode||"").toLowerCase();if(mode.includes("online")||mode.includes("upi"))online+=amount;else cash+=amount}const manualTotal=inventorySalesSum(manual),total=cash+online+manualTotal;$("dcTotalSale").textContent=money(total);$("dcCashSale").textContent=money(cash);$("dcCashSale").dataset.value=cash;$("dcOnlineSale").textContent=money(online);$("dcOnlineSale").dataset.value=online;const unalloc=document.getElementById("dcInventorySale");if(unalloc)unalloc.textContent=money(manualTotal);
- const {data:summary,error:se}=await db.from("inventory_day_summary").select("*").eq("user_id",user.id).eq("record_date",date).eq("category",category).maybeSingle();if(se)throw se;
- const previousDate=new Date(date+"T12:00:00");previousDate.setDate(previousDate.getDate()-1);const previousISO=previousDate.getFullYear()+"-"+String(previousDate.getMonth()+1).padStart(2,"0")+"-"+String(previousDate.getDate()).padStart(2,"0");
- const {data:previous,error:pe}=await db.from("inventory_day_summary").select("record_date,closing_cash").eq("user_id",user.id).eq("category",category).lt("record_date",date).order("record_date",{ascending:false}).limit(1).maybeSingle();if(pe)throw pe;
- const carry=summary?.previous_day_rokad??previous?.closing_cash??0;$("dcPreviousRokad").value=Number(carry||0).toFixed(2);$("dcCashReceived").value=summary?.cash_received??cash+manualTotal;$("dcOnlineReceived").value=summary?.online_received??online;$("dcExpenseAmount").value=summary?.expense_amount??0;$("dcExpenseNote").value=summary?.expense_note??"";$("dcExpenseTotal").textContent=money(summary?.expense_amount||0);dayCounterDiff();dayCounterCashPreview();setMsg("dcStatus",`Loaded ${category} counter for ${date}. Previous saved closing (${previous?.record_date||"no prior saved day"}) carried forward: ${money(carry)}. Inventory sales ₹${money(manualTotal)} are included; their payment mode is not recorded separately in inventory.`)}catch(e){setMsg("dcStatus","Counter load error: "+e.message)}}
-async function saveInventoryDayCounter(){if(!db||!user)return;const date=$('dayCounterDate').value,category=dayCounterCategory(),carry=num($('dcPreviousRokad').value),cash=num($('dcCashReceived').value),online=num($('dcOnlineReceived').value),expense=num($('dcExpenseAmount').value),note=$('dcExpenseNote').value.trim();if(!date||date<STOCK_START_DATE){setMsg('dcStatus','Date 2 November 2026 ya uske baad honi chahiye.');return}const closing=carry+cash-expense;const row={user_id:user.id,record_date:date,category,previous_day_rokad:carry,cash_received:cash,online_received:online,expense_amount:expense,expense_note:note,closing_cash:closing};const {error}=await db.from('inventory_day_summary').upsert(row,{onConflict:'user_id,record_date,category'});if(error){setMsg('dcStatus','Save error: '+error.message);return}$('dcExpenseTotal').textContent=money(expense);dayCounterDiff();dayCounterCashPreview();setMsg('dcStatus',`${category.toUpperCase()} daily counter saved for ${date}. Closing Rokad ${money(closing)} will carry forward to the next saved day for this department.`)}
+function dayCounterDiff(){
+ const cash=num($("dcCashReceived")?.value),online=num($("dcOnlineReceived")?.value),
+ rokad=num($("dcPresentRokad")?.value),expense=num($("dcExpenseAmount")?.value),
+ sale=num(String($("dcTotalSale")?.textContent||"").replace(/[^0-9.]/g,""));
+ const accounted=cash+online+expense+rokad,diff=accounted-sale;
+ $("dcDifference").textContent=`Cash ${money(cash)} + Online ${money(online)} + Expenses ${money(expense)} + Present Rokad ${money(rokad)} = ${money(accounted)} · Sale ${money(sale)} · Difference ${money(diff)}`;
+}
+function dayCounterCashPreview(){
+ const cash=num($("dcCashReceived")?.value),online=num($("dcOnlineReceived")?.value),
+ rokad=num($("dcPresentRokad")?.value),expense=num($("dcExpenseAmount")?.value);
+ const accounted=cash+online+expense+rokad;
+ const el=$("dcClosingCash");if(el)el.textContent=`Reconciliation Total ${money(accounted)}`;
+ return accounted;
+}
+async function loadInventoryDayCounter(){
+ if(!db||!user)return;
+ const date=$("inventoryDate").value,category=dayCounterCategory();
+ if(!date||date<STOCK_START_DATE){setMsg("dcStatus","Date 2 November 2026 ya uske baad select karein.");return}
+ try{
+  $("dayCounterCategory").textContent=category.toUpperCase();
+  const {data:headers,error}=await db.from("sales").select("id,payment_mode").eq("sale_date",date).eq("category",category);
+  if(error)throw error;
+  const ids=(headers||[]).map(x=>x.id);let items=[];
+  if(ids.length){const r=await db.from("sale_items").select("sale_id,quantity,sale_rate").in("sale_id",ids);if(r.error)throw r.error;items=r.data||[]}
+  const manual=await getInventorySaleRows(date,date,category);
+  let cash=0,online=0;
+  for(const h of headers||[]){
+   const amount=items.filter(x=>String(x.sale_id)===String(h.id)).reduce((a,x)=>a+num(x.quantity)*num(x.sale_rate),0);
+   const mode=String(h.payment_mode||"").toLowerCase();
+   if(mode.includes("online")||mode.includes("upi"))online+=amount;else cash+=amount;
+  }
+  const manualTotal=inventorySalesSum(manual),total=cash+online+manualTotal;
+  $("dcTotalSale").textContent=money(total);$("dcCashSale").textContent=money(cash);$("dcCashSale").dataset.value=cash;
+  $("dcOnlineSale").textContent=money(online);$("dcOnlineSale").dataset.value=online;
+  const unalloc=document.getElementById("dcInventorySale");if(unalloc)unalloc.textContent=money(manualTotal);
+  // Use only columns present in the deployed summary table. closing_cash is not in this schema.
+  const {data:summary,error:se}=await db.from("inventory_day_summary").select("cash_received,online_received,previous_day_rokad,expense_amount,expense_note").eq("user_id",user.id).eq("record_date",date).eq("category",category).maybeSingle();
+  if(se)throw se;
+  $("dcPresentRokad").value=Number(summary?.previous_day_rokad||0).toFixed(2);
+  $("dcCashReceived").value=summary?.cash_received??cash+manualTotal;
+  $("dcOnlineReceived").value=summary?.online_received??online;
+  $("dcExpenseAmount").value=summary?.expense_amount??0;
+  $("dcExpenseNote").value=summary?.expense_note??"";
+  $("dcExpenseTotal").textContent=money(summary?.expense_amount||0);
+  dayCounterDiff();dayCounterCashPreview();
+  setMsg("dcStatus",`Loaded ${category} counter for ${date}. Enter present-day counted rokad; previous-day carry-forward is disabled. Inventory sales ₹${money(manualTotal)} are included; payment mode is not separately recorded for these entries.`);
+ }catch(e){setMsg("dcStatus","Counter load error: "+(e.message||String(e)))}
+}
+async function saveInventoryDayCounter(){
+ if(!db||!user)return;
+ const date=$("dayCounterDate").value,category=dayCounterCategory(),
+ rokad=num($("dcPresentRokad").value),cash=num($("dcCashReceived").value),
+ online=num($("dcOnlineReceived").value),expense=num($("dcExpenseAmount").value),
+ note=$("dcExpenseNote").value.trim();
+ if(!date||date<STOCK_START_DATE){setMsg("dcStatus","Date 2 November 2026 ya uske baad honi chahiye.");return}
+ const accounted=cash+online+expense+rokad;
+ const sale=num(String($("dcTotalSale")?.textContent||"").replace(/[^0-9.]/g,""));
+ const difference=accounted-sale;
+ // Legacy column previous_day_rokad is reused to store today's counted rokad; no closing_cash column.
+ const row={user_id:user.id,record_date:date,category,previous_day_rokad:rokad,
+ cash_received:cash,online_received:online,expense_amount:expense,expense_note:note};
+ const {error}=await db.from("inventory_day_summary").upsert(row,{onConflict:"user_id,record_date,category"});
+ if(error){setMsg("dcStatus","Save error: "+error.message);return}
+ $("dcExpenseTotal").textContent=money(expense);dayCounterDiff();dayCounterCashPreview();
+ setMsg("dcStatus",`${category.toUpperCase()} counter saved for ${date}. Reconciliation ${money(accounted)} · Sale ${money(sale)} · Difference ${money(difference)}.`);
+}
 async 
 let purchaseRequirementRows=[];
 function prMoney(v){return "₹"+num(v).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2})}
@@ -1920,7 +1978,7 @@ async function refresh(){
   // Build one row per date for the outer Sales History list.
   const [historyExpensesResult,historyCountersResult,historyPurchaseHeaders]=await Promise.all([
    db.from("daily_expenses").select("expense_date,expense_name,amount,payment_type").eq("user_id",user.id).gte("expense_date",filterFrom).lte("expense_date",filterTo),
-   db.from("inventory_day_summary").select("record_date,category,expense_amount,cash_received,online_received,previous_day_rokad,closing_cash").eq("user_id",user.id).gte("record_date",filterFrom).lte("record_date",filterTo),
+   db.from("inventory_day_summary").select("record_date,category,expense_amount,cash_received,online_received,previous_day_rokad").eq("user_id",user.id).gte("record_date",filterFrom).lte("record_date",filterTo),
    db.from("purchase_invoices").select("id,invoice_date,category").eq("user_id",user.id).gte("invoice_date",filterFrom).lte("invoice_date",filterTo)
   ]);
   if(historyExpensesResult.error||historyCountersResult.error||historyPurchaseHeaders.error)throw(historyExpensesResult.error||historyCountersResult.error||historyPurchaseHeaders.error);
@@ -1962,7 +2020,7 @@ async function refresh(){
    day.expenses+=num(counter.expense_amount);
    day.cashReceived+=num(counter.cash_received);day.onlineReceived+=num(counter.online_received);
    day.previousRokad=Math.max(day.previousRokad,num(counter.previous_day_rokad));
-   day.closingRokad+=num(counter.closing_cash);
+   day.closingRokad+=num(counter.previous_day_rokad);
    if(num(counter.expense_amount)>0)day.expenseRows.push({name:"Inventory counter expense ("+String(counter.category||"")+")",mode:"Counter",amount:num(counter.expense_amount)});
   }
   const purchaseCategoryById=new Map(purchaseHeaderRows.map(x=>[String(x.id),String(x.category||"").toLowerCase()]));
@@ -2126,7 +2184,7 @@ async function loadFl2Reconciliation(){
  try{
   const [movementResult,counterResult,expenseResult]=await Promise.all([
    db.from("inventory_register_entries").select("product_id,entry_date,purchase_qty,sale_qty").eq("user_id",user.id).gte("entry_date",from).lte("entry_date",to).order("entry_date"),
-   db.from("inventory_day_summary").select("record_date,category,cash_received,online_received,closing_cash,expense_amount").eq("user_id",user.id).gte("record_date",from).lte("record_date",to).order("record_date"),
+   db.from("inventory_day_summary").select("record_date,category,cash_received,online_received,previous_day_rokad,expense_amount").eq("user_id",user.id).gte("record_date",from).lte("record_date",to).order("record_date"),
    db.from("daily_expenses").select("expense_date,amount,payment_type").eq("user_id",user.id).gte("expense_date",from).lte("expense_date",to)
   ]);
   for(const r of [movementResult,counterResult,expenseResult])if(r.error)throw r.error;
@@ -2149,7 +2207,7 @@ async function loadFl2Reconciliation(){
   for(const row of counters){
    const cat=String(row.category||"").toLowerCase();if(category!=="all"&&category!==cat)continue;
    const target=get(daily,row.record_date),month=get(monthly,fl2MonthKey(row.record_date));
-   for(const [k,v] of [["cash","cash_received"],["online","online_received"],["rokad","closing_cash"]]){target[k]+=num(row[v]);month[k]+=num(row[v])}
+   for(const [k,v] of [["cash","cash_received"],["online","online_received"],["rokad","previous_day_rokad"]]){target[k]+=num(row[v]);month[k]+=num(row[v])}
    target.expenses+=num(row.expense_amount);month.expenses+=num(row.expense_amount);
   }
   for(const row of expenses){
@@ -2185,7 +2243,7 @@ async function loadDashboardAutoReport(date){
    getInventorySaleRows(date,date,"all"),
    db.from("sales").select("id,sale_date,bill_number,category,payment_mode").eq("sale_date",date).order("created_at"),
    db.from("daily_expenses").select("expense_name,amount,payment_type").eq("user_id",user.id).eq("expense_date",date).order("created_at"),
-   db.from("inventory_day_summary").select("category,cash_received,online_received,closing_cash,expense_amount").eq("user_id",user.id).eq("record_date",date)
+   db.from("inventory_day_summary").select("category,cash_received,online_received,previous_day_rokad,expense_amount").eq("user_id",user.id).eq("record_date",date)
   ]);
   if(billResult.error||expenseResult.error||counterResult.error)throw(billResult.error||expenseResult.error||counterResult.error);
   const bills=billResult.data||[],billIds=bills.map(x=>x.id);
@@ -2220,7 +2278,7 @@ async function loadDashboardAutoReport(date){
    report.expenseRows.push({name:x.expense_name||"Expense",payment:x.payment_type||"—",amount});
   }
   for(const x of counterResult.data||[]){
-   report.cash+=num(x.cash_received);report.online+=num(x.online_received);report.rokad+=num(x.closing_cash);
+   report.cash+=num(x.cash_received);report.online+=num(x.online_received);report.rokad+=num(x.previous_day_rokad);
    const amount=num(x.expense_amount);
    if(amount>0){report.expenses+=amount;report.expenseRows.push({name:"Inventory counter expense ("+String(x.category||"")+")",payment:"Counter",amount})}
   }
@@ -2342,7 +2400,7 @@ function downloadCompleteSaleSummary(date){
  doc.text("PROFIT ESTIMATE: "+fmt(day.profit),L+143,58);
  doc.text("NET PROFIT EST.: "+fmt(net),W-R-4,58,{align:"right"});
  doc.setFont("helvetica","normal");doc.setFontSize(6);doc.setTextColor(80,95,110);
- doc.text("Closing Rokad: "+fmt(day.closingRokad)+"  |  Cash and Online values are from saved Daily Counter records.",L+4,63);
+ doc.text("Present Day Rokad: "+fmt(day.closingRokad)+"  |  Cash and Online values are from saved Daily Counter records.",L+4,63);
  function section(title,rows,cols,x,y,width,maxRows,rowH=4.5){
   doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(15,45,72);doc.text(title,x,y);
   const top=y+4;doc.setFillColor(231,238,245);doc.rect(x,top,width,5,"F");
@@ -2359,7 +2417,7 @@ function downloadCompleteSaleSummary(date){
  const salesRows=[...day.products.values()].sort((a,b)=>a.category.localeCompare(b.category));
  section("SALE DETAILS (BEER & LIQUOR)",salesRows,[{h:"CATEGORY",w:20,v:x=>x.category,max:12},{h:"BRAND / SIZE",w:44,v:x=>x.brand+" "+x.size,max:30},{h:"QTY",w:13,v:x=>x.qty,max:8},{h:"SALE",w:23,v:x=>fmt(x.amount),max:16}],L,105,leftW,17,4.2);
  section("EXPENSE REGISTER",day.expenseRows,[{h:"EXPENSE",w:45,v:x=>x.name,max:32},{h:"MODE",w:25,v:x=>x.mode,max:16},{h:"AMOUNT",w:28,v:x=>fmt(x.amount),max:18}],rightX,72,rightW,10,5);
- const cashRows=[{label:"Cash Received",amount:day.cashReceived},{label:"Online Received",amount:day.onlineReceived},{label:"Previous Day Rokad",amount:day.previousRokad},{label:"Closing Rokad",amount:day.closingRokad}];
+ const cashRows=[{label:"Cash Received",amount:day.cashReceived},{label:"Online Received",amount:day.onlineReceived},{label:"Previous Day Rokad",amount:day.previousRokad},{label:"Present Day Rokad",amount:day.closingRokad}];
  section("CASH & ROKAD RECONCILIATION",cashRows,[{h:"DESCRIPTION",w:55,v:x=>x.label,max:38},{h:"AMOUNT",w:35,v:x=>fmt(x.amount),max:20}],rightX,119,rightW,8,5);
  doc.setFont("helvetica","italic");doc.setFontSize(5.5);doc.setTextColor(100,110,120);doc.text("Profit is estimated using currently saved MRP and wholesale rates. Purchases are based on saved purchase invoices; counter values appear only when saved.",L,202);
  doc.save("Complete-Sale-Summary-"+date+".pdf");
