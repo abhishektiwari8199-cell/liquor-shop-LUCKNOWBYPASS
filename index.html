@@ -596,7 +596,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
  <section id="inventoryWork" class="page">
   <div class="panel glass"><div class="section-head" style="margin-top:0"><div><h3>Brand wholesale rates</h3><p>Update each product's purchase cost once; sale margin uses this rate</p></div></div>
   <div class="section-head"><div><h3 id="inventoryWorkTitle">Inventory Register</h3><p id="inventoryWorkSubtitle">Manage stock by date</p></div><button class="btn secondary" onclick="showPage('inventory')">← Back to Liquor / Beer</button></div>
-   <div class="section-head"><div><span class="tag" id="inventoryCount">0 BRANDS</span></div></div>
+   <div class="section-head" style="align-items:center;gap:12px;flex-wrap:wrap"><div><span class="tag" id="inventoryCount">0 BRANDS</span></div><label style="min-width:220px;margin:0">Brand visibility for selected date<select id="inventoryVisibilityMode" onchange="changeInventoryVisibilityMode()"><option value="active">Active brands only</option><option value="full">Full brand list</option></select></label></div>
   <div class="panel glass"><div class="form-grid">
    <label>Inventory / Sale / Cash date<input id="inventoryDate" type="date" min="2026-11-02" value="2026-11-07" onchange="applyInventoryFilters();loadInventoryExpenses()"></label>
    <label style="display:none">Category<select id="cat"><option value="all">All categories</option><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label>
@@ -1143,6 +1143,7 @@ async function loadInventoryForDate(){
       :"Opening Qty automatically previous date ke closing balance se carry forward hai. Selected date ki purchase aur sale alag calculate hoti hai.";
     await loadInventoryRatesForDate(date);
   }catch(e){inventoryMovementError=e.message||String(e);$("inventoryDateStatus").textContent="Date-wise stock / rate load error: "+inventoryMovementError;}
+  loadInventoryVisibilityChoice();
   drawProducts();
 }
 
@@ -1271,19 +1272,33 @@ function inventoryProductHasActivity(p){
 function inventoryLiquorGroupHasActivity(group){
  return (group.products||[]).some(inventoryProductHasActivity);
 }
+function inventoryVisibilityStorageKey(){return "inventory_visibility_"+($("inventoryDate")?.value||STOCK_START_DATE);}
+function loadInventoryVisibilityChoice(){
+ const saved=localStorage.getItem(inventoryVisibilityStorageKey());
+ const mode=saved==="full"?"full":saved==="active"?"active":(inventoryDateHasBeenSaved?"active":"full");
+ const el=$("inventoryVisibilityMode");if(el)el.value=mode;
+}
+function changeInventoryVisibilityMode(){
+ const el=$("inventoryVisibilityMode");if(!el)return;
+ localStorage.setItem(inventoryVisibilityStorageKey(),el.value==="full"?"full":"active");
+ drawProducts();
+}
 function drawProducts(){
+  if(!$("inventoryVisibilityMode")?.value)loadInventoryVisibilityChoice();
+  const visibility=$("inventoryVisibilityMode")?.value|| (inventoryDateHasBeenSaved?"active":"full");
   const cat=$("cat").value,q=$("search").value.toLowerCase();
   const hiddenIds=getHiddenInventoryIds();
   const rows=products.filter(p=>!hiddenIds.has(String(p.id))&&(cat==="all"||String(p.category).toLowerCase()===cat)&&(`${p.brand_name||""} ${p.size||""}`).toLowerCase().includes(q));
   const allVisibleLiquor=orderedBrandGroups(rows.filter(p=>String(p.category).toLowerCase()==="liquor"));
   const allVisibleBeer=orderedBeerProducts(rows.filter(p=>String(p.category).toLowerCase()==="beer"));
   const allVisibleOther=rows.filter(p=>!["liquor","beer"].includes(String(p.category).toLowerCase()));
-  const liquor=inventoryDateHasBeenSaved?allVisibleLiquor.filter(inventoryLiquorGroupHasActivity):allVisibleLiquor;
-  const beer=inventoryDateHasBeenSaved?allVisibleBeer.filter(inventoryProductHasActivity):allVisibleBeer;
-  const other=inventoryDateHasBeenSaved?allVisibleOther.filter(inventoryProductHasActivity):allVisibleOther;
-  $("inventoryCount").textContent=inventoryDateHasBeenSaved
+  const hideZero=visibility==="active";
+  const liquor=hideZero?allVisibleLiquor.filter(inventoryLiquorGroupHasActivity):allVisibleLiquor;
+  const beer=hideZero?allVisibleBeer.filter(inventoryProductHasActivity):allVisibleBeer;
+  const other=hideZero?allVisibleOther.filter(inventoryProductHasActivity):allVisibleOther;
+  $("inventoryCount").textContent=hideZero
    ?(liquor.length+beer.length+other.length)+" ACTIVE BRANDS SHOWN · ZERO-ACTIVITY BRANDS HIDDEN FOR "+($("inventoryDate").value||STOCK_START_DATE)
-   :(liquor.length+beer.length+other.length)+" BRANDS SHOWN · NEW DATE — FULL BRAND LIST";
+   :(liquor.length+beer.length+other.length)+" BRANDS SHOWN · FULL BRAND LIST FOR "+($("inventoryDate").value||STOCK_START_DATE);
   $("liquorInventoryWrap").style.display=cat==="beer"?"none":"block";
   $("beerInventoryWrap").style.display=cat==="liquor"?"none":"block";
   const grand={opening:0,purchase:0,total:0,sale:0,balance:0,value:0};
@@ -1328,13 +1343,14 @@ function downloadActiveInventoryReport(){
  const date=$("inventoryDate")?.value||STOCK_START_DATE;
  const category=$("cat")?.value||"all";
  const search=($("search")?.value||"").trim().toLowerCase();
+ const visibility=$("inventoryVisibilityMode")?.value||"active";
  const hidden=getHiddenInventoryIds();
  const active=products.filter(p=>{
   if(hidden.has(String(p.id)))return false;
   const cat=String(p.category||"").toLowerCase();
   if(category!=="all"&&cat!==category)return false;
   if(!(`${p.brand_name||""} ${p.size||""}`).toLowerCase().includes(search))return false;
-  return !inventoryDateHasBeenSaved||inventoryProductHasActivity(p);
+  return visibility==="full"||inventoryProductHasActivity(p);
  });
  if(!active.length){alert("Selected date par stock, purchase, sale ya balance wala product nahi hai.");return;}
  const {jsPDF}=window.jspdf;
