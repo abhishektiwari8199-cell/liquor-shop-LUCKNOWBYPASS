@@ -368,7 +368,11 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
 .stockin-count-grid small{display:block;color:var(--muted,#b7c9dc);font-size:11px}
 .stockin-count-grid strong{display:block;font-size:22px;margin-top:4px}
 @media(max-width:900px){.stockin-one-line{flex-wrap:wrap}.stockin-one-line label{min-width:calc(50% - 8px)}.stockin-one-line .stockin-scan-field{min-width:100%}.stockin-count-grid{grid-template-columns:1fr 1fr}}
-.btn.saving{opacity:.78;cursor:progress;filter:saturate(.8)}\n</style>
+.btn.saving{opacity:.78;cursor:progress;filter:saturate(.8)}\n
+/* Product creation panels are intentionally placed after the inventory register and day counter. */
+#inventoryWork #addLiquorProductPanel,#inventoryWork #addBeerProductPanel{margin-top:12px}
+#inventoryWork #addLiquorProductPanel .section-head,#inventoryWork #addBeerProductPanel .section-head{align-items:center}
+</style>
 <style id="dashboard-mrp-additions">.kpi-sub{margin-top:7px;color:#a9bfd4;font-size:12px;font-weight:700;letter-spacing:.2px}</style>
 <style id="fl2-workspace-additions">#fl2ReconciliationPanel .kpis{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}#fl2ReconciliationPanel .table-wrap{overflow-x:auto}#fl2ReconciliationPanel table{min-width:1050px}#fl2ReconciliationPanel .status{white-space:normal}</style>
 <style id="fl2-workspace-additions">#fl2 .table-wrap{overflow-x:auto}#fl2 table input{min-width:88px;width:100%;max-width:130px}#fl2 .section-head{gap:12px;flex-wrap:wrap}#fl2 .status{margin:12px 0}</style>
@@ -451,6 +455,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
  <div class="login-brand"><div class="eyebrow">Premium retail management</div><h1>ABHISHEK<br><span>COMPOSITE</span></h1><p>One smart workspace for your liquor and beer business. Manage inventory, billing, purchases and daily business performance with clarity.</p><div class="category-cards" style="max-width:540px;margin-top:30px"><div class="category-card liquor glass"><div><h4>LIQUOR STORE</h4><p>Inventory · Sales · Stock</p></div><div class="art">🥃</div></div><div class="category-card beer glass"><div><h4>BEER STORE</h4><p>Inventory · Sales · Stock</p></div><div class="art">🍺</div></div></div></div>
  <div class="login-panel glass"><div class="brand-mark">A</div><div class="eyebrow" style="margin-top:22px">Secure cloud access</div><h2 style="font:800 27px Manrope;margin:8px 0">Welcome back</h2><p class="muted" style="font-size:12px;margin:0 0 24px">Sign in to open your business dashboard.</p><div class="field"><label>Email address<input id="email" type="email" autocomplete="username" placeholder="Enter your email"></label></div><div class="field"><label>Password<input id="password" type="password" autocomplete="current-password" placeholder="Enter your password"></label></div><button class="btn full" id="loginBtn" onclick="login()">Sign in to dashboard&nbsp; →</button><div id="loginMsg" class="status">Your account details are secured by Supabase authentication.</div><p class="muted" style="font-size:10px;margin-top:18px">ABHISHEK COMPOSITE · LIQUOR & BEER MANAGEMENT</p></div>
 </section>
+<div id="supabaseSaveToast" role="status" aria-live="polite" style="display:none;position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:99999;max-width:min(92vw,680px);padding:14px 20px;border-radius:14px;background:#073b2b;color:#fff;border:1px solid #20a36b;box-shadow:0 12px 36px #0008;font-weight:800;text-align:center"></div>
 <section id="appView">
 <div id="workspaceBackdrop" onclick="closeWorkspaceMenu()" aria-hidden="true"></div>
 <div class="shell">
@@ -586,31 +591,6 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
  <section id="inventoryWork" class="page">
   <div class="panel glass"><div class="section-head" style="margin-top:0"><div><h3>Brand wholesale rates</h3><p>Update each product's purchase cost once; sale margin uses this rate</p></div></div>
   <div class="section-head"><div><h3 id="inventoryWorkTitle">Inventory Register</h3><p id="inventoryWorkSubtitle">Manage stock by date</p></div><button class="btn secondary" onclick="showPage('inventory')">← Back to Liquor / Beer</button></div>
-  <div class="panel glass" id="addLiquorProductPanel">
-    <div class="section-head" style="margin-top:0"><div><h3>＋ Add New Liquor Brand / Size</h3><p>Add a liquor product without editing code. Add each bottle size as a separate product.</p></div></div>
-    <div class="form-grid">
-     <label class="span2">Liquor brand name<input id="newLiquorBrand" type="text" maxlength="100" placeholder="e.g. Royal Stag"></label>
-     <label>Bottle size<select id="newLiquorSize"><option value="750 ML">750 ML</option><option value="375 ML">375 ML</option><option value="180 ML">180 ML</option><option value="90 ML">90 ML</option></select></label>
-     <label>Opening stock<input id="newLiquorOpening" type="number" min="0" step="0.01" value="0"></label>
-     <label>MRP per bottle (₹)<input id="newLiquorMrp" type="number" min="0" step="0.01" placeholder="Enter MRP"></label>
-     <label>Wholesale price (₹)<input id="newLiquorWholesale" type="number" min="0" step="0.01" placeholder="Enter wholesale price"></label>
-    </div>
-    <div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn" type="button" onclick="addInventoryProduct('liquor',this)">＋ Add Liquor Product</button></div>
-    <div id="newLiquorMsg" class="status">Liquor product will be added to the shared inventory database.</div>
-   </div>
-   <div class="panel glass" id="addBeerProductPanel" style="display:none">
-    <div class="section-head" style="margin-top:0"><div><h3>＋ Add New Beer Brand / Pack</h3><p>Choose the beer pack format and enter its stock and rates.</p></div></div>
-    <div class="form-grid">
-     <label class="span2">Beer brand name<input id="newBeerBrand" type="text" maxlength="100" placeholder="e.g. Kingfisher Strong"></label>
-     <label>Beer pack format<select id="newBeerSize"><option value="650 ML Bottle">650 ML Bottle</option><option value="500 ML Can">500 ML Can</option><option value="500 ML Bottle">500 ML Bottle</option><option value="375 ML Can">375 ML Can</option><option value="330 ML Can">330 ML Can</option><option value="330 ML Bottle">330 ML Bottle</option><option value="Other">Other (enter below)</option></select></label>
-     <label id="newBeerCustomSizeWrap" style="display:none">Custom pack format<input id="newBeerCustomSize" type="text" maxlength="40" placeholder="e.g. 1 L Bottle"></label>
-     <label>Opening stock (bottles / cans)<input id="newBeerOpening" type="number" min="0" step="0.01" value="0"></label>
-     <label>MRP per unit (₹)<input id="newBeerMrp" type="number" min="0" step="0.01" placeholder="Enter MRP"></label>
-     <label>Wholesale price per unit (₹)<input id="newBeerWholesale" type="number" min="0" step="0.01" placeholder="Enter wholesale price"></label>
-    </div>
-    <div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn" type="button" onclick="addInventoryProduct('beer',this)">＋ Add Beer Product</button></div>
-    <div id="newBeerMsg" class="status">Beer product will be added to the shared inventory database.</div>
-   </div>
    <div class="section-head"><div><span class="tag" id="inventoryCount">0 BRANDS</span></div></div>
   <div class="panel glass"><div class="form-grid">
    <label>Inventory / Sale / Cash date<input id="inventoryDate" type="date" min="2026-11-02" value="2026-11-07" onchange="applyInventoryFilters()"></label>
@@ -649,6 +629,36 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
    <div class="toolbar" style="margin-top:12px"><span class="muted" id="dcDifference">Total received vs total sale difference ₹0.00</span><strong id="dcClosingCash">Present Day Rokad ₹0.00</strong><button class="btn" type="button" onclick="saveInventoryDayCounter()">Save daily counter</button></div>
    <div class="status" id="dcStatus">Choose date and load the counter.</div>
   </div>
+
+  <div class="section-head" style="margin-top:24px">
+   <div><h3>Product Management</h3><p>Inventory register ke neeche naye Liquor aur Beer products add karein. Product save hote hi Supabase aur shared product lists update hongi.</p></div>
+   <span class="tag">ADD PRODUCT</span>
+  </div>
+  <div class="panel glass" id="addLiquorProductPanel">
+    <div class="section-head" style="margin-top:0"><div><h3>＋ Add New Liquor Brand / Size</h3><p>Add a liquor product without editing code. Add each bottle size as a separate product.</p></div></div>
+    <div class="form-grid">
+     <label class="span2">Liquor brand name<input id="newLiquorBrand" type="text" maxlength="100" placeholder="e.g. Royal Stag"></label>
+     <label>Bottle size<select id="newLiquorSize"><option value="750 ML">750 ML</option><option value="375 ML">375 ML</option><option value="180 ML">180 ML</option><option value="90 ML">90 ML</option></select></label>
+     <label>Opening stock<input id="newLiquorOpening" type="number" min="0" step="0.01" value="0"></label>
+     <label>MRP per bottle (₹)<input id="newLiquorMrp" type="number" min="0" step="0.01" placeholder="Enter MRP"></label>
+     <label>Wholesale price (₹)<input id="newLiquorWholesale" type="number" min="0" step="0.01" placeholder="Enter wholesale price"></label>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn" type="button" onclick="addInventoryProduct('liquor',this)">＋ Add Liquor Product</button></div>
+    <div id="newLiquorMsg" class="status">Add Liquor Product dabate hi product Supabase inventory_products mein save hoga.</div>
+   </div>
+   <div class="panel glass" id="addBeerProductPanel" style="display:none">
+    <div class="section-head" style="margin-top:0"><div><h3>＋ Add New Beer Brand / Pack</h3><p>Choose the beer pack format and enter its stock and rates.</p></div></div>
+    <div class="form-grid">
+     <label class="span2">Beer brand name<input id="newBeerBrand" type="text" maxlength="100" placeholder="e.g. Kingfisher Strong"></label>
+     <label>Beer pack format<select id="newBeerSize"><option value="650 ML Bottle">650 ML Bottle</option><option value="500 ML Can">500 ML Can</option><option value="500 ML Bottle">500 ML Bottle</option><option value="375 ML Can">375 ML Can</option><option value="330 ML Can">330 ML Can</option><option value="330 ML Bottle">330 ML Bottle</option><option value="Other">Other (enter below)</option></select></label>
+     <label id="newBeerCustomSizeWrap" style="display:none">Custom pack format<input id="newBeerCustomSize" type="text" maxlength="40" placeholder="e.g. 1 L Bottle"></label>
+     <label>Opening stock (bottles / cans)<input id="newBeerOpening" type="number" min="0" step="0.01" value="0"></label>
+     <label>MRP per unit (₹)<input id="newBeerMrp" type="number" min="0" step="0.01" placeholder="Enter MRP"></label>
+     <label>Wholesale price per unit (₹)<input id="newBeerWholesale" type="number" min="0" step="0.01" placeholder="Enter wholesale price"></label>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn" type="button" onclick="addInventoryProduct('beer',this)">＋ Add Beer Product</button></div>
+    <div id="newBeerMsg" class="status">Add Beer Product dabate hi product Supabase inventory_products mein save hoga.</div>
+   </div>
  </section>
 
  <section id="profit" class="page">
@@ -711,7 +721,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
     <label>Search brand<input id="fl2RateSearch" type="search" placeholder="Search brand..." oninput="fl2DrawWholesale()"></label>
    </div>
    <div class="status">Brand name, Wholesale rate aur MRP edit karke neeche **Save Changes** dabayein. Save hone par changes Supabase mein permanently update honge aur har date ki Inventory mein dikhेंगे.</div>
-   <div class="section-head" style="margin:12px 0"><div><b>Brand & Rate Editor</b><p>Visible rows ke saare changes ek saath save honge.</p></div><button class="btn" id="fl2SaveAllRatesBtn" type="button" onclick="fl2SaveAllRates(this)">Save Changes</button></div>
+   <div class="section-head" style="margin:12px 0"><div><b>Brand & Rate Editor</b><p>Visible rows ke saare changes ek saath save honge.</p></div><button class="btn" id="fl2SaveAllRatesBtn" type="button" aria-disabled="false" onclick="fl2SaveAllRates(this)">Save to Supabase</button></div>
    <div class="table-wrap"><table><thead><tr><th>Brand Name (Editable)</th><th>Size</th><th>Qty</th><th>Wholesale / Bottle</th><th>Petty Wholesale</th><th>MRP / Bottle</th><th>Petty MRP</th></tr></thead><tbody id="fl2RateRows"><tr><td colspan="7" class="empty">Loading brands…</td></tr></tbody></table></div>
    <div class="status" id="fl2RateMsg">Changes abhi save nahi hue hain. Edit karne ke baad Save Changes dabayein.</div>
   </div>
@@ -2380,53 +2390,77 @@ function fl2DrawWholesale(){
  }).join("")||'<tr><td colspan="7" class="empty">No brands found.</td></tr>';
 }
 function fl2CalcRateRow(id){const qty=num($("fl2qty_"+id).value),wh=num($("fl2wh_"+id).value),mrp=num($("fl2mrp_"+id).value);$("fl2petty_"+id).textContent=money(qty*wh);$("fl2pettymrp_"+id).textContent=money(qty*mrp)}
+function fl2ShowSaveToast(message,success=true){
+ const el=$("supabaseSaveToast");
+ if(el){
+  el.textContent=message;
+  el.style.background=success?"#073b2b":"#5b1720";
+  el.style.borderColor=success?"#20a36b":"#e05b69";
+  el.style.color="#fff";
+  el.style.display="block";
+  if(window.__fl2ToastTimer)clearTimeout(window.__fl2ToastTimer);
+  window.__fl2ToastTimer=setTimeout(()=>{el.style.display="none";},6000);
+ }
+}
 async function fl2SaveAllRates(button){
- if(!db||!user){setMsg("fl2RateMsg","Admin login required. Changes were not saved.");return;}
+ const btn=button||$("fl2SaveAllRatesBtn");
+ const notify=(msg,ok=false)=>{setMsg("fl2RateMsg",msg);fl2ShowSaveToast(msg,ok);};
+ if(!db||!user){notify("Admin login required. Changes save nahi hue.",false);return;}
  const rows=[...document.querySelectorAll("#fl2RateRows tr[data-rate-product-id]")];
- if(!rows.length){setMsg("fl2RateMsg","Save karne ke liye koi brand row nahi hai.");return;}
+ if(!rows.length){notify("Save karne ke liye koi product row nahi mili.",false);return;}
  const updates=rows.map(row=>{
   const id=row.dataset.rateProductId,p=products.find(x=>String(x.id)===String(id));
-  return {id,p,
-   brand_name:$("fl2brand_"+id)?.value.trim()||"",
-   size:$("fl2size_"+id)?.value.trim()||"",
-   wholesale_price:num($("fl2wh_"+id)?.value),
-   mrp:num($("fl2mrp_"+id)?.value)};
+  return {id,p,brand_name:($("fl2brand_"+id)?.value||"").trim(),
+   size:($("fl2size_"+id)?.value||"").trim(),
+   wholesale_price:Number($("fl2wh_"+id)?.value),mrp:Number($("fl2mrp_"+id)?.value)};
  });
  for(const x of updates){
-  if(!x.p){setMsg("fl2RateMsg","Product "+x.id+" current inventory list mein nahi mila. Refresh karke retry karein.");return;}
+  if(!x.p){notify("Product "+x.id+" inventory list mein nahi mila. Refresh karke retry karein.",false);return;}
   if(!x.brand_name||!x.size||!Number.isFinite(x.wholesale_price)||!Number.isFinite(x.mrp)||x.wholesale_price<=0||x.mrp<=0){
-   setMsg("fl2RateMsg",`Brand ${x.p.brand_name}: Brand name, Size, Wholesale aur MRP valid aur zero se zyada hone chahiye.`);return;
+   notify(`${x.p.brand_name}: Brand, Size, Wholesale aur MRP valid aur zero se zyada hone chahiye.`,false);return;
   }
-  const duplicate=products.some(y=>String(y.id)!==String(x.id)&&String(y.category).toLowerCase()===String(x.p.category).toLowerCase()&&String(y.size).trim().toLowerCase()===x.size.toLowerCase()&&String(y.brand_name).trim().toLowerCase()===x.brand_name.toLowerCase());
-  if(duplicate){setMsg("fl2RateMsg",`"${x.brand_name} · ${x.size}" same category mein pehle se hai. Duplicate combination change karein.`);return;}
  }
- const changed=updates.filter(x=>x.brand_name!==String(x.p.brand_name||"").trim()||x.size!==String(x.p.size||"").trim()||x.wholesale_price!==num(x.p.wholesale_price)||x.mrp!==num(x.p.mrp));
- if(!changed.length){setMsg("fl2RateMsg","Koi naya change nahi mila. Sab values pehle se Supabase mein saved hain.");return;}
- const originalLabel=button?.textContent||"Save Changes";
- if(button){button.disabled=true;button.textContent="Saving to Supabase…";button.classList.add("saving");}
- setMsg("fl2RateMsg",`Saving ${changed.length} changed product(s) directly to Supabase…`);
+ const keys=new Set();
+ for(const x of updates){
+  const key=[String(x.p.category||"").toLowerCase(),x.brand_name.toLowerCase(),x.size.toLowerCase()].join("|");
+  if(keys.has(key)){notify(`Duplicate product: ${x.brand_name} · ${x.size}.`,false);return;}
+  keys.add(key);
+ }
+ const changed=updates.filter(x=>
+  x.brand_name!==String(x.p.brand_name||"").trim()||
+  x.size!==String(x.p.size||"").trim()||
+  x.wholesale_price!==Number(x.p.wholesale_price||0)||
+  x.mrp!==Number(x.p.mrp||0)
+ );
+ if(!changed.length){notify("No changes detected. Values already saved in Supabase.",true);return;}
+ if(btn){btn.disabled=true;btn.setAttribute("aria-disabled","true");btn.textContent="Saving to Supabase…";btn.classList.add("saving");}
+ notify(`Saving ${changed.length} changed product(s) to Supabase…`,true);
+ let saved=0;const failures=[];
  try{
-  const results=await Promise.all(changed.map(async x=>{
+  for(const x of changed){
    const {data,error}=await db.from("inventory_products")
     .update({brand_name:x.brand_name,size:x.size,wholesale_price:x.wholesale_price,mrp:x.mrp})
-    .eq("id",x.id).eq("user_id",user.id)
-    .select("id,brand_name,size,wholesale_price,mrp").single();
-   if(error)throw new Error(`${x.p.brand_name}: ${error.message}`);
-   if(!data)throw new Error(`${x.p.brand_name}: Supabase returned no updated row (check RLS/permissions).`);
-   return {x,data};
-  }));
-  for(const {x,data} of results){
+    .eq("id",x.id)
+    .select("id,brand_name,size,wholesale_price,mrp")
+    .maybeSingle();
+   if(error){failures.push(`${x.p.brand_name}: ${error.message}`);continue;}
+   if(!data){failures.push(`${x.p.brand_name}: row update nahi hui. Supabase RLS/policy check karein.`);continue;}
    x.p.brand_name=data.brand_name;x.p.size=data.size;
    x.p.wholesale_price=Number(data.wholesale_price);x.p.mrp=Number(data.mrp);
    inventoryRateByProduct[String(x.id)]={mrp:Number(data.mrp),wholesale_price:Number(data.wholesale_price)};
+   saved++;
   }
-  setMsg("fl2RateMsg",`✓ Saved ${results.length} changed product(s) directly to Supabase. Brand name, size, Wholesale and MRP updated.`);
-  drawProducts();fillBrandFilters();fl2DrawWholesale();
+  if(failures.length){
+   notify(`${saved} saved; ${failures.length} failed. ${failures.join(" | ")}`,false);
+  }else{
+   notify(`✓ SAVE TO SUPABASE CONFIRMED — ${saved} product(s) updated successfully.`,true);
+   drawProducts();fillBrandFilters();fl2DrawWholesale();
+  }
  }catch(e){
-  setMsg("fl2RateMsg",`Save failed: ${e.message}. No success confirmation was returned for all changed rows. Check the values and retry.`);
-  console.error("Wholesale bulk save failed",e);
+  notify(`Save failed: ${e?.message||String(e)}. Supabase confirmation nahi mila.`,false);
+  console.error("Wholesale save error:",e);
  }finally{
-  if(button){button.disabled=false;button.textContent=originalLabel;button.classList.remove("saving");}
+  if(btn){btn.disabled=false;btn.setAttribute("aria-disabled","false");btn.textContent="Save to Supabase";btn.classList.remove("saving");}
  }
 }
 async function fl2SaveRate(id,button){
