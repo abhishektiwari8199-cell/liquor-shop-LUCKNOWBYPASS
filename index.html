@@ -464,7 +464,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
  <div class="nav-label">WORKSPACE</div>
  <nav class="nav">
   <button class="active" data-page="home" onclick="showPage('home',this)"><span class="ico">⌂</span>Overview</button>
-  <button data-page="cashSalePos" onclick="showPage('cashSalePos',this)"><span class="ico">▣</span>Counter Sale POS</button>
+  <button data-page="cashSalePos" onclick="showPage('cashSalePos',this)"><span class="ico">▣</span>Cash Sale POS</button>
   <button data-page="inventory" onclick="showPage('inventory',this)"><span class="ico">▦</span>Inventory</button>
   <button data-page="profit" onclick="showPage('profit',this)"><span class="ico">₹</span>Profit & Margin</button>
   <button data-page="cash" onclick="showPage('cash',this)"><span class="ico">▤</span>Daybook</button>
@@ -562,7 +562,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
     </div>
     <div id="stockInCameraReader" style="display:none;max-width:440px;margin:14px auto"></div>
     <div class="stockin-one-line stockin-actions">
-     <div class="stockin-current" id="stockInCurrentProduct">Scan to sale new product</div>
+     <div class="stockin-current" id="stockInCurrentProduct">Waiting for first QR scan…</div>
      <button class="btn secondary" type="button" onclick="stockInStopCamera()">Stop Camera</button>
      <button class="btn secondary" type="button" onclick="stockInRefreshSummary()">Refresh Count</button>
     </div>
@@ -891,11 +891,21 @@ const BEER_RATE_CARD=[
 ];
 function beerRateKey(value){return String(value||"").toUpperCase().replace(/AS\s+LISTED/g," ").replace(/[^A-Z0-9]+/g," ").replace(/\s+/g," ").trim()}
 function applyBeerRateCard(product){
+ // Static beer rate card is only a fallback for legacy products with missing rates.
+ // Never overwrite values already saved in Supabase: otherwise edited rates revert on refresh.
  if(String(product.category||"").toLowerCase()!=="beer")return product;
  const combined=beerRateKey(`${cleanBeerBrandName(product.brand_name||"")} ${product.size||""}`);
  const rate=BEER_RATE_CARD.find(r=>{const key=beerRateKey(r.name);return combined===key||combined.includes(key)||key.includes(combined)});
  if(!rate)return product;
- return {...product,mrp:rate.mrp,wholesale_price:rate.wholesale==null?product.wholesale_price:rate.wholesale,rate_card_margin:rate.margin,rate_card_name:rate.name};
+ const hasSavedMrp=product.mrp!==null&&product.mrp!==undefined&&String(product.mrp).trim()!=="";
+ const hasSavedWholesale=product.wholesale_price!==null&&product.wholesale_price!==undefined&&String(product.wholesale_price).trim()!=="";
+ return {
+  ...product,
+  mrp:hasSavedMrp?product.mrp:rate.mrp,
+  wholesale_price:hasSavedWholesale?product.wholesale_price:rate.wholesale,
+  rate_card_margin:rate.margin,
+  rate_card_name:rate.name
+ };
 }
 function setMsg(id,text){$(id).textContent=text}
 function safe(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
@@ -1855,8 +1865,30 @@ function drawWholesaleRates(){
  $("wholesaleRateRows").innerHTML=rows.map(p=>`<tr><td>${safe(p.category)}</td><td><b>${safe(p.brand_name)}</b></td><td>${safe(p.size)}</td><td><input id="rate_${safe(p.id)}" type="number" min="0" step=".01" value="${num(p.wholesale_price)}"></td><td>${money(p.mrp)}</td><td>${money(num(p.mrp)-num(p.wholesale_price))}</td><td><button class="btn" onclick="saveWholesaleRate('${safe(p.id)}',this)">Save rate</button></td></tr>`).join("")||'<tr><td colspan="7" class="empty">No matching products.</td></tr>';
 }
 async function saveWholesaleRate(id,button){
- const rate=num($("rate_"+id).value);if(rate<0){alert("Wholesale rate must be zero or more.");return}
- button.disabled=true;try{const {data,error}=await db.from("inventory_products").update({wholesale_price:rate}).eq("id",id).select("id,wholesale_price").single();if(error)throw error;const p=products.find(x=>String(x.id)===String(id));if(p)p.wholesale_price=data.wholesale_price;drawWholesaleRates();setMsg("purchaseMsg","Wholesale rate saved. New profit calculations will use this cost.");}catch(e){alert("Rate update failed: "+e.message)}finally{button.disabled=false}
+ const input=$("rate_"+id),rate=Number(input?.value);
+ if(!Number.isFinite(rate)||rate<=0){alert("Wholesale rate zero se zyada enter karein.");return}
+ const original=button?.textContent;
+ if(button){button.disabled=true;button.textContent="Saving…"}
+ try{
+  const {data,error}=await db.from("inventory_products")
+   .update({wholesale_price:rate})
+   .eq("id",id)
+   .eq("user_id",user.id)
+   .select("id,wholesale_price")
+   .single();
+  if(error)throw error;
+  if(!data)throw new Error("Supabase ne updated product return nahi kiya.");
+  const p=products.find(x=>String(x.id)===String(data.id));
+  if(p)p.wholesale_price=Number(data.wholesale_price);
+  if(input)input.value=Number(data.wholesale_price).toFixed(2);
+  const row=input?.closest("tr");
+  if(row){const cells=row.querySelectorAll("td");if(cells[5])cells[5].textContent=money(num(p?.mrp)-num(data.wholesale_price));}
+  setMsg("purchaseMsg",`✓ ${p?.brand_name||"Product"} · ${p?.size||""} ka wholesale rate ${money(data.wholesale_price)} Supabase mein save ho gaya.`);
+  if(button){button.textContent="✓ Saved";setTimeout(()=>{if(button.isConnected)button.textContent=original||"Save rate"},1600)}
+ }catch(e){
+  alert("Rate update failed: "+(e.message||String(e)));
+  if(button)button.textContent=original||"Save rate";
+ }finally{if(button)button.disabled=false}
 }
 function setProfitPeriod(){
  const mode=$("profitPeriod").value,now=new Date(),ym=now.toISOString().slice(0,7);
