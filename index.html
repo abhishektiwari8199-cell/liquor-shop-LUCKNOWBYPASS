@@ -368,7 +368,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
 .stockin-count-grid small{display:block;color:var(--muted,#b7c9dc);font-size:11px}
 .stockin-count-grid strong{display:block;font-size:22px;margin-top:4px}
 @media(max-width:900px){.stockin-one-line{flex-wrap:wrap}.stockin-one-line label{min-width:calc(50% - 8px)}.stockin-one-line .stockin-scan-field{min-width:100%}.stockin-count-grid{grid-template-columns:1fr 1fr}}
-</style>
+.btn.saving{opacity:.78;cursor:progress;filter:saturate(.8)}\n</style>
 <style id="dashboard-mrp-additions">.kpi-sub{margin-top:7px;color:#a9bfd4;font-size:12px;font-weight:700;letter-spacing:.2px}</style>
 <style id="fl2-workspace-additions">#fl2ReconciliationPanel .kpis{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}#fl2ReconciliationPanel .table-wrap{overflow-x:auto}#fl2ReconciliationPanel table{min-width:1050px}#fl2ReconciliationPanel .status{white-space:normal}</style>
 <style id="fl2-workspace-additions">#fl2 .table-wrap{overflow-x:auto}#fl2 table input{min-width:88px;width:100%;max-width:130px}#fl2 .section-head{gap:12px;flex-wrap:wrap}#fl2 .status{margin:12px 0}</style>
@@ -2376,7 +2376,7 @@ function fl2DrawWholesale(){
  const rows=orderedProductsByOwnerSequence(products.filter(p=>String(p.category||"").toLowerCase()===cat&&(`${p.brand_name} ${p.size}`).toLowerCase().includes(q)));
  $("fl2RateRows").innerHTML=rows.map(p=>{
   const r=inventoryRate(p);
-  return `<tr data-rate-product-id="${safe(p.id)}"><td><input id="fl2brand_${safe(p.id)}" type="text" maxlength="120" value="${safe(p.brand_name)}" style="min-width:190px"></td><td>${safe(p.size)}</td><td><input id="fl2qty_${safe(p.id)}" type="number" min="0" step=".01" value="1" oninput="fl2CalcRateRow('${safe(p.id)}')"></td><td><input id="fl2wh_${safe(p.id)}" type="number" min="0" step=".01" value="${r.wholesale_price}" oninput="fl2CalcRateRow('${safe(p.id)}')"></td><td id="fl2petty_${safe(p.id)}">${money(r.wholesale_price)}</td><td><input id="fl2mrp_${safe(p.id)}" type="number" min="0" step=".01" value="${r.mrp}" oninput="fl2CalcRateRow('${safe(p.id)}')"></td><td id="fl2pettymrp_${safe(p.id)}">${money(r.mrp)}</td></tr>`;
+  return `<tr data-rate-product-id="${safe(p.id)}"><td><input id="fl2brand_${safe(p.id)}" type="text" maxlength="120" value="${safe(p.brand_name)}" style="min-width:190px" aria-label="Brand name"></td><td><input id="fl2size_${safe(p.id)}" type="text" maxlength="40" value="${safe(p.size)}" style="min-width:110px" aria-label="Product size"></td><td><input id="fl2qty_${safe(p.id)}" type="number" min="0" step=".01" value="1" oninput="fl2CalcRateRow('${safe(p.id)}')"></td><td><input id="fl2wh_${safe(p.id)}" type="number" min="0" step=".01" value="${r.wholesale_price}" oninput="fl2CalcRateRow('${safe(p.id)}')"></td><td id="fl2petty_${safe(p.id)}">${money(r.wholesale_price)}</td><td><input id="fl2mrp_${safe(p.id)}" type="number" min="0" step=".01" value="${r.mrp}" oninput="fl2CalcRateRow('${safe(p.id)}')"></td><td id="fl2pettymrp_${safe(p.id)}">${money(r.mrp)}</td></tr>`;
  }).join("")||'<tr><td colspan="7" class="empty">No brands found.</td></tr>';
 }
 function fl2CalcRateRow(id){const qty=num($("fl2qty_"+id).value),wh=num($("fl2wh_"+id).value),mrp=num($("fl2mrp_"+id).value);$("fl2petty_"+id).textContent=money(qty*wh);$("fl2pettymrp_"+id).textContent=money(qty*mrp)}
@@ -2386,34 +2386,47 @@ async function fl2SaveAllRates(button){
  if(!rows.length){setMsg("fl2RateMsg","Save karne ke liye koi brand row nahi hai.");return;}
  const updates=rows.map(row=>{
   const id=row.dataset.rateProductId,p=products.find(x=>String(x.id)===String(id));
-  return {id,p,brand_name:$("fl2brand_"+id)?.value.trim()||"",wh:num($("fl2wh_"+id)?.value),mrp:num($("fl2mrp_"+id)?.value)};
+  return {id,p,
+   brand_name:$("fl2brand_"+id)?.value.trim()||"",
+   size:$("fl2size_"+id)?.value.trim()||"",
+   wholesale_price:num($("fl2wh_"+id)?.value),
+   mrp:num($("fl2mrp_"+id)?.value)};
  });
  for(const x of updates){
   if(!x.p){setMsg("fl2RateMsg","Product "+x.id+" current inventory list mein nahi mila. Refresh karke retry karein.");return;}
-  if(!x.brand_name||!Number.isFinite(x.wh)||!Number.isFinite(x.mrp)||x.wh<=0||x.mrp<=0){
-   setMsg("fl2RateMsg",`Brand ${x.p.brand_name}: Brand name, Wholesale aur MRP valid aur zero se zyada hone chahiye.`);return;
+  if(!x.brand_name||!x.size||!Number.isFinite(x.wholesale_price)||!Number.isFinite(x.mrp)||x.wholesale_price<=0||x.mrp<=0){
+   setMsg("fl2RateMsg",`Brand ${x.p.brand_name}: Brand name, Size, Wholesale aur MRP valid aur zero se zyada hone chahiye.`);return;
   }
-  const duplicate=products.some(y=>String(y.id)!==String(x.id)&&String(y.category).toLowerCase()===String(x.p.category).toLowerCase()&&String(y.size).trim().toLowerCase()===String(x.p.size).trim().toLowerCase()&&String(y.brand_name).trim().toLowerCase()===x.brand_name.toLowerCase());
-  if(duplicate){setMsg("fl2RateMsg",`"${x.brand_name}" same category aur size mein pehle se hai. Duplicate name change karein.`);return;}
+  const duplicate=products.some(y=>String(y.id)!==String(x.id)&&String(y.category).toLowerCase()===String(x.p.category).toLowerCase()&&String(y.size).trim().toLowerCase()===x.size.toLowerCase()&&String(y.brand_name).trim().toLowerCase()===x.brand_name.toLowerCase());
+  if(duplicate){setMsg("fl2RateMsg",`"${x.brand_name} · ${x.size}" same category mein pehle se hai. Duplicate combination change karein.`);return;}
  }
- if(button){button.disabled=true;button.textContent="Saving…";}
- let saved=0;
+ const changed=updates.filter(x=>x.brand_name!==String(x.p.brand_name||"").trim()||x.size!==String(x.p.size||"").trim()||x.wholesale_price!==num(x.p.wholesale_price)||x.mrp!==num(x.p.mrp));
+ if(!changed.length){setMsg("fl2RateMsg","Koi naya change nahi mila. Sab values pehle se Supabase mein saved hain.");return;}
+ const originalLabel=button?.textContent||"Save Changes";
+ if(button){button.disabled=true;button.textContent="Saving to Supabase…";button.classList.add("saving");}
+ setMsg("fl2RateMsg",`Saving ${changed.length} changed product(s) directly to Supabase…`);
  try{
-  for(const x of updates){
-   const {data,error}=await db.from("inventory_products").update({brand_name:x.brand_name,wholesale_price:x.wh,mrp:x.mrp}).eq("id",x.id).eq("user_id",user.id).select("id,brand_name,wholesale_price,mrp").single();
+  const results=await Promise.all(changed.map(async x=>{
+   const {data,error}=await db.from("inventory_products")
+    .update({brand_name:x.brand_name,size:x.size,wholesale_price:x.wholesale_price,mrp:x.mrp})
+    .eq("id",x.id).eq("user_id",user.id)
+    .select("id,brand_name,size,wholesale_price,mrp").single();
    if(error)throw new Error(`${x.p.brand_name}: ${error.message}`);
-   x.p.brand_name=data.brand_name;x.p.wholesale_price=Number(data.wholesale_price);x.p.mrp=Number(data.mrp);
+   if(!data)throw new Error(`${x.p.brand_name}: Supabase returned no updated row (check RLS/permissions).`);
+   return {x,data};
+  }));
+  for(const {x,data} of results){
+   x.p.brand_name=data.brand_name;x.p.size=data.size;
+   x.p.wholesale_price=Number(data.wholesale_price);x.p.mrp=Number(data.mrp);
    inventoryRateByProduct[String(x.id)]={mrp:Number(data.mrp),wholesale_price:Number(data.wholesale_price)};
-   saved++;
   }
-  setMsg("fl2RateMsg",`✓ ${saved} brand rows Supabase mein save ho gayi. New MRP aur Wholesale rates Inventory mein sab dates par apply honge.`);
-  drawProducts();
-  fl2DrawWholesale();
+  setMsg("fl2RateMsg",`✓ Saved ${results.length} changed product(s) directly to Supabase. Brand name, size, Wholesale and MRP updated.`);
+  drawProducts();fillBrandFilters();fl2DrawWholesale();
  }catch(e){
-  setMsg("fl2RateMsg",`${saved} rows save hui; agla save fail hua: ${e.message}. Baaki rows ke liye Save Changes dobara dabayein.`);
-  console.error("Bulk wholesale rate save failed",e);
+  setMsg("fl2RateMsg",`Save failed: ${e.message}. No success confirmation was returned for all changed rows. Check the values and retry.`);
+  console.error("Wholesale bulk save failed",e);
  }finally{
-  if(button){button.disabled=false;button.textContent="Save Changes";}
+  if(button){button.disabled=false;button.textContent=originalLabel;button.classList.remove("saving");}
  }
 }
 async function fl2SaveRate(id,button){
