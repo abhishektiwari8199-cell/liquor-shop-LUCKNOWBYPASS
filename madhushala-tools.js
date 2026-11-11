@@ -501,12 +501,137 @@
     });
   }
 
+
+  // Manual freeze panes for the existing Liquor / Beer inventory registers.
+  let freezeObserver = null;
+  function ensureInventoryFreezeControls() {
+    const host = document.querySelector('#inventoryWork .toolbar');
+    if (!host || $('mdFreezeControls')) return;
+    const panel = document.createElement('div');
+    panel.id = 'mdFreezeControls';
+    panel.className = 'panel glass';
+    panel.style.cssText = 'display:flex;align-items:end;flex-wrap:wrap;gap:10px;margin:12px 0;padding:12px';
+    panel.innerHTML = `
+      <div style="min-width:155px;flex:1"><label style="display:block;font-size:12px;font-weight:800;margin-bottom:5px">Freeze header rows</label>
+        <select id="mdFreezeRows" style="width:100%"><option value="0">0 — Unfreeze rows</option><option value="1">1 row</option><option value="2" selected>2 rows</option></select></div>
+      <div style="min-width:155px;flex:1"><label style="display:block;font-size:12px;font-weight:800;margin-bottom:5px">Freeze left columns</label>
+        <select id="mdFreezeCols" style="width:100%"><option value="0">0 — Unfreeze columns</option><option value="1" selected>1 column</option><option value="2">2 columns</option><option value="3">3 columns</option><option value="4">4 columns</option><option value="5">5 columns</option></select></div>
+      <div style="min-width:175px;flex:1"><label style="display:block;font-size:12px;font-weight:800;margin-bottom:5px">Brand name column</label>
+        <select id="mdBrandFreeze" style="width:100%"><option value="on" selected>Freeze brand name</option><option value="off">Unfreeze brand name</option></select></div>
+      <button type="button" class="btn primary" id="mdFreezeApply">Apply Freeze</button>
+      <button type="button" class="btn secondary" id="mdFreezeClear">Unfreeze All</button>
+      <span id="mdFreezeStatus" style="font-size:12px;min-width:100%;opacity:.8">Freeze settings apply to the currently visible inventory table.</span>`;
+    host.insertAdjacentElement('afterend', panel);
+    $('mdFreezeApply').addEventListener('click', applyInventoryFreeze);
+    $('mdBrandFreeze').addEventListener('change', applyInventoryFreeze);
+    $('mdFreezeClear').addEventListener('click', () => {
+      $('mdFreezeRows').value = '0'; $('mdFreezeCols').value = '0'; $('mdBrandFreeze').value = 'off'; applyInventoryFreeze();
+    });
+  }
+
+  function applyInventoryFreeze() {
+    const rowsToFreeze = Number($('mdFreezeRows')?.value || 0);
+    const colsToFreeze = Number($('mdFreezeCols')?.value || 0);
+    const wrappers = [
+      { wrap: $('liquorInventoryWrap'), table: $('liquorInventoryWrap')?.querySelector('table') },
+      { wrap: $('beerInventoryWrap'), table: $('beerInventoryWrap')?.querySelector('table') }
+    ];
+    wrappers.forEach(({wrap, table}) => {
+      if (!wrap || !table || getComputedStyle(wrap).display === 'none') return;
+      const headRows = Array.from(table.tHead?.rows || []);
+      let top = 0;
+      headRows.forEach((tr, index) => {
+        Array.from(tr.cells).forEach(th => {
+          th.style.setProperty('position', rowsToFreeze > index ? 'sticky' : 'static', 'important');
+          th.style.setProperty('top', rowsToFreeze > index ? `${top}px` : 'auto', 'important');
+          th.style.setProperty('z-index', rowsToFreeze > index ? '12' : 'auto', 'important');
+        });
+        if (rowsToFreeze > index) top += tr.getBoundingClientRect().height;
+      });
+      const bodyRows = Array.from(table.tBodies?.[0]?.rows || []);
+      const firstRow = bodyRows.find(tr => tr.cells.length > 1);
+      const widths = [];
+      if (firstRow) {
+        for (let i = 0; i < Math.min(colsToFreeze, firstRow.cells.length); i++) {
+          widths.push(firstRow.cells[i].getBoundingClientRect().width);
+        }
+      }
+      const applyCells = (tr, isHead = false) => {
+        let left = 0;
+        Array.from(tr.cells).forEach((cell, index) => {
+          const shouldFreeze = index < colsToFreeze && widths[index] !== undefined;
+          cell.style.setProperty('left', shouldFreeze ? `${left}px` : 'auto', 'important');
+          if (shouldFreeze) {
+            cell.style.setProperty('position', 'sticky', 'important');
+            cell.style.setProperty('z-index', isHead ? '15' : '6', 'important');
+            left += widths[index];
+          } else if (!isHead && index > 0) {
+            cell.style.removeProperty('left');
+          }
+        });
+      };
+      bodyRows.forEach(tr => applyCells(tr, false));
+      // The first header row has grouped colspan cells; pin only the brand/first column.
+      if (headRows[0]?.cells[0]) {
+        const first = headRows[0].cells[0];
+        first.style.setProperty('left', '0px', 'important');
+        first.style.setProperty('position', 'sticky', 'important');
+        first.style.setProperty('z-index', '18', 'important');
+      }
+      if (headRows[1]) applyCells(headRows[1], true);
+      // Brand-name freeze is controlled independently from the generic left-column setting.
+      // Liquor: brand name is column 1. Beer: brand name is column 2 (column 1 is S.NO.).
+      const brandFrozen = ($('mdBrandFreeze')?.value || 'on') === 'on';
+      const isBeer = table.classList.contains('beer-register') || wrap.id === 'beerInventoryWrap';
+      const brandIndex = isBeer ? 1 : 0;
+      const frozenCount = isBeer ? 2 : 1;
+      const firstBodyRow = table.tBodies?.[0]?.rows?.[0];
+      const brandLeft = isBeer && firstBodyRow?.cells?.[0]
+        ? firstBodyRow.cells[0].getBoundingClientRect().width : 0;
+      Array.from(table.tBodies || []).forEach(tbody => Array.from(tbody.rows).forEach(tr => {
+        for (let i = 0; i < Math.min(frozenCount, tr.cells.length); i++) {
+          const cell = tr.cells[i];
+          const shouldStick = brandFrozen;
+          cell.style.setProperty('position', shouldStick ? 'sticky' : 'static', 'important');
+          cell.style.setProperty('left', shouldStick ? (isBeer && i === 1 ? `${brandLeft}px` : '0px') : 'auto', 'important');
+          cell.style.setProperty('z-index', shouldStick ? '7' : 'auto', 'important');
+        }
+      }));
+      Array.from(table.tHead?.rows || []).forEach(tr => {
+        // Keep the first two Beer headings (S.NO. + BRAND NAME), or the first Liquor heading.
+        for (let i = 0; i < Math.min(frozenCount, tr.cells.length); i++) {
+          const cell = tr.cells[i];
+          if (cell.colSpan > 1) continue;
+          const shouldStick = brandFrozen;
+          cell.style.setProperty('position', shouldStick ? 'sticky' : 'static', 'important');
+          cell.style.setProperty('left', shouldStick ? (isBeer && i === 1 ? `${brandLeft}px` : '0px') : 'auto', 'important');
+          cell.style.setProperty('z-index', shouldStick ? '18' : 'auto', 'important');
+        }
+      });
+      // Ensure frozen header cells remain above frozen body cells.
+      table.style.setProperty('border-collapse', 'separate', 'important');
+    });
+    const status = $('mdFreezeStatus');
+    if (status) status.textContent = `Applied: ${rowsToFreeze} header row(s), ${colsToFreeze} left column(s); brand name column ${($('mdBrandFreeze')?.value || 'on') === 'on' ? 'FROZEN' : 'UNFROZEN'}.`;
+  }
+
+  function watchInventoryRedraw() {
+    const target = $('inventoryWork');
+    if (!target || freezeObserver) return;
+    freezeObserver = new MutationObserver(() => {
+      if ($('mdFreezeControls')) applyInventoryFreeze();
+    });
+    freezeObserver.observe(target, { childList: true, subtree: true });
+  }
+
   function install() {
     if (installed) return;
     ensureStyles();
     makeSection();
     addNavigation();
     bindEvents();
+    ensureInventoryFreezeControls();
+    watchInventoryRedraw();
 
     // Wrap the existing page router without changing its original implementation.
     if (typeof bridge()?.showPage === "function" && !bridge().showPage.__mdToolsWrapped) {
