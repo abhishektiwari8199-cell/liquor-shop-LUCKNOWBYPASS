@@ -705,13 +705,12 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
    <div class="status" id="fl2InvoiceMsg">Invoice records are separate from Inventory and do not update stock.</div>
   </div>
   <div id="fl2WholesalePanel" class="panel glass" style="display:none">
-   <div class="section-head" style="margin-top:0"><div><h3>Wholesale Price</h3><p>Saved wholesale price and MRP will also update the selected brand in Inventory.</p></div><button class="btn secondary" type="button" onclick="fl2Tab('home')">← FL2 Home</button></div>
-   <div class="form-grid">
-    <label>Rate effective date<input id="fl2RateDate" type="date" min="2026-11-02" onchange="fl2OpenWholesale()"></label>
+   <div class="section-head" style="margin-top:0"><div><h3>Wholesale Price</h3><p>Wholesale price aur MRP ek baar save karein; ye har date ki Inventory mein apply honge.</p></div><button class="btn secondary" type="button" onclick="fl2Tab('home')">← FL2 Home</button></div>
+   <div class="form-grid" style="grid-template-columns:repeat(2,minmax(220px,1fr))">
     <label>Category<select id="fl2RateCategory" onchange="fl2DrawWholesale()"><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label>
     <label>Search brand<input id="fl2RateSearch" type="search" placeholder="Search brand..." oninput="fl2DrawWholesale()"></label>
    </div>
-   <div class="status">Is date par MRP aur Wholesale rate save honge. Inventory ki selected date par wahi effective rate dikhega. Brand name bhi yahin edit kar sakte hain.</div>
+   <div class="status">Yahan save kiya gaya MRP aur Wholesale rate har date ki Inventory mein dikhega. Brand name bhi yahin edit kar sakte hain.</div>
    <div class="table-wrap"><table><thead><tr><th>Brand Name (Editable)</th><th>Size</th><th>Qty</th><th>Wholesale / Bottle</th><th>Petty Wholesale</th><th>MRP / Bottle</th><th>Petty MRP</th><th>Save</th></tr></thead><tbody id="fl2RateRows"><tr><td colspan="8" class="empty">Loading brands…</td></tr></tbody></table></div>
    <div class="status" id="fl2RateMsg">Petty values are calculated as per-bottle price × entered quantity.</div>
   </div>
@@ -991,17 +990,12 @@ async function applyInventoryFilters(){
 }
 let inventoryRateByProduct={};
 function inventoryRate(p){
- const saved=inventoryRateByProduct[String(p.id)];
- return {mrp:num(saved?.mrp??p.mrp),wholesale_price:num(saved?.wholesale_price??p.wholesale_price)};
+ // Current product master rates apply to every selected inventory date.
+ return {mrp:num(p?.mrp),wholesale_price:num(p?.wholesale_price)};
 }
 async function loadInventoryRatesForDate(date){
+ // Compatibility hook: rates are global/current, not date-effective.
  inventoryRateByProduct={};
- const {data,error}=await db.from("wholesale_price_history")
-  .select("product_id,effective_date,mrp,wholesale_price")
-  .eq("user_id",user.id).lte("effective_date",date)
-  .order("effective_date",{ascending:true});
- if(error)throw error;
- for(const row of data||[])inventoryRateByProduct[String(row.product_id)]={mrp:row.mrp,wholesale_price:row.wholesale_price,effective_date:row.effective_date};
 }
 async function loadInventoryForDate(){
   const date=$("inventoryDate").value||STOCK_START_DATE;
@@ -1190,7 +1184,7 @@ function drawProducts(){
     const o=map.map(p=>p?num(inventoryOpeningForDate[String(p.id)]??p.opening_stock):0),p=map.map(x=>x?num(inventoryPurchased[String(x.id)]):0),s=map.map(x=>x?num(inventorySold[String(x.id)]):0),t=o.map((v,k)=>v+p[k]),b=t.map((v,k)=>v-s[k]),v=b.map((x,k)=>x*num(map[k]?inventoryRate(map[k]).wholesale_price:0));
     for(let k=0;k<4;k++){grand.opening+=o[k];grand.purchase+=p[k];grand.total+=t[k];grand.sale+=s[k];grand.balance+=b[k];grand.value+=v[k];}
     const inputs=(arr,prefix,label)=>map.map((x,k)=>`<td>${x?`<input aria-label="${safe(g.name)} ${sizes[k]} ${label}" id="${prefix}_${safe(x.id)}" type="number" min="0" step=".01" value="${arr[k]}" ${prefix==="opening"&&($("inventoryDate").value||STOCK_START_DATE)!==STOCK_START_DATE?"readonly title='Auto carried forward from previous day'":"oninput='recalculateInventoryLive()' onkeydown='inventoryEnterNext(event)'"}>`:"—"}</td>`).join("");
-    L.push(`<tr data-order-key="${safe(brandKey(g.name))}"><td><span class="inventory-drag-handle" title="Drag to reorder">⠿</span> ${idx+1}. ${safe(g.name)} <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='hideInventoryBrand(${JSON.stringify(g.products.map(x=>String(x.id)))})'>Hide</button></td>${inputs(o,"opening","opening stock")}${inputs(map.map(x=>x?(inventoryManualCurrent[String(x.id)]?.purchase||0):0),"reg_purchase","purchase")}${fmt(t)}${inputs(map.map(x=>x?(inventoryManualCurrent[String(x.id)]?.sale||0):0),"reg_sale","sale")}${fmt(b)}${fmtM(v)}</tr>`);
+    L.push(`<tr data-order-key="${safe(brandKey(g.name))}"><td><span class="inventory-drag-handle" title="Drag to reorder">⠿</span> ${idx+1}. ${safe(g.name)} <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='editInventoryBrand(${JSON.stringify(g.products.map(x=>String(x.id)))})'>Edit name/rates</button> <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='hideInventoryBrand(${JSON.stringify(g.products.map(x=>String(x.id)))})'>Hide</button></td>${inputs(o,"opening","opening stock")}${inputs(map.map(x=>x?(inventoryManualCurrent[String(x.id)]?.purchase||0):0),"reg_purchase","purchase")}${fmt(t)}${inputs(map.map(x=>x?(inventoryManualCurrent[String(x.id)]?.sale||0):0),"reg_sale","sale")}${fmt(b)}${fmtM(v)}</tr>`);
   });
   if(allLiquorGroups.length)L.push(`<tr class="inventory-subtotal-row liquor-total-row"><td>TOTAL ALL LIQUOR BRANDS</td>${fmt(liqTotals.o)}${fmt(liqTotals.p)}${fmt(liqTotals.t)}${fmt(liqTotals.s)}${fmt(liqTotals.b)}${fmtM(liqTotals.v)}</tr>`);
   $("liquorInventoryRows").innerHTML=L.join("")||'<tr><td colspan="25" class="empty">No liquor brands found.</td></tr>';
@@ -1201,7 +1195,7 @@ function drawProducts(){
     bt.o+=opening;bt.ov+=openingValue;bt.p+=purchase;bt.s+=sale;bt.sv+=saleValue;bt.c+=closing;bt.cv+=stockValue;bt.profit+=profit;
     for(const [k,n] of Object.entries({opening,purchase,sale,available,closing,openingValue,saleValue,stockValue,profit}))grand[k]=(grand[k]||0)+n;
     const entry=inventoryManualCurrent[String(x.id)]||{};
-    B.push(`<tr data-order-key="${safe(String(x.id))}"><td><span class="inventory-drag-handle" title="Drag to reorder">⠿</span> ${idx+1}</td><td class="beer-brand">${safe(cleanBeerBrandName(x.brand_name))}${x.size?" - "+safe(x.size):""} <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='hideInventoryBrand([${JSON.stringify(String(x.id))}])'>Hide</button></td><td><input id="opening_${safe(x.id)}" type="number" min="0" step=".01" value="${opening}" ${($("inventoryDate").value||STOCK_START_DATE)!==STOCK_START_DATE?"readonly title='Auto carried forward from previous day'":"oninput='recalculateInventoryLive()' onkeydown='inventoryEnterNext(event)'"}></td><td class="calc">${money(openingValue)}</td><td><input id="reg_purchase_${safe(x.id)}" type="number" min="0" step=".01" value="${num(entry.purchase)}" oninput="recalculateInventoryLive()" onkeydown="inventoryEnterNext(event)"></td><td><input id="reg_sale_${safe(x.id)}" type="number" min="0" step=".01" value="${num(entry.sale)}" oninput="recalculateInventoryLive()" onkeydown="inventoryEnterNext(event)"></td><td class="calc">${money(saleValue)}</td><td class="calc">${closing}</td><td class="value">${money(stockValue)}</td><td class="value">${money(profit)}</td></tr>`);
+    B.push(`<tr data-order-key="${safe(String(x.id))}"><td><span class="inventory-drag-handle" title="Drag to reorder">⠿</span> ${idx+1}</td><td class="beer-brand">${safe(cleanBeerBrandName(x.brand_name))}${x.size?" - "+safe(x.size):""} <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='editInventoryBrand([${JSON.stringify(String(x.id))}])'>Edit name/rates</button> <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='hideInventoryBrand([${JSON.stringify(String(x.id))}])'>Hide</button></td><td><input id="opening_${safe(x.id)}" type="number" min="0" step=".01" value="${opening}" ${($("inventoryDate").value||STOCK_START_DATE)!==STOCK_START_DATE?"readonly title='Auto carried forward from previous day'":"oninput='recalculateInventoryLive()' onkeydown='inventoryEnterNext(event)'"}></td><td class="calc">${money(openingValue)}</td><td><input id="reg_purchase_${safe(x.id)}" type="number" min="0" step=".01" value="${num(entry.purchase)}" oninput="recalculateInventoryLive()" onkeydown="inventoryEnterNext(event)"></td><td><input id="reg_sale_${safe(x.id)}" type="number" min="0" step=".01" value="${num(entry.sale)}" oninput="recalculateInventoryLive()" onkeydown="inventoryEnterNext(event)"></td><td class="calc">${money(saleValue)}</td><td class="calc">${closing}</td><td class="value">${money(stockValue)}</td><td class="value">${money(profit)}</td></tr>`);
   });
   if(beer.length)B.push(`<tr class="inventory-subtotal-row"><td colspan="2">TOTAL BEER</td><td>${bt.o}</td><td>${money(bt.ov)}</td><td>${bt.p}</td><td>${bt.s}</td><td>${money(bt.sv)}</td><td>${bt.c}</td><td>${money(bt.cv)}</td><td>${money(bt.profit)}</td></tr>`);
   $("beerInventoryRows").innerHTML=B.join("")||'<tr><td colspan="10" class="empty">No beer brands found.</td></tr>';
@@ -1364,7 +1358,43 @@ async function saveOpeningStock(button){
   }catch(e){alert("Save error: "+(e.message||String(e))+". Kuch entries save ho chuki ho sakti hain; dobara load karke check karein.");}
   finally{if(button){button.disabled=false;button.textContent="Save all opening stock";}}
 }
-async function saveInventoryMovements(button){
+async 
+async function editInventoryBrand(ids){
+ const selected=(ids||[]).map(id=>products.find(p=>String(p.id)===String(id))).filter(Boolean);
+ if(!selected.length)return;
+ const brand_name=prompt("Brand name:",selected[0].brand_name||"");
+ if(brand_name===null)return;
+ const cleanName=brand_name.trim();
+ if(!cleanName){alert("Brand name blank nahi ho sakta.");return;}
+ for(const p of selected){
+  if(products.some(x=>String(x.id)!==String(p.id)&&String(x.category).toLowerCase()===String(p.category).toLowerCase()&&String(x.size).toLowerCase()===String(p.size).toLowerCase()&&String(x.brand_name).trim().toLowerCase()===cleanName.toLowerCase())){
+   alert("Same category, size aur brand ka product pehle se hai: "+p.size);return;
+  }
+ }
+ const updates=[];
+ for(const p of selected){
+  const mrpText=prompt("MRP per bottle — "+cleanName+" / "+p.size,String(num(p.mrp)));
+  if(mrpText===null)return;
+  const whText=prompt("Wholesale per bottle — "+cleanName+" / "+p.size,String(num(p.wholesale_price)));
+  if(whText===null)return;
+  const mrp=Number(mrpText),wholesale_price=Number(whText);
+  if(!Number.isFinite(mrp)||mrp<=0||!Number.isFinite(wholesale_price)||wholesale_price<=0||wholesale_price>mrp){
+   alert("MRP aur wholesale rate valid hon; wholesale MRP se zyada nahi hona chahiye.");return;
+  }
+  updates.push({p,mrp,wholesale_price});
+ }
+ try{
+  for(const u of updates){
+   const {data,error}=await db.from("inventory_products").update({brand_name:cleanName,mrp:u.mrp,wholesale_price:u.wholesale_price}).eq("id",u.p.id).eq("user_id",user.id).select("id,brand_name,mrp,wholesale_price").single();
+   if(error)throw error;
+   Object.assign(u.p,data);
+  }
+  await loadProducts();
+  alert("Brand name, MRP aur wholesale rates save ho gaye. Ye rates har date ki Inventory mein apply honge.");
+ }catch(e){alert("Product update failed: "+(e.message||String(e)));}
+}
+
+function saveInventoryMovements(button){
   const date=$("inventoryDate").value||STOCK_START_DATE;
   if(date<STOCK_START_DATE){alert("02 Nov 2026 se pehle entry allowed nahi hai.");return;}
   const rows=[];
@@ -2336,7 +2366,6 @@ async function fl2OpenWholesale(){
 }
 function fl2DrawWholesale(){
  const cat=$("fl2RateCategory").value,q=($("fl2RateSearch").value||"").toLowerCase();
- const rateDate=$("fl2RateDate")?.value||$("inventoryDate")?.value||STOCK_START_DATE;
  const rows=orderedProductsByOwnerSequence(products.filter(p=>String(p.category||"").toLowerCase()===cat&&(`${p.brand_name} ${p.size}`).toLowerCase().includes(q)));
  $("fl2RateRows").innerHTML=rows.map(p=>{
   const r=inventoryRate(p);
@@ -2347,23 +2376,18 @@ function fl2CalcRateRow(id){const qty=num($("fl2qty_"+id).value),wh=num($("fl2wh
 async function fl2SaveRate(id,button){
  const p=products.find(x=>String(x.id)===String(id));
  const brand_name=$("fl2brand_"+id).value.trim(),wh=num($("fl2wh_"+id).value),mrp=num($("fl2mrp_"+id).value);
- const effective_date=$("fl2RateDate")?.value||$("inventoryDate")?.value||STOCK_START_DATE;
  if(!brand_name){setMsg("fl2RateMsg","Brand name blank nahi ho sakta.");return}
  if(wh<=0||mrp<=0||!Number.isFinite(wh)||!Number.isFinite(mrp)){setMsg("fl2RateMsg","Wholesale aur MRP zero se zyada enter karein.");return}
- if(!effective_date||effective_date<STOCK_START_DATE){setMsg("fl2RateMsg","Valid rate date select karein.");return}
  if(products.some(x=>String(x.id)!==String(id)&&String(x.category).toLowerCase()===String(p?.category).toLowerCase()&&String(x.size).toLowerCase()===String(p?.size).toLowerCase()&&String(x.brand_name).trim().toLowerCase()===brand_name.toLowerCase())){setMsg("fl2RateMsg","Same category, size aur brand ka product pehle se hai.");return}
  button.disabled=true;
  try{
   const {data,error}=await db.from("inventory_products").update({brand_name,wholesale_price:wh,mrp}).eq("id",id).eq("user_id",user.id).select("id,brand_name,wholesale_price,mrp").single();
   if(error)throw error;
-  const history={user_id:user.id,product_id:id,effective_date,mrp,wholesale_price:wh};
-  const hist=await db.from("wholesale_price_history").upsert(history,{onConflict:"user_id,product_id,effective_date"});
-  if(hist.error)throw hist.error;
   if(p){p.brand_name=data.brand_name;p.wholesale_price=data.wholesale_price;p.mrp=data.mrp;}
-  inventoryRateByProduct[String(id)]={mrp,wholesale_price:wh,effective_date};
-  setMsg("fl2RateMsg",`Saved ${brand_name}: MRP ${money(mrp)}, Wholesale ${money(wh)} effective ${effective_date}. Brand name updated.`);
+  inventoryRateByProduct[String(id)]={mrp,wholesale_price:wh};
+  setMsg("fl2RateMsg",`Saved ${brand_name}: MRP ${money(mrp)}, Wholesale ${money(wh)}. Ye rates har date ki Inventory mein apply honge.`);
   fl2DrawWholesale();
-  if($("inventoryDate")?.value===effective_date)drawProducts();
+  drawProducts();
  }catch(e){setMsg("fl2RateMsg","Save failed: "+(e.message||String(e))+". Check Stage 4 SQL is run.");}
  finally{button.disabled=false}
 }
