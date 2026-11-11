@@ -481,9 +481,9 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
   <div class="hero"><div class="hero-copy"><div class="eyebrow">Your business. One dashboard.</div><h1>Welcome to your<br><span>store command centre.</span></h1><p>Manage liquor and beer operations from one place. Track products, record sales, manage purchases and stay on top of daily cash.</p></div><div class="hero-art"><span>🥃</span><span>🍺</span></div></div>
   <div class="kpis">
    <div class="kpi glass"><span class="kpi-icon">▦</span><small>Total brand in shop</small><strong id="count">—</strong></div>
-   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('sales')"><span class="kpi-icon">↗</span><small>Today's total sales</small><strong id="todaySales">₹0.00</strong><div class="kpi-sub" id="todaySalesSplit">Liquor: ₹0.00 · Beer: ₹0.00</div></div>
-   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('liquorSales')"><span class="kpi-icon">🥃</span><small>Today's liquor sale</small><strong id="todayLiquorSales">₹0.00</strong><div class="kpi-sub" id="todayLiquorSizeQty">750 ML: 0 · 375 ML: 0 · 180 ML: 0 · 90 ML: 0</div></div>
-   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('beerSales')"><span class="kpi-icon">🍺</span><small>Today's beer sale</small><strong id="todayBeerSales">₹0.00</strong><div class="kpi-sub" id="todayBeerQty">0 bottles / cans sold</div></div>
+   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('sales')"><span class="kpi-icon">↗</span><small>Yesterday's total sales</small><strong id="todaySales">₹0.00</strong><div class="kpi-sub" id="todaySalesSplit">Liquor: ₹0.00 · Beer: ₹0.00</div></div>
+   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('liquorSales')"><span class="kpi-icon">🥃</span><small>Yesterday's liquor sale</small><strong id="todayLiquorSales">₹0.00</strong><div class="kpi-sub" id="todayLiquorSizeQty">750 ML: 0 · 375 ML: 0 · 180 ML: 0 · 90 ML: 0</div></div>
+   <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('beerSales')"><span class="kpi-icon">🍺</span><small>Yesterday's beer sale</small><strong id="todayBeerSales">₹0.00</strong><div class="kpi-sub" id="todayBeerQty">0 bottles / cans sold</div></div>
    <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('purchases')"><span class="kpi-icon">⇩</span><small>Today's purchases</small><strong id="todayPurchase">₹0.00</strong></div>
    <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('stock')"><span class="kpi-icon">◈</span><small>Balance stock &amp; qty</small><strong id="dashStock">—</strong><div class="kpi-sub" id="dashStockMrp">MRP Value: ₹0.00</div></div>
    <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('low')"><span class="kpi-icon">⚠</span><small>Low stock products</small><strong id="dashLow">—</strong></div>
@@ -1934,7 +1934,7 @@ async function loadDailyClosing(){if(!db||!user)return;const date=$("inventoryDa
 async function addDailyExpense(){const date=$("inventoryDate").value||$("cd").value,name=$("expenseName").value.trim(),amount=num($("expenseAmount").value),mode=$("expenseMode").value;if(!date||date<STOCK_START_DATE){setMsg("cashMsg","Date 2 November 2026 ya uske baad honi chahiye.");return}if(!name||amount<=0){setMsg("cashMsg","Expense name aur valid amount enter karein.");return}const {error}=await db.from("daily_expenses").insert({user_id:user.id,expense_date:date,expense_name:name,amount,payment_type:mode});if(error){setMsg("cashMsg","Expense save error: "+error.message);return}$("expenseName").value="";$("expenseAmount").value="";await loadDailyClosing()}
 async function deleteDailyExpense(id){if(!confirm("Delete this expense entry?"))return;const {error}=await db.from("daily_expenses").delete().eq("id",id).eq("user_id",user.id);if(error){setMsg("cashMsg","Delete error: "+error.message);return}await loadDailyClosing()}
 async function saveCash(){const date=$("inventoryDate").value||$("cd").value;if(!date||date<STOCK_START_DATE){setMsg("cashMsg","Date 2 November 2026 ya uske baad honi chahiye.");return}const row={user_id:user.id,record_date:date,cash_received:num($("cashin").value),online_received:num($("online").value),credit_rokad:num($("rokad").value),other_cash_in:num($("other").value),expenses:num($("closeExpenses").textContent.replace(/[^0-9.]/g,"")),notes:$("notes").value};const {error}=await db.from("daily_cash").upsert(row,{onConflict:"user_id,record_date"});setMsg("cashMsg",error?"Save error: "+error.message:"Night closing saved successfully.");cashPreview()}
-function dashboardGo(target){if(target==='liquorSales'||target==='beerSales'){const category=target==='beerSales'?'beer':'liquor';showPage('history');$('saleFrom').value=today();$('saleTo').value=today();$('saleCategory').value=category;refresh();return}if(target==='sales'){showPage('cash');$('daybookDate').value=dateBack(0);loadDaybook();return}if(target==='purchases'){setCategory('liquor');return}if(target==='history'){showPage('history');return}if(target==='beer'||target==='liquor'){setCategory(target);return}if(target==='stock'||target==='low'){setCategory('liquor');return}}
+function dashboardGo(target){if(target==='liquorSales'||target==='beerSales'){const category=target==='beerSales'?'beer':'liquor';showPage('history');$('saleFrom').value=dateBack(1);$('saleTo').value=dateBack(1);$('saleCategory').value=category;refresh();return}if(target==='sales'){showPage('cash');$('daybookDate').value=dateBack(0);loadDaybook();return}if(target==='purchases'){setCategory('liquor');return}if(target==='history'){showPage('history');return}if(target==='beer'||target==='liquor'){setCategory(target);return}if(target==='stock'||target==='low'){setCategory('liquor');return}}
 function dayCounterCategory(){return String($('cat')?.value||'liquor').toLowerCase()==='beer'?'beer':'liquor'}
 function dayCounterDiff(){
  const cash=num($("dcCashReceived")?.value),online=num($("dcOnlineReceived")?.value),
@@ -2139,13 +2139,13 @@ async function refresh(){
  if(!db||!user)return;
  setMsg("dashMsg","Refreshing dashboard, inventory sales and sales history…");
  try{
-  const d=today(),from=d.slice(0,7)+"-01",chartFrom=dateBack(29),filterFrom=$("saleFrom").value||STOCK_START_DATE,filterTo=$("saleTo").value||d;
+  const d=today(),yesterday=dateBack(1),from=d.slice(0,7)+"-01",chartFrom=dateBack(29),filterFrom=$("saleFrom").value||STOCK_START_DATE,filterTo=$("saleTo").value||d;
   const [todayHeaders,allHeaders,monthHeaders,chartHeaders,manualToday,manualMonth,manualChart,manualHistory]=await Promise.all([
-   db.from("sales").select("id").eq("sale_date",d),
+   db.from("sales").select("id").eq("sale_date",yesterday),
    (()=>{let q=db.from("sales").select("id,sale_date,bill_number,category,payment_mode").gte("sale_date",filterFrom).lte("sale_date",filterTo).order("sale_date",{ascending:false});return q})(),
    db.from("sales").select("id,sale_date,category").gte("sale_date",from).lte("sale_date",d),
    db.from("sales").select("id,sale_date,category").gte("sale_date",chartFrom).lte("sale_date",d),
-   getInventorySaleRows(d,d),getInventorySaleRows(from,d),getInventorySaleRows(chartFrom,d),getInventorySaleRows(filterFrom,filterTo,"all")
+   getInventorySaleRows(yesterday,yesterday),getInventorySaleRows(from,d),getInventorySaleRows(chartFrom,d),getInventorySaleRows(filterFrom,filterTo,"all")
   ]);
   for(const r of [todayHeaders,allHeaders,monthHeaders,chartHeaders])if(r.error)throw r.error;
   async function itemsFor(headers){const ids=(headers||[]).map(x=>x.id);if(!ids.length)return [];const {data,error}=await db.from("sale_items").select("sale_id,product_id,quantity,sale_rate").in("sale_id",ids);if(error)throw error;return data||[]}
@@ -2416,16 +2416,9 @@ async function fl2SaveAllRates(button){
  });
  for(const x of updates){
   if(!x.p){notify("Product "+x.id+" inventory list mein nahi mila. Refresh karke retry karein.",false);return;}
-  if(!x.brand_name||!x.size||!Number.isFinite(x.wholesale_price)||!Number.isFinite(x.mrp)||x.wholesale_price<=0||x.mrp<=0){
-   notify(`${x.p.brand_name}: Brand, Size, Wholesale aur MRP valid aur zero se zyada hone chahiye.`,false);return;
-  }
  }
- const keys=new Set();
- for(const x of updates){
-  const key=[String(x.p.category||"").toLowerCase(),x.brand_name.toLowerCase(),x.size.toLowerCase()].join("|");
-  if(keys.has(key)){notify(`Duplicate product: ${x.brand_name} · ${x.size}.`,false);return;}
-  keys.add(key);
- }
+ // Important: validate only rows the user actually changed.
+ // An old product with a blank/zero rate must not block saving an unrelated edit.
  const changed=updates.filter(x=>
   x.brand_name!==String(x.p.brand_name||"").trim()||
   x.size!==String(x.p.size||"").trim()||
@@ -2433,6 +2426,17 @@ async function fl2SaveAllRates(button){
   x.mrp!==Number(x.p.mrp||0)
  );
  if(!changed.length){notify("No changes detected. Values already saved in Supabase.",true);return;}
+ for(const x of changed){
+  if(!x.brand_name||!x.size||!Number.isFinite(x.wholesale_price)||!Number.isFinite(x.mrp)||x.wholesale_price<=0||x.mrp<=0){
+   notify(`${x.p.brand_name||"Selected product"}: edited row mein Brand, Size, Wholesale aur MRP valid aur zero se zyada hone chahiye.`,false);return;
+  }
+  if(products.some(p=>String(p.id)!==String(x.id)&&
+   String(p.category||"").toLowerCase()===String(x.p.category||"").toLowerCase()&&
+   String(p.brand_name||"").trim().toLowerCase()===x.brand_name.toLowerCase()&&
+   String(p.size||"").trim().toLowerCase()===x.size.toLowerCase())){
+   notify(`Duplicate product: ${x.brand_name} · ${x.size}. Same category + brand + size already exists.`,false);return;
+  }
+ }
  if(btn){btn.disabled=true;btn.setAttribute("aria-disabled","true");btn.textContent="Saving to Supabase…";btn.classList.add("saving");}
  notify(`Saving ${changed.length} changed product(s) to Supabase…`,true);
  let saved=0;const failures=[];
@@ -2440,11 +2444,11 @@ async function fl2SaveAllRates(button){
   for(const x of changed){
    const {data,error}=await db.from("inventory_products")
     .update({brand_name:x.brand_name,size:x.size,wholesale_price:x.wholesale_price,mrp:x.mrp})
-    .eq("id",x.id)
+    .eq("id",x.id).eq("user_id",user.id)
     .select("id,brand_name,size,wholesale_price,mrp")
     .maybeSingle();
    if(error){failures.push(`${x.p.brand_name}: ${error.message}`);continue;}
-   if(!data){failures.push(`${x.p.brand_name}: row update nahi hui. Supabase RLS/policy check karein.`);continue;}
+   if(!data){failures.push(`${x.p.brand_name}: Supabase row update nahi hui. Login/RLS ownership check karein.`);continue;}
    x.p.brand_name=data.brand_name;x.p.size=data.size;
    x.p.wholesale_price=Number(data.wholesale_price);x.p.mrp=Number(data.mrp);
    inventoryRateByProduct[String(x.id)]={mrp:Number(data.mrp),wholesale_price:Number(data.wholesale_price)};
