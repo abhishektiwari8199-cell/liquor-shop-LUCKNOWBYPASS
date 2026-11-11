@@ -449,6 +449,11 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
 
 @media(max-width:760px){.pos-mode-row{align-items:stretch;flex-direction:column}.pos-mode-row label{max-width:none}.pos-barcode-label input{height:62px!important}}
 </style>
+<style id="sales-chart-readability">
+.sales-chart-wrap{height:380px!important;min-height:320px!important;width:100%;overflow:hidden}
+.sales-chart-wrap canvas{display:block;width:100%!important;height:100%!important;max-width:100%}
+@media(max-width:700px){.sales-chart-wrap{height:420px!important;min-height:360px!important}}
+</style>
 </head>
 <body>
 <section id="loginView">
@@ -492,7 +497,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
    <div class="kpi glass dashboard-link" role="button" tabindex="0" onclick="dashboardGo('history')"><span class="kpi-icon">▤</span><small>This month sale</small><strong id="dash30Sales">₹0.00</strong></div>
   </div>
   <div class="section-head"><div><h3>Sales performance</h3><p>Daily revenue · Liquor (green) and Beer (blue) · last 30 days</p></div><span class="tag">LIVE REPORT</span></div>
-  <div class="panel glass"><div style="height:320px;position:relative"><canvas id="salesChart" aria-label="Sales graph"></canvas><div id="salesChartStatus" style="position:absolute;right:12px;bottom:8px;font-size:11px;color:#9db2cb;pointer-events:none"></div></div></div>
+  <div class="panel glass"><div class="sales-chart-wrap" style="height:380px;min-height:320px;position:relative;width:100%;overflow:hidden"><canvas id="salesChart" aria-label="Sales graph"></canvas><div id="salesChartStatus" style="position:absolute;right:12px;bottom:8px;font-size:11px;color:#9db2cb;pointer-events:none"></div></div></div>
   <div class="section-head"><div><h3>Category sales summary</h3><p>Beer and liquor sold, with quantity and revenue</p></div></div>
   <div class="category-cards">
    <div class="category-card liquor glass"><div><span class="tag">LIQUOR SALES</span><h4 id="dashLiquorSale">₹0.00</h4><p id="dashLiquorQty">0 units sold</p></div><div class="art">🥃</div></div>
@@ -2203,17 +2208,27 @@ function viewSalesHistory(){loadSalesHistoryFast();}
 function clearSalesHistoryFilters(){$("saleFrom").value=dateBack(29);$("saleTo").value=today();loadSalesHistoryFast();}
 function drawSalesChartFallback(labels,liquorValues,beerValues){
  const canvas=$("salesChart");if(!canvas)return;
- const parent=canvas.parentElement;const w=Math.max(300,parent.clientWidth||600),h=Math.max(220,parent.clientHeight||280);
+ const parent=canvas.parentElement,w=Math.max(300,parent.clientWidth||600),h=Math.max(320,parent.clientHeight||380);
  const ratio=window.devicePixelRatio||1;canvas.width=w*ratio;canvas.height=h*ratio;canvas.style.width="100%";canvas.style.height="100%";
  const ctx=canvas.getContext("2d");ctx.setTransform(ratio,0,0,ratio,0,0);ctx.clearRect(0,0,w,h);
- const left=64,right=14,top=24,bottom=44,plotW=w-left-right,plotH=h-top-bottom;
+ const left=72,right=16,top=38,bottom=66,plotW=w-left-right,plotH=h-top-bottom;
  const all=[...liquorValues,...beerValues].map(Number),max=Math.max(1,...all);
- const step=Math.pow(10,Math.floor(Math.log10(max)));const ceiling=Math.max(step,Math.ceil(max/step)*step);
- ctx.font="11px DM Sans, sans-serif";ctx.textAlign="right";ctx.textBaseline="middle";ctx.strokeStyle="rgba(255,255,255,.10)";ctx.fillStyle="#aab9af";
- for(let i=0;i<=4;i++){const y=top+plotH*i/4;ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(w-right,y);ctx.stroke();ctx.fillText("₹"+Math.round(ceiling*(4-i)/4).toLocaleString("en-IN"),left-8,y)}
+ const step=Math.pow(10,Math.floor(Math.log10(max))),ceiling=Math.max(step,Math.ceil(max/step)*step);
+ ctx.font="10px DM Sans, sans-serif";ctx.textAlign="right";ctx.textBaseline="middle";ctx.strokeStyle="rgba(255,255,255,.10)";ctx.fillStyle="#aab9af";
+ for(let i=0;i<=4;i++){const y=top+plotH*i/4;ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(w-right,y);ctx.stroke();ctx.fillText("₹"+Math.round(ceiling*(4-i)/4).toLocaleString("en-IN"),left-9,y)}
  const slot=plotW/Math.max(1,labels.length),barW=Math.max(2,Math.min(15,slot*.34)),gap=Math.max(1,slot*.06);
- labels.forEach((label,i)=>{const xc=left+slot*i+slot/2;[Number(liquorValues[i])||0,Number(beerValues[i])||0].forEach((v,j)=>{const bh=Math.max(0,v/ceiling*plotH),x=xc+(j===0?-barW-gap/2:gap/2),y=top+plotH-bh;ctx.fillStyle=j===0?"#36c878":"#36a9ff";if(bh>0)ctx.fillRect(x,y,barW,bh)});ctx.fillStyle="#aab9af";ctx.textAlign="center";ctx.textBaseline="top";if(labels.length<=10||i%3===0||i===labels.length-1)ctx.fillText(label,xc,top+plotH+9)});
- ctx.textAlign="left";ctx.textBaseline="middle";ctx.font="bold 11px DM Sans, sans-serif";ctx.fillStyle="#36c878";ctx.fillRect(left,7,9,9);ctx.fillStyle="#dce8df";ctx.fillText("Liquor",left+14,12);ctx.fillStyle="#36a9ff";ctx.fillRect(left+76,7,9,9);ctx.fillStyle="#dce8df";ctx.fillText("Beer",left+90,12);
+ const labelEvery=Math.max(1,Math.ceil(labels.length/7));
+ labels.forEach((label,i)=>{
+  const xc=left+slot*i+slot/2;
+  [Number(liquorValues[i])||0,Number(beerValues[i])||0].forEach((v,j)=>{
+   const bh=Math.max(0,v/ceiling*plotH),x=xc+(j===0?-barW-gap/2:gap/2),y=top+plotH-bh;
+   ctx.fillStyle=j===0?"#36c878":"#36a9ff";if(bh>0)ctx.fillRect(x,y,barW,bh);
+  });
+  if(i%labelEvery===0||i===labels.length-1){
+   ctx.save();ctx.translate(xc,top+plotH+13);ctx.rotate(-Math.PI/6);ctx.fillStyle="#aab9af";ctx.font="10px DM Sans, sans-serif";ctx.textAlign="right";ctx.textBaseline="middle";ctx.fillText(String(label),0,0);ctx.restore();
+  }
+ });
+ ctx.textAlign="left";ctx.textBaseline="middle";ctx.font="bold 11px DM Sans, sans-serif";ctx.fillStyle="#36c878";ctx.fillRect(left,10,9,9);ctx.fillStyle="#dce8df";ctx.fillText("Liquor",left+14,15);ctx.fillStyle="#36a9ff";ctx.fillRect(left+76,10,9,9);ctx.fillText("Beer",left+90,15);
 }
 async function refresh(){
  if(!db||!user)return;
@@ -2367,15 +2382,16 @@ async function refresh(){
      responsive:true,maintainAspectRatio:false,
      interaction:{mode:"index",intersect:false},
      plugins:{
-      legend:{display:true,labels:{color:"#dce8df",usePointStyle:true}},
+      legend:{display:true,position:"top",labels:{color:"#dce8df",usePointStyle:true,boxWidth:9,boxHeight:9,padding:18,font:{size:11}}},
       tooltip:{callbacks:{
        label:c=>" "+c.dataset.label+": "+money(c.raw),
        footer:items=>"Total: "+money(items.reduce((a,x)=>a+Number(x.raw||0),0))
       }}
      },
+     layout:{padding:{top:8,right:12,bottom:8,left:8}},
      scales:{
-      x:{ticks:{color:"#aab9af",autoSkip:true,maxTicksLimit:10,maxRotation:0},grid:{color:"rgba(255,255,255,.05)"}},
-      y:{beginAtZero:true,ticks:{color:"#aab9af",callback:v=>"₹"+Number(v).toLocaleString("en-IN")},grid:{color:"rgba(255,255,255,.08)"}}
+      x:{ticks:{color:"#aab9af",autoSkip:true,autoSkipPadding:12,maxTicksLimit:7,minRotation:30,maxRotation:45,padding:8,font:{size:10}},grid:{color:"rgba(255,255,255,.05)"}},
+      y:{beginAtZero:true,ticks:{color:"#aab9af",maxTicksLimit:5,padding:8,font:{size:10},callback:v=>"₹"+Number(v).toLocaleString("en-IN")},grid:{color:"rgba(255,255,255,.08)"}}
      }
     }
    });
