@@ -607,7 +607,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
   <div class="status">Important: Inventory ke Sale column ko ek baar Final Save karein. Ye entry Sales History, Overview aur Daybook mein automatically dikhegi.</div>
   <div class="status" id="inventoryDateStatus">02 Nov 2026 ka original opening stock base hai. Har agle din ka Opening Qty pichhle din ke closing balance se automatically carry forward hota hai; selected date ki purchase aur sale alag dikhte hain.</div>
   <div id="liquorInventoryWrap" class="table-wrap"><table class="inventory-register liquor-register"><colgroup><col style="width:230px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"></colgroup><thead>
-   <tr><th rowspan="2">S.No. / Brand</th><th colspan="4">Opening Stock (02 Nov)</th><th colspan="4">Purchase</th><th colspan="4">Total Stock</th><th colspan="4">Sale</th><th colspan="4">Balance Stock</th><th colspan="4">Balance Stock Value (₹)</th></tr>
+   <tr><th rowspan="2">S.No. / Brand</th><th colspan="4" id="inventoryOpeningHeader">Opening Stock</th><th colspan="4">Purchase</th><th colspan="4">Total Stock</th><th colspan="4">Sale</th><th colspan="4">Balance Stock</th><th colspan="4">Balance Stock Value (₹)</th></tr>
    <tr><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th></tr>
   </thead><tbody id="liquorInventoryRows"><tr><td colspan="25" class="empty">Loading inventory…</td></tr></tbody></table></div>
   <div id="beerInventoryWrap" class="table-wrap"><table class="inventory-register beer-register"><colgroup><col style="width:48px"><col style="width:238px"><col style="width:82px"><col style="width:108px"><col style="width:82px"><col style="width:82px"><col style="width:108px"><col style="width:96px"><col style="width:108px"><col style="width:96px"></colgroup><thead>
@@ -1095,8 +1095,17 @@ async function loadInventoryRatesForDate(date){
  // Compatibility hook: rates are global/current, not date-effective.
  inventoryRateByProduct={};
 }
+function updateInventoryOpeningHeader(date){
+  const el=$("inventoryOpeningHeader");
+  if(!el)return;
+  const d=String(date||STOCK_START_DATE);
+  const parts=d.split("-");
+  const label=parts.length===3?`${parts[2]} ${({"01":"Jan","02":"Feb","03":"Mar","04":"Apr","05":"May","06":"Jun","07":"Jul","08":"Aug","09":"Sep","10":"Oct","11":"Nov","12":"Dec"})[parts[1]]||parts[1]} ${parts[0]}`:d;
+  el.textContent="Opening Stock ("+label+")";
+}
 async function loadInventoryForDate(){
   const date=$("inventoryDate").value||STOCK_START_DATE;
+  updateInventoryOpeningHeader(date);
   if(date<STOCK_START_DATE){$("inventoryDate").value=STOCK_START_DATE;setMsg("inventoryDateStatus","Inventory date 02 November 2026 se pehle nahi ho sakti.");return;}
   $("inventoryDateStatus").textContent="Loading opening carry-forward and date-wise movements through "+date+"…";
   inventoryPurchased={};inventorySold={};inventoryManualCurrent={};inventoryManualTotals={};inventoryOpeningForDate={};inventoryDateHasBeenSaved=false;inventoryMovementError="";
@@ -1338,6 +1347,14 @@ function drawProducts(){
   recalculateInventoryLive();renderHiddenInventoryBrands();
   $("stockSummary").textContent=`As on ${$("inventoryDate").value||STOCK_START_DATE} · Liquor opening ${grand.opening} · Liquor purchase ${grand.purchase} · Liquor sale ${grand.sale} · Beer closing ${bt.c} · Beer stock value ${money(bt.cv)}`;
 }
+function applyOfficePdfStyle(doc,title){
+  doc.setProperties({title:title||"Abhishek Composite POS Report",subject:"Business report",author:"Abhishek Composite POS",creator:"Abhishek Composite POS"});
+  doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(35,45,58);doc.setDrawColor(190,198,208);doc.setLineWidth(0.2);
+}
+function officePdfNumber(value){
+  return "Rs. "+(Number(value)||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
 function downloadActiveInventoryReport(){
  if(!window.jspdf?.jsPDF){alert("PDF library load nahi hui. Internet connection check karein.");return;}
  const date=$("inventoryDate")?.value||STOCK_START_DATE;
@@ -1355,6 +1372,7 @@ function downloadActiveInventoryReport(){
  if(!active.length){alert("Selected date par stock, purchase, sale ya balance wala product nahi hai.");return;}
  const {jsPDF}=window.jspdf;
  const doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4",compress:true});
+ applyOfficePdfStyle(doc,"Inventory Stock Report");
  const margin=9,pageW=297;
  doc.setFillColor(13,39,65);doc.rect(0,0,pageW,23,"F");
  doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(14);
@@ -2182,23 +2200,25 @@ async function generateNightCashReport(){
   const sums={liquor:{cash:0,online:0,rokad:0},beer:{cash:0,online:0,rokad:0}};
   rows.forEach(r=>{const c=String(r.category).toLowerCase(),x=sums[c];x.cash+=num(r.cash_received);x.online+=num(r.online_received);x.rokad+=num(r.rokad_received);});
   const total={cash:0,online:0,rokad:0};cats.forEach(c=>{total.cash+=sums[c].cash;total.online+=sums[c].online;total.rokad+=sums[c].rokad;});
-  $("nrCash").textContent=money(total.cash);$("nrOnline").textContent=money(total.online);$("nrRokad").textContent=money(total.rokad);$("nrTotal").textContent=money(total.cash+total.online);$("nrGrandTotal").textContent=money(total.cash+total.online+total.rokad);
+  $("nrCash").textContent=officePdfNumber(total.cash);$("nrOnline").textContent=officePdfNumber(total.online);$("nrRokad").textContent=officePdfNumber(total.rokad);$("nrTotal").textContent=officePdfNumber(total.cash+total.online);$("nrGrandTotal").textContent=officePdfNumber(total.cash+total.online+total.rokad);
   $("nightReportTitle").textContent="Night Cash Report";$("nightReportSubtitle").textContent=`${from} to ${to} · ${category==="all"?"Liquor + Beer":category.toUpperCase()} · ${rows.length} records`;
-  $("nightReportDepartmentRows").innerHTML=cats.map(c=>{const x=sums[c];return `<tr><td><b>${c==="liquor"?"Liquor":"Beer"}</b></td><td>${money(x.cash)}</td><td>${money(x.online)}</td><td>${money(x.rokad)}</td><td><b>${money(x.cash+x.online)}</b></td><td><b>${money(x.cash+x.online+x.rokad)}</b></td></tr>`}).join("");
-  $("nightReportDailyRows").innerHTML=rows.map(r=>`<tr><td>${safe(r.record_date)}</td><td>${String(r.category).toLowerCase()==="liquor"?"Liquor":"Beer"}</td><td>${safe(r.received_by_name||r.received_by||"—")}</td><td>${money(r.cash_received)}</td><td>${money(r.online_received)}</td><td>${money(r.rokad_received)}</td><td><b>${money(num(r.cash_received)+num(r.online_received))}</b></td><td><b>${money(num(r.cash_received)+num(r.online_received)+num(r.rokad_received))}</b></td></tr>`).join("")||'<tr><td colspan="8" class="empty">No Night Cash entries in this period.</td></tr>';
+  $("nightReportDepartmentRows").innerHTML=cats.map(c=>{const x=sums[c];return `<tr><td><b>${c==="liquor"?"Liquor":"Beer"}</b></td><td>${officePdfNumber(x.cash)}</td><td>${officePdfNumber(x.online)}</td><td>${officePdfNumber(x.rokad)}</td><td><b>${officePdfNumber(x.cash+x.online)}</b></td><td><b>${officePdfNumber(x.cash+x.online+x.rokad)}</b></td></tr>`}).join("");
+  $("nightReportDailyRows").innerHTML=rows.map(r=>`<tr><td>${safe(r.record_date)}</td><td>${String(r.category).toLowerCase()==="liquor"?"Liquor":"Beer"}</td><td>${safe(r.received_by_name||r.received_by||"—")}</td><td>${officePdfNumber(r.cash_received)}</td><td>${officePdfNumber(r.online_received)}</td><td>${officePdfNumber(r.rokad_received)}</td><td><b>${officePdfNumber(num(r.cash_received)+num(r.online_received))}</b></td><td><b>${officePdfNumber(num(r.cash_received)+num(r.online_received)+num(r.rokad_received))}</b></td></tr>`).join("")||'<tr><td colspan="8" class="empty">No Night Cash entries in this period.</td></tr>';
   $("nightReportResult").style.display="block";
   if(!window.jspdf?.jsPDF)throw new Error("PDF library load nahi hui. Internet connection check karein.");
   const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4"});
+  applyOfficePdfStyle(doc,"Night Cash Received Report");
+  doc.setFillColor(31,55,80);doc.rect(0,0,297,25,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");
   doc.setFontSize(16);doc.text("NIGHT CASH RECEIVED REPORT",14,15);
   doc.setFontSize(10);doc.text(`Period: ${from} to ${to} | Department: ${category==="all"?"Liquor + Beer":category.toUpperCase()}`,14,22);
-  doc.text(`TOTAL CASH: ${money(total.cash)}     TOTAL ONLINE: ${money(total.online)}     TOTAL ROKAD: ${money(total.rokad)}     CASH + ONLINE: ${money(total.cash+total.online)}     GRAND TOTAL: ${money(total.cash+total.online+total.rokad)}`,14,30);
-  let y=40;doc.setFontSize(11);doc.text("DEPARTMENT SUMMARY",14,y);y+=7;doc.setFontSize(9);
+  doc.text(`TOTAL CASH: ${officePdfNumber(total.cash)}     TOTAL ONLINE: ${officePdfNumber(total.online)}     TOTAL ROKAD: ${officePdfNumber(total.rokad)}     CASH + ONLINE: ${officePdfNumber(total.cash+total.online)}     GRAND TOTAL: ${officePdfNumber(total.cash+total.online+total.rokad)}`,14,30);
+  let y=40;doc.setFontSize(11);doc.setTextColor(35,45,58);doc.text("DEPARTMENT SUMMARY",14,y);y+=7;doc.setFillColor(225,232,240);doc.rect(13,y-5,270,8,"F");doc.setFont("helvetica","bold");doc.setFontSize(9);
   doc.text("Department",14,y);doc.text("Cash",65,y);doc.text("Online",105,y);doc.text("Rokad",145,y);doc.text("Cash + Online",180,y);doc.text("Grand Total",235,y);y+=6;
-  cats.forEach(c=>{const x=sums[c];doc.text(c==="liquor"?"Liquor":"Beer",14,y);doc.text(money(x.cash),65,y);doc.text(money(x.online),105,y);doc.text(money(x.rokad),145,y);doc.text(money(x.cash+x.online),180,y);doc.text(money(x.cash+x.online+x.rokad),235,y);y+=6;});
-  y+=5;doc.setFontSize(11);doc.text("DATE-WISE DETAILS",14,y);y+=7;doc.setFontSize(8);
+  doc.setFont("helvetica","normal");cats.forEach(c=>{const x=sums[c];doc.text(c==="liquor"?"Liquor":"Beer",14,y);doc.text(officePdfNumber(x.cash),65,y);doc.text(officePdfNumber(x.online),105,y);doc.text(officePdfNumber(x.rokad),145,y);doc.text(officePdfNumber(x.cash+x.online),180,y);doc.text(officePdfNumber(x.cash+x.online+x.rokad),235,y);y+=6;});
+  y+=5;doc.setFont("helvetica","bold");doc.setFontSize(11);doc.text("DATE-WISE DETAILS",14,y);y+=7;doc.setFillColor(225,232,240);doc.rect(9,y-5,279,8,"F");doc.setFontSize(8);
   const headers=["Date","Department","Received By","Cash","Online","Rokad","Cash + Online","Grand Total"],xs=[10,42,78,125,153,181,207,258];
-  headers.forEach((h,i)=>doc.text(h,xs[i],y));y+=6;
-  rows.forEach(r=>{if(y>190){doc.addPage();y=18;}const vals=[r.record_date,String(r.category).toLowerCase()==="liquor"?"Liquor":"Beer",r.received_by_name||r.received_by||"—",money(r.cash_received),money(r.online_received),money(r.rokad_received),money(num(r.cash_received)+num(r.online_received)),money(num(r.cash_received)+num(r.online_received)+num(r.rokad_received))];vals.forEach((v,i)=>doc.text(String(v),xs[i],y));y+=5;});
+  headers.forEach((h,i)=>doc.text(h,xs[i],y));y+=6;doc.setFont("helvetica","normal");
+  rows.forEach((r,ri)=>{if(y>190){doc.addPage();y=18;doc.setFillColor(225,232,240);doc.rect(9,y-5,279,8,"F");doc.setFont("helvetica","bold");headers.forEach((h,i)=>doc.text(h,xs[i],y));y+=6;doc.setFont("helvetica","normal");}if(ri%2===1){doc.setFillColor(246,248,250);doc.rect(9,y-4,279,5,"F");}const vals=[r.record_date,String(r.category).toLowerCase()==="liquor"?"Liquor":"Beer",r.received_by_name||r.received_by||"—",officePdfNumber(r.cash_received),officePdfNumber(r.online_received),officePdfNumber(r.rokad_received),officePdfNumber(num(r.cash_received)+num(r.online_received)),officePdfNumber(num(r.cash_received)+num(r.online_received)+num(r.rokad_received))];vals.forEach((v,i)=>doc.text(String(v),xs[i],y));y+=5;});
   const suffix=category==="all"?"Liquor_Beer":category;
   doc.save(`Night_Cash_${suffix}_${from}_to_${to}.pdf`);
   setMsg("nightReportStatus",`✓ Report generated and downloaded. ${rows.length} records included.`);
@@ -2379,6 +2399,7 @@ function downloadPurchaseRequirementOrder(){
  if(!rows.length){alert("Abhi koi purchase requirement nahi hai.");return}
  if(!window.jspdf?.jsPDF){alert("PDF library load nahi hui. Internet check karein.");return}
  const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4"});
+ applyOfficePdfStyle(doc,"Purchase Requirement Order");
  const date=$("prOrderDate").value,supplier=$("prSupplier").value||"To be confirmed";
  doc.setFillColor(8,31,55);doc.rect(0,0,297,26,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(16);doc.text("NEXT-DAY PURCHASE ORDER",10,11);doc.setFont("helvetica","normal");doc.setFontSize(9);doc.text("Order date: "+date+"   Supplier: "+supplier,10,19);
  const cols=[["CATEGORY",10],["BRAND / SIZE",58],["CURRENT STOCK",105],["7D SALE",135],["AVG / DAY",158],["ORDER QTY",184],["WHOLESALE",210],["SUBTOTAL",240],["TCS 2%",267]];
@@ -2963,6 +2984,7 @@ function downloadDashboardAutoReport(){
  const {jsPDF}=window.jspdf;
  // A4 landscape, exactly one page. All sections are compacted to fit the page.
  const doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4",compress:true});
+ applyOfficePdfStyle(doc,"Daily Auto Report");
  const W=297,H=210, left=9, right=9;
  const moneyPdf=v=>"Rs. "+num(v).toLocaleString("en-IN",{maximumFractionDigits:0});
  const txt=(v,max=42)=>{let x=String(v??"—").replace(/\s+/g," ").trim();return x.length>max?x.slice(0,max-1)+"…":x};
@@ -3043,6 +3065,7 @@ function downloadCompleteSaleSummary(date){
  const day=saleHistoryDailyData[date];if(!day){alert("Pehle Sale Report mein date load karein.");return}
  if(!window.jspdf||!window.jspdf.jsPDF){alert("PDF library load nahi hui. Internet connection check karein.");return}
  const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4",compress:true});
+ applyOfficePdfStyle(doc,"Complete Daily Business Summary");
  const W=297,L=10,R=10,fmt=v=>"Rs. "+num(v).toLocaleString("en-IN",{maximumFractionDigits:0});
  doc.setFillColor(8,31,55);doc.rect(0,0,W,27,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(16);doc.text("COMPLETE DAILY BUSINESS SUMMARY",L,11);
  doc.setFont("helvetica","normal");doc.setFontSize(9);doc.text("Sale Date: "+date,L,19);doc.text("Liquor Shop | Purchase, Sales, Collections & Expenses",W-R,19,{align:"right"});
