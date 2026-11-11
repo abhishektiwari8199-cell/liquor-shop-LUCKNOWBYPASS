@@ -530,6 +530,38 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
     <div class="form-grid"><label class="span2">Product<select id="posBarcodeProduct"></select></label><label>Barcode<input id="posBarcodeValue" type="text" autocomplete="off" placeholder="Scan or type barcode"></label><div style="align-self:end"><button class="btn" type="button" onclick="posSaveBarcode()">Save barcode</button></div></div>
     <div id="posBarcodeStatus" class="status">Select a product and scan its barcode into the field, then save.</div>
    </div>
+
+   <div class="section-head" style="margin-top:24px">
+    <div><h3>Stock In · Transport Pass Receiving</h3><p>UP Excise Transport Pass se aaya stock yahin receive karein. Saved quantities existing Inventory aur Cash Sale POS stock calculation mein add hongi.</p></div>
+    <span class="tag">ADMIN STOCK IN</span>
+   </div>
+   <div class="panel glass" id="stockInPanel">
+    <div class="form-grid">
+     <label class="span2">Transport Pass Number *<input id="stockInPassNumber" type="text" autocomplete="off" placeholder="WHOLESALE...-Nov26_00000090"></label>
+     <label>Pass Issue Date *<input id="stockInDate" type="date"></label>
+     <label>Valid Upto<input id="stockInValidUpto" type="date"></label>
+     <label class="span2">Consignor / Supplier Name *<input id="stockInSupplier" type="text" placeholder="Supplier / FL2 unit name"></label>
+     <label>Consignee Name<input id="stockInConsignee" type="text" value="LUCKNOW BYPASS CHAURAHA COMPOSITE"></label>
+     <label>Vehicle Number<input id="stockInVehicle" type="text" placeholder="UP71BT-1851"></label>
+     <label>Driver Name<input id="stockInDriver" type="text" placeholder="Driver name"></label>
+     <label>Route Type<input id="stockInRouteType" type="text" placeholder="WITH_IN_DISTRICT"></label>
+     <label class="span2">Route / Major Route<input id="stockInRoute" type="text" placeholder="FATEHPUR TO LUCKNOW BYPASS CHAURAHA"></label>
+     <label>Total Cases / Monocartons<input id="stockInCases" type="number" min="0" step="1" placeholder="8"></label>
+     <label>Total Dispatched Bottles<input id="stockInBottles" type="number" min="0" step="1" placeholder="168"></label>
+     <label>Bulk Litres<input id="stockInBulk" type="number" min="0" step="0.001" placeholder="87.6"></label>
+     <label>Total Duty Amount (₹)<input id="stockInDuty" type="number" min="0" step="0.01" placeholder="16093.68"></label>
+     <label class="span2">Transport Pass Tracking URL<input id="stockInUrl" type="url" placeholder="Paste UP Excise tracking URL"></label>
+    </div>
+    <div class="status" style="margin:12px 0">Note: Government portal se automatic import abhi enabled nahi hai. Pass details screenshot/portal se verify karke enter karein. Stock quantity product-wise bottle count se save hogi.</div>
+    <div class="section-head" style="margin-top:16px"><div><h3>Product-wise Received Stock</h3><p>Har brand + size + packaging ko alag row mein add karein. Quantity bottles mein enter karein, cases optional hain.</p></div><button class="btn secondary" type="button" onclick="stockInAddRow()">＋ Add product row</button></div>
+    <div class="table-wrap">
+     <table><thead><tr><th>Product (Beer / Liquor)</th><th>Cases</th><th>Received Bottles</th><th>Purchase Rate / Bottle (₹)</th><th>Line Value</th><th></th></tr></thead>
+      <tbody id="stockInRows"></tbody>
+     </table>
+    </div>
+    <div class="pos-mode-row" style="margin-top:14px"><strong id="stockInTotals">0 products · 0 bottles · ₹0.00</strong><button class="btn" id="stockInSaveBtn" type="button" onclick="stockInSave()">Save Stock In</button></div>
+    <div id="stockInMsg" class="status" role="status" aria-live="polite">Add pass details and at least one product row.</div>
+   </div>
   </section>
 
  <section id="inventory" class="page">
@@ -2565,8 +2597,9 @@ function closeSaleDaySummary(){$("saleDaySummaryPanel").style.display="none"}
 
 // CASH SALE POS — Admin account only; each scan creates one separate bill at saved MRP.
 function posPopulateBarcodeProducts(){
- const select=$("posBarcodeProduct");if(!select)return;
- select.innerHTML=products.map(p=>`<option value="${safe(p.id)}">${safe(p.category)} · ${safe(p.brand_name)} · ${safe(p.size)}</option>`).join("")||'<option value="">No products loaded</option>';
+ const select=$("posBarcodeProduct");if(select)select.innerHTML=products.map(p=>`<option value="${safe(p.id)}">${safe(p.category)} · ${safe(p.brand_name)} · ${safe(p.size)}</option>`).join("")||'<option value="">No products loaded</option>';
+ const stockRows=$("stockInRows");
+ if(stockRows&&!stockRows.children.length&&products.length)stockInAddRow();
 }
 async function posSaveBarcode(){
  
@@ -2627,6 +2660,85 @@ async function posVoidBill(id){
  if(error){alert("Bill cancel failed: "+error.message);return;}
  alert("Bill cancelled. Audit remark saved: "+remark.trim());
  await posLoadRecent();await loadProducts();await refresh();
+}
+
+
+// STOCK IN — additive pass receiving; writes to existing purchase_invoices/purchase_items
+// so existing inventory and POS stock calculations automatically include received bottles.
+function stockInProductOptions(){
+ return '<option value="">Select product…</option>'+products.map(p=>
+  `<option value="${safe(p.id)}">${safe(String(p.category||'').toUpperCase())} · ${safe(p.brand_name)} · ${safe(p.size)}</option>`
+ ).join('');
+}
+function stockInAddRow(){
+ const body=$("stockInRows");if(!body)return;
+ const rowId="sir_"+Math.random().toString(36).slice(2,10);
+ const tr=document.createElement("tr");tr.dataset.rowId=rowId;
+ tr.innerHTML=`<td style="min-width:230px"><select class="sir-product" aria-label="Stock In product">${stockInProductOptions()}</select></td>
+ <td><input class="sir-cases" type="number" min="0" step="1" value="0" style="width:78px"></td>
+ <td><input class="sir-qty" type="number" min="1" step="1" value="1" style="width:92px"></td>
+ <td><input class="sir-rate" type="number" min="0.01" step="0.01" placeholder="Required" style="width:120px"></td>
+ <td class="sir-total">₹0.00</td>
+ <td><button class="btn danger" type="button" onclick="stockInRemoveRow('${rowId}')">Remove</button></td>`;
+ body.appendChild(tr);
+ tr.querySelectorAll("input,select").forEach(el=>el.addEventListener("input",stockInUpdateTotals));
+ stockInUpdateTotals();
+}
+function stockInRemoveRow(id){
+ const row=[...document.querySelectorAll("#stockInRows tr")].find(x=>x.dataset.rowId===id);
+ if(row)row.remove();stockInUpdateTotals();
+}
+function stockInUpdateTotals(){
+ let qty=0,value=0,count=0;
+ document.querySelectorAll("#stockInRows tr").forEach(row=>{
+  const q=Number(row.querySelector(".sir-qty")?.value||0),r=Number(row.querySelector(".sir-rate")?.value||0);
+  const line=q*r;qty+=q;value+=line;if(row.querySelector(".sir-product")?.value)count++;
+  const cell=row.querySelector(".sir-total");if(cell)cell.textContent=money(line);
+ });
+ const el=$("stockInTotals");if(el)el.textContent=`${count} products · ${qty} bottles · ${money(value)}`;
+}
+async function stockInSave(){
+ const btn=$("stockInSaveBtn");if(btn?.disabled)return;
+ const passNo=$("stockInPassNumber").value.trim(),passDate=$("stockInDate").value,supplier=$("stockInSupplier").value.trim();
+ const rows=[...document.querySelectorAll("#stockInRows tr")].map(row=>({
+  product_id:row.querySelector(".sir-product").value,
+  cases:Number(row.querySelector(".sir-cases").value||0),
+  quantity:Number(row.querySelector(".sir-qty").value||0),
+  purchase_rate:Number(row.querySelector(".sir-rate").value||0)
+ }));
+ if(!passNo||!passDate||!supplier){setMsg("stockInMsg","Transport Pass Number, Issue Date aur Supplier/Consignor zaroori hain.");return;}
+ if(!rows.length||rows.some(x=>!x.product_id||!Number.isInteger(x.quantity)||x.quantity<1||!Number.isFinite(x.purchase_rate)||x.purchase_rate<=0)){
+  setMsg("stockInMsg","Har row mein product, received bottles (whole number) aur purchase rate per bottle bharna zaroori hai.");return;
+ }
+ const totalQty=rows.reduce((a,x)=>a+x.quantity,0),totalCases=Number($("stockInCases").value||0);
+ const declaredBottles=Number($("stockInBottles").value||0);
+ if(declaredBottles>0&&declaredBottles!==totalQty){
+  setMsg("stockInMsg",`Dispatched bottles (${declaredBottles}) aur product rows total (${totalQty}) match nahi karte. Pehle verify karein.`);return;
+ }
+ const payload={
+  transport_pass_no:passNo,issue_date:passDate,valid_upto:$("stockInValidUpto").value||null,
+  supplier_name:supplier,consignee_name:$("stockInConsignee").value.trim()||null,
+  vehicle_no:$("stockInVehicle").value.trim()||null,driver_name:$("stockInDriver").value.trim()||null,
+  route_type:$("stockInRouteType").value.trim()||null,route_details:$("stockInRoute").value.trim()||null,
+  total_cases:totalCases,total_bottles:declaredBottles||totalQty,
+  bulk_litres:Number($("stockInBulk").value||0),total_duty_amount:Number($("stockInDuty").value||0),
+  source_url:$("stockInUrl").value.trim()||null
+ };
+ try{
+  if(btn){btn.disabled=true;btn.textContent="Saving Stock In…";}
+  setMsg("stockInMsg","Saving pass and purchase stock…");
+  const {data,error}=await db.rpc("stock_in_save_pass",{p_pass:payload,p_items:rows});
+  if(error)throw error;
+  if(!data?.success)throw new Error("Stock In save confirmation missing.");
+  setMsg("stockInMsg",`Stock In saved ✓ Pass ${passNo} · ${data.total_bottles} bottles · Purchase reference ${data.invoice_number}. Existing Inventory and Cash Sale POS stock is updated.`);
+  $("stockInRows").innerHTML="";
+  ["stockInPassNumber","stockInSupplier","stockInVehicle","stockInDriver","stockInRouteType","stockInRoute","stockInCases","stockInBottles","stockInBulk","stockInDuty","stockInUrl"].forEach(id=>{if($(id))$(id).value="";});
+  $("stockInValidUpto").value="";
+  await loadProducts();await refresh();
+ }catch(e){
+  setMsg("stockInMsg","Stock In failed: "+(e.message||String(e))+" · Agar function missing hai to pehle Stock In SQL run karein.");
+  console.error("Stock In:",e);
+ }finally{if(btn){btn.disabled=false;btn.textContent="Save Stock In";}}
 }
 
 </script>
