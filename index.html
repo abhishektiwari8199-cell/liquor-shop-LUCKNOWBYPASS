@@ -1358,7 +1358,6 @@ async function saveOpeningStock(button){
   }catch(e){alert("Save error: "+(e.message||String(e))+". Kuch entries save ho chuki ho sakti hain; dobara load karke check karein.");}
   finally{if(button){button.disabled=false;button.textContent="Save all opening stock";}}
 }
-async 
 async function editInventoryBrand(ids){
  const selected=(ids||[]).map(id=>products.find(p=>String(p.id)===String(id))).filter(Boolean);
  if(!selected.length)return;
@@ -1394,7 +1393,7 @@ async function editInventoryBrand(ids){
  }catch(e){alert("Product update failed: "+(e.message||String(e)));}
 }
 
-function saveInventoryMovements(button){
+async function saveInventoryMovements(button){
   const date=$("inventoryDate").value||STOCK_START_DATE;
   if(date<STOCK_START_DATE){alert("02 Nov 2026 se pehle entry allowed nahi hai.");return;}
   const rows=[];
