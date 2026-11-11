@@ -2508,74 +2508,170 @@ function fl2ShowSaveToast(message,success=true){
 }
 async function fl2SaveAllRates(button){
  const btn=button||$("fl2SaveAllRatesBtn");
- const notify=(msg,ok=false)=>{setMsg("fl2RateMsg",msg);fl2ShowSaveToast(msg,ok);};
- if(!db||!user){notify("Admin login required. Changes save nahi hue.",false);return;}
- const rows=[...document.querySelectorAll("#fl2RateRows tr[data-rate-product-id]")];
- if(!rows.length){notify("Save karne ke liye koi product row nahi mili.",false);return;}
- const updates=rows.map(row=>{
-  const id=row.dataset.rateProductId,p=products.find(x=>String(x.id)===String(id));
-  return {id,p,brand_name:($("fl2brand_"+id)?.value||"").trim(),
-   size:($("fl2size_"+id)?.value||"").trim(),
-   wholesale_price:Number($("fl2wh_"+id)?.value),mrp:Number($("fl2mrp_"+id)?.value)};
- });
- for(const x of updates){
-  if(!x.p){notify("Product "+x.id+" inventory list mein nahi mila. Refresh karke retry karein.",false);return;}
+ const notify=(msg,ok=false)=>{
+  setMsg("fl2RateMsg",msg);
+  fl2ShowSaveToast(msg,ok);
+ };
+
+ if(!db||!user){
+  notify("Admin login required. Changes save nahi hue.",false);
+  return;
  }
- // Important: validate only rows the user actually changed.
- // An old product with a blank/zero rate must not block saving an unrelated edit.
+
+ const rows=[...document.querySelectorAll("#fl2RateRows tr[data-rate-product-id]")];
+ if(!rows.length){
+  notify("Save karne ke liye koi product row nahi mili.",false);
+  return;
+ }
+
+ const updates=rows.map(row=>{
+  const id=row.dataset.rateProductId;
+  const p=products.find(x=>String(x.id)===String(id));
+  const brandValue=$("fl2brand_"+id)?.value;
+  const sizeValue=$("fl2size_"+id)?.value;
+  const whValue=$("fl2wh_"+id)?.value;
+  const mrpValue=$("fl2mrp_"+id)?.value;
+
+  return {
+   id,
+   p,
+   brand_name:String(brandValue??p?.brand_name??"").trim() || String(p?.brand_name||"").trim(),
+   size:String(sizeValue??p?.size??"").trim() || String(p?.size||"").trim(),
+   wholesale_price:String(whValue??"").trim()===""
+    ? Number(p?.wholesale_price||0)
+    : Number(whValue),
+   mrp:String(mrpValue??"").trim()===""
+    ? Number(p?.mrp||0)
+    : Number(mrpValue)
+  };
+ });
+
+ for(const x of updates){
+  if(!x.p){
+   notify("Product "+x.id+" inventory list mein nahi mila. Refresh karke retry karein.",false);
+   return;
+  }
+ }
+
  const changed=updates.filter(x=>
   x.brand_name!==String(x.p.brand_name||"").trim()||
   x.size!==String(x.p.size||"").trim()||
   x.wholesale_price!==Number(x.p.wholesale_price||0)||
   x.mrp!==Number(x.p.mrp||0)
  );
- if(!changed.length){notify("No changes detected. Values already saved in Supabase.",true);return;}
+
+ if(!changed.length){
+  notify("No changes detected. Values already saved in Supabase.",true);
+  return;
+ }
+
  for(const x of changed){
-  if(!x.brand_name||!x.size||!Number.isFinite(x.wholesale_price)||!Number.isFinite(x.mrp)||x.wholesale_price<=0||x.mrp<=0){
-   notify(`${x.p.brand_name||"Selected product"}: edited row mein Brand, Size, Wholesale aur MRP valid aur zero se zyada hone chahiye.`,false);return;
+  if(
+   !x.brand_name||
+   !x.size||
+   !Number.isFinite(x.wholesale_price)||
+   !Number.isFinite(x.mrp)||
+   x.wholesale_price<0||
+   x.mrp<0
+  ){
+   notify(
+    `${x.p.brand_name||"Selected product"}: Brand/Size aur rates valid hone chahiye. Zero rate allowed hai.`,
+    false
+   );
+   return;
   }
-  if(products.some(p=>String(p.id)!==String(x.id)&&
+
+  if(products.some(p=>
+   String(p.id)!==String(x.id)&&
    String(p.category||"").toLowerCase()===String(x.p.category||"").toLowerCase()&&
    String(p.brand_name||"").trim().toLowerCase()===x.brand_name.toLowerCase()&&
-   String(p.size||"").trim().toLowerCase()===x.size.toLowerCase())){
-   notify(`Duplicate product: ${x.brand_name} · ${x.size}. Same category + brand + size already exists.`,false);return;
+   String(p.size||"").trim().toLowerCase()===x.size.toLowerCase()
+  )){
+   notify(`Duplicate product: ${x.brand_name} · ${x.size}.`,false);
+   return;
   }
  }
- if(btn){btn.disabled=true;btn.setAttribute("aria-disabled","true");btn.textContent="Saving to Supabase…";btn.classList.add("saving");}
+
+ if(btn){
+  btn.disabled=true;
+  btn.setAttribute("aria-disabled","true");
+  btn.textContent="Saving to Supabase…";
+  btn.classList.add("saving");
+ }
+
  notify(`Saving ${changed.length} changed product(s) to Supabase…`,true);
- let saved=0;const failures=[];
+
+ let saved=0;
+ const failures=[];
+
  try{
   for(const x of changed){
-   const {data,error}=await db.from("inventory_products")
-    .update({brand_name:x.brand_name,size:x.size,wholesale_price:x.wholesale_price,mrp:x.mrp})
-    .eq("id",x.id).eq("user_id",user.id)
+   const {data,error}=await db
+    .from("inventory_products")
+    .update({
+     brand_name:x.brand_name,
+     size:x.size,
+     wholesale_price:x.wholesale_price,
+     mrp:x.mrp
+    })
+    .eq("id",x.id)
+    .eq("user_id",user.id)
     .select("id,brand_name,size,wholesale_price,mrp")
     .maybeSingle();
-   if(error){failures.push(`${x.p.brand_name}: ${error.message}`);continue;}
-   if(!data){failures.push(`${x.p.brand_name}: Supabase row update nahi hui. Login/RLS ownership check karein.`);continue;}
-   x.p.brand_name=data.brand_name;x.p.size=data.size;
-   x.p.wholesale_price=Number(data.wholesale_price);x.p.mrp=Number(data.mrp);
-   inventoryRateByProduct[String(x.id)]={mrp:Number(data.mrp),wholesale_price:Number(data.wholesale_price)};
+
+   if(error){
+    failures.push(`${x.p.brand_name}: ${error.message}`);
+    continue;
+   }
+
+   if(!data){
+    failures.push(`${x.p.brand_name}: Supabase row update nahi hui.`);
+    continue;
+   }
+
+   x.p.brand_name=data.brand_name;
+   x.p.size=data.size;
+   x.p.wholesale_price=Number(data.wholesale_price);
+   x.p.mrp=Number(data.mrp);
+
+   inventoryRateByProduct[String(x.id)]={
+    mrp:Number(data.mrp),
+    wholesale_price:Number(data.wholesale_price)
+   };
+
    saved++;
   }
+
   if(failures.length){
    notify(`${saved} saved; ${failures.length} failed. ${failures.join(" | ")}`,false);
   }else{
-   notify(`✓ SAVE TO SUPABASE CONFIRMED — ${saved} product(s) updated successfully.`,true);
-   drawProducts();fillBrandFilters();fl2DrawWholesale();
+   notify(
+    `SAVE CONFIRMED — ${saved} product(s) updated in Supabase. Inventory can fetch updated rates.`,
+    true
+   );
+   drawProducts();
+   fillBrandFilters();
+   fl2DrawWholesale();
   }
+
  }catch(e){
-  notify(`Save failed: ${e?.message||String(e)}. Supabase confirmation nahi mila.`,false);
+  notify(`Save failed: ${e?.message||String(e)}`,false);
   console.error("Wholesale save error:",e);
+
  }finally{
-  if(btn){btn.disabled=false;btn.setAttribute("aria-disabled","false");btn.textContent="Save to Supabase";btn.classList.remove("saving");}
+  if(btn){
+   btn.disabled=false;
+   btn.setAttribute("aria-disabled","false");
+   btn.textContent="Save to Supabase";
+   btn.classList.remove("saving");
+  }
  }
 }
 async function fl2SaveRate(id,button){
  const p=products.find(x=>String(x.id)===String(id));
  const brand_name=$("fl2brand_"+id).value.trim(),wh=num($("fl2wh_"+id).value),mrp=num($("fl2mrp_"+id).value);
  if(!brand_name){setMsg("fl2RateMsg","Brand name blank nahi ho sakta.");return}
- if(wh<=0||mrp<=0||!Number.isFinite(wh)||!Number.isFinite(mrp)){setMsg("fl2RateMsg","Wholesale aur MRP zero se zyada enter karein.");return}
+ if(wh<0||mrp<0||!Number.isFinite(wh)||!Number.isFinite(mrp)){setMsg("fl2RateMsg","Wholesale aur MRP valid non-negative number hone chahiye; zero allowed hai.");return}
  if(products.some(x=>String(x.id)!==String(id)&&String(x.category).toLowerCase()===String(p?.category).toLowerCase()&&String(x.size).toLowerCase()===String(p?.size).toLowerCase()&&String(x.brand_name).trim().toLowerCase()===brand_name.toLowerCase())){setMsg("fl2RateMsg","Same category, size aur brand ka product pehle se hai.");return}
  button.disabled=true;
  try{
