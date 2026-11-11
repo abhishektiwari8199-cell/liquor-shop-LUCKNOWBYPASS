@@ -710,9 +710,10 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
     <label>Category<select id="fl2RateCategory" onchange="fl2DrawWholesale()"><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label>
     <label>Search brand<input id="fl2RateSearch" type="search" placeholder="Search brand..." oninput="fl2DrawWholesale()"></label>
    </div>
-   <div class="status">Yahan save kiya gaya MRP aur Wholesale rate har date ki Inventory mein dikhega. Brand name bhi yahin edit kar sakte hain.</div>
-   <div class="table-wrap"><table><thead><tr><th>Brand Name (Editable)</th><th>Size</th><th>Qty</th><th>Wholesale / Bottle</th><th>Petty Wholesale</th><th>MRP / Bottle</th><th>Petty MRP</th><th>Save</th></tr></thead><tbody id="fl2RateRows"><tr><td colspan="8" class="empty">Loading brands…</td></tr></tbody></table></div>
-   <div class="status" id="fl2RateMsg">Petty values are calculated as per-bottle price × entered quantity.</div>
+   <div class="status">Brand name, Wholesale rate aur MRP edit karke neeche **Save Changes** dabayein. Save hone par changes Supabase mein permanently update honge aur har date ki Inventory mein dikhेंगे.</div>
+   <div class="section-head" style="margin:12px 0"><div><b>Brand & Rate Editor</b><p>Visible rows ke saare changes ek saath save honge.</p></div><button class="btn" id="fl2SaveAllRatesBtn" type="button" onclick="fl2SaveAllRates(this)">Save Changes</button></div>
+   <div class="table-wrap"><table><thead><tr><th>Brand Name (Editable)</th><th>Size</th><th>Qty</th><th>Wholesale / Bottle</th><th>Petty Wholesale</th><th>MRP / Bottle</th><th>Petty MRP</th></tr></thead><tbody id="fl2RateRows"><tr><td colspan="7" class="empty">Loading brands…</td></tr></tbody></table></div>
+   <div class="status" id="fl2RateMsg">Changes abhi save nahi hue hain. Edit karne ke baad Save Changes dabayein.</div>
   </div>
   <div id="fl2ReportPanel" class="panel glass" style="display:none">
    <div class="section-head" style="margin-top:0"><div><h3>FL2 Invoice Report</h3><p>Filter saved invoice lines by date, brand and category.</p></div><button class="btn secondary" type="button" onclick="fl2Tab('home')">← FL2 Home</button></div>
@@ -2316,11 +2317,18 @@ async function refresh(){
 
 function fl2Tab(which){
  const panels={home:[],invoice:["fl2InvoicePanel"],wholesale:["fl2WholesalePanel"],report:["fl2ReportPanel"],reconciliation:["fl2ReconciliationPanel"]};
- ["fl2InvoicePanel","fl2WholesalePanel","fl2ReportPanel","fl2ReconciliationPanel"].forEach(id=>$(id).style.display=(panels[which]||[]).includes(id)?"block":"none");
+ const homeCards=document.querySelector("#fl2 .category-cards");
+ const homeHead=document.querySelector("#fl2 > .section-head");
+ if(homeCards)homeCards.style.display=which==="home"?"grid":"none";
+ if(homeHead)homeHead.style.display=which==="home"?"flex":"none";
+ ["fl2InvoicePanel","fl2WholesalePanel","fl2ReportPanel","fl2ReconciliationPanel"].forEach(id=>{
+  const el=$(id);if(el){el.style.display=(panels[which]||[]).includes(id)?"block":"none";el.style.marginTop="0";}
+ });
  if(which==="invoice"){if(!$("fl2Date").value)$("fl2Date").value=today();fl2FillBrands()}
  if(which==="wholesale")fl2OpenWholesale();
  if(which==="report"){if(!$("fl2From").value)$("fl2From").value=today().slice(0,7)+"-01";if(!$("fl2To").value)$("fl2To").value=today();fl2FillFilterBrands()}
  if(which==="reconciliation"){if(!$("fl2ReconTo").value)$("fl2ReconTo").value=today();if(!$("fl2ReconFrom").value)$("fl2ReconFrom").value=fl2SixMonthsAgo();loadFl2Reconciliation()}
+ window.scrollTo({top:0,behavior:"smooth"});
 }
 function fl2FillBrands(){
  const cat=$("fl2Category").value,list=orderedProductsByOwnerSequence(products.filter(p=>String(p.category||"").toLowerCase()===cat));
@@ -2368,10 +2376,46 @@ function fl2DrawWholesale(){
  const rows=orderedProductsByOwnerSequence(products.filter(p=>String(p.category||"").toLowerCase()===cat&&(`${p.brand_name} ${p.size}`).toLowerCase().includes(q)));
  $("fl2RateRows").innerHTML=rows.map(p=>{
   const r=inventoryRate(p);
-  return `<tr><td><input id="fl2brand_${safe(p.id)}" type="text" maxlength="120" value="${safe(p.brand_name)}" style="min-width:190px"></td><td>${safe(p.size)}</td><td><input id="fl2qty_${safe(p.id)}" type="number" min="0" step=".01" value="1" oninput="fl2CalcRateRow('${safe(p.id)}')"></td><td><input id="fl2wh_${safe(p.id)}" type="number" min="0" step=".01" value="${r.wholesale_price}" oninput="fl2CalcRateRow('${safe(p.id)}')"></td><td id="fl2petty_${safe(p.id)}">${money(r.wholesale_price)}</td><td><input id="fl2mrp_${safe(p.id)}" type="number" min="0" step=".01" value="${r.mrp}" oninput="fl2CalcRateRow('${safe(p.id)}')"></td><td id="fl2pettymrp_${safe(p.id)}">${money(r.mrp)}</td><td><button class="btn" onclick="fl2SaveRate('${safe(p.id)}',this)">Save</button></td></tr>`;
- }).join("")||'<tr><td colspan="8" class="empty">No brands found.</td></tr>';
+  return `<tr data-rate-product-id="${safe(p.id)}"><td><input id="fl2brand_${safe(p.id)}" type="text" maxlength="120" value="${safe(p.brand_name)}" style="min-width:190px"></td><td>${safe(p.size)}</td><td><input id="fl2qty_${safe(p.id)}" type="number" min="0" step=".01" value="1" oninput="fl2CalcRateRow('${safe(p.id)}')"></td><td><input id="fl2wh_${safe(p.id)}" type="number" min="0" step=".01" value="${r.wholesale_price}" oninput="fl2CalcRateRow('${safe(p.id)}')"></td><td id="fl2petty_${safe(p.id)}">${money(r.wholesale_price)}</td><td><input id="fl2mrp_${safe(p.id)}" type="number" min="0" step=".01" value="${r.mrp}" oninput="fl2CalcRateRow('${safe(p.id)}')"></td><td id="fl2pettymrp_${safe(p.id)}">${money(r.mrp)}</td></tr>`;
+ }).join("")||'<tr><td colspan="7" class="empty">No brands found.</td></tr>';
 }
 function fl2CalcRateRow(id){const qty=num($("fl2qty_"+id).value),wh=num($("fl2wh_"+id).value),mrp=num($("fl2mrp_"+id).value);$("fl2petty_"+id).textContent=money(qty*wh);$("fl2pettymrp_"+id).textContent=money(qty*mrp)}
+async function fl2SaveAllRates(button){
+ if(!db||!user){setMsg("fl2RateMsg","Admin login required. Changes were not saved.");return;}
+ const rows=[...document.querySelectorAll("#fl2RateRows tr[data-rate-product-id]")];
+ if(!rows.length){setMsg("fl2RateMsg","Save karne ke liye koi brand row nahi hai.");return;}
+ const updates=rows.map(row=>{
+  const id=row.dataset.rateProductId,p=products.find(x=>String(x.id)===String(id));
+  return {id,p,brand_name:$("fl2brand_"+id)?.value.trim()||"",wh:num($("fl2wh_"+id)?.value),mrp:num($("fl2mrp_"+id)?.value)};
+ });
+ for(const x of updates){
+  if(!x.p){setMsg("fl2RateMsg","Product "+x.id+" current inventory list mein nahi mila. Refresh karke retry karein.");return;}
+  if(!x.brand_name||!Number.isFinite(x.wh)||!Number.isFinite(x.mrp)||x.wh<=0||x.mrp<=0){
+   setMsg("fl2RateMsg",`Brand ${x.p.brand_name}: Brand name, Wholesale aur MRP valid aur zero se zyada hone chahiye.`);return;
+  }
+  const duplicate=products.some(y=>String(y.id)!==String(x.id)&&String(y.category).toLowerCase()===String(x.p.category).toLowerCase()&&String(y.size).trim().toLowerCase()===String(x.p.size).trim().toLowerCase()&&String(y.brand_name).trim().toLowerCase()===x.brand_name.toLowerCase());
+  if(duplicate){setMsg("fl2RateMsg",`"${x.brand_name}" same category aur size mein pehle se hai. Duplicate name change karein.`);return;}
+ }
+ if(button){button.disabled=true;button.textContent="Saving…";}
+ let saved=0;
+ try{
+  for(const x of updates){
+   const {data,error}=await db.from("inventory_products").update({brand_name:x.brand_name,wholesale_price:x.wh,mrp:x.mrp}).eq("id",x.id).eq("user_id",user.id).select("id,brand_name,wholesale_price,mrp").single();
+   if(error)throw new Error(`${x.p.brand_name}: ${error.message}`);
+   x.p.brand_name=data.brand_name;x.p.wholesale_price=Number(data.wholesale_price);x.p.mrp=Number(data.mrp);
+   inventoryRateByProduct[String(x.id)]={mrp:Number(data.mrp),wholesale_price:Number(data.wholesale_price)};
+   saved++;
+  }
+  setMsg("fl2RateMsg",`✓ ${saved} brand rows Supabase mein save ho gayi. New MRP aur Wholesale rates Inventory mein sab dates par apply honge.`);
+  drawProducts();
+  fl2DrawWholesale();
+ }catch(e){
+  setMsg("fl2RateMsg",`${saved} rows save hui; agla save fail hua: ${e.message}. Baaki rows ke liye Save Changes dobara dabayein.`);
+  console.error("Bulk wholesale rate save failed",e);
+ }finally{
+  if(button){button.disabled=false;button.textContent="Save Changes";}
+ }
+}
 async function fl2SaveRate(id,button){
  const p=products.find(x=>String(x.id)===String(id));
  const brand_name=$("fl2brand_"+id).value.trim(),wh=num($("fl2wh_"+id).value),mrp=num($("fl2mrp_"+id).value);
