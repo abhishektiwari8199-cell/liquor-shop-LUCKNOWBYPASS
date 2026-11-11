@@ -423,6 +423,15 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
 </style>
 
 <!-- Build: schema-aligned daily_cash + historical sales history + purchase order initialization fix -->
+<style id="cash-sale-pos-styles">
+.pos-scan-panel{border:1px solid #f5c54266;background:linear-gradient(120deg,#102b49ee,#092039ee)}
+.pos-mode-row{display:flex;align-items:end;justify-content:space-between;gap:15px;margin-bottom:18px}.pos-mode-row label{max-width:260px;flex:1}.pos-auto-pill{color:#8cf0c4;background:#42d39a18;border:1px solid #42d39a66;border-radius:30px;padding:10px 14px;font-size:11px;font-weight:900;white-space:nowrap}
+.pos-barcode-label{font-size:13px!important;letter-spacing:.5px!important}.pos-barcode-label input{height:70px!important;font-size:clamp(19px,3vw,27px)!important;font-weight:800!important;letter-spacing:1.5px!important;border:2px solid #f5c542!important;background:#06182c!important;color:#fff!important}
+.pos-last-sale{margin-top:12px;padding:14px;border-radius:12px;background:#42d39a12;border:1px solid #42d39a44;color:#d9ffed;font-weight:700;min-height:48px}
+#posRecentRows td{vertical-align:middle}.pos-success{color:#8cf0c4!important;border-color:#42d39a66!important}.pos-error{color:#ffb5bc!important;border-color:#ff727c66!important}
+
+@media(max-width:760px){.pos-mode-row{align-items:stretch;flex-direction:column}.pos-mode-row label{max-width:none}.pos-barcode-label input{height:62px!important}}
+</style>
 </head>
 <body>
 <section id="loginView">
@@ -437,6 +446,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
  <div class="nav-label">WORKSPACE</div>
  <nav class="nav">
   <button class="active" data-page="home" onclick="showPage('home',this)"><span class="ico">⌂</span>Overview</button>
+  <button data-page="cashSalePos" onclick="showPage('cashSalePos',this)"><span class="ico">▣</span>Cash Sale POS</button>
   <button data-page="inventory" onclick="showPage('inventory',this)"><span class="ico">▦</span>Inventory</button>
   <button data-page="profit" onclick="showPage('profit',this)"><span class="ico">₹</span>Profit & Margin</button>
   <button data-page="cash" onclick="showPage('cash',this)"><span class="ico">▤</span>Daybook</button>
@@ -503,6 +513,24 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
   </div>
   <div id="dashMsg" class="status">Connecting to your business data…</div>
  </section>
+
+ 
+  <section id="cashSalePos" class="page">
+   <div class="section-head"><div><h3>Cash Sale POS · Auto Quick Sale</h3><p>Scan any Beer or Liquor barcode. Each scan creates one immediate sale at saved MRP.</p></div><span class="tag">ONE SCAN = ONE SALE</span></div>
+   <div class="panel glass pos-scan-panel">
+    <div class="pos-mode-row"><label>Payment mode<select id="posPaymentMode"><option value="cash">Cash</option><option value="online">Online / UPI</option><option value="rokad">Rokad</option></select></label><span class="pos-auto-pill">● AUTO SALE ON</span></div>
+    <label class="pos-barcode-label">Scan barcode<input id="posBarcodeInput" type="text" inputmode="none" autocomplete="off" placeholder="Barcode scanner ready — scan product and press Enter" aria-label="Scan product barcode"></label>
+    <div id="posStatus" class="status" role="status" aria-live="polite">Ready. Click the barcode box and scan a product.</div>
+    <div id="posLastSale" class="pos-last-sale">No scan yet.</div>
+   </div>
+   <div class="section-head"><div><h3>Last 10 POS bills</h3><p>Admin can cancel a bill with a mandatory remark.</p></div><button class="btn secondary" type="button" onclick="posLoadRecent()">↻ Refresh</button></div>
+   <div class="table-wrap"><table><thead><tr><th>Bill</th><th>Time / Date</th><th>Category</th><th>Payment</th><th>Amount</th><th>Action</th></tr></thead><tbody id="posRecentRows"><tr><td colspan="6" class="empty">No POS bills loaded.</td></tr></tbody></table></div>
+   <div id="posBarcodeAdmin" class="panel glass">
+    <div class="section-head" style="margin-top:0"><div><h3>Assign barcode to inventory product</h3><p>Existing products need a barcode saved here before scanning. Barcode must be unique in this shop.</p></div></div>
+    <div class="form-grid"><label class="span2">Product<select id="posBarcodeProduct"></select></label><label>Barcode<input id="posBarcodeValue" type="text" autocomplete="off" placeholder="Scan or type barcode"></label><div style="align-self:end"><button class="btn" type="button" onclick="posSaveBarcode()">Save barcode</button></div></div>
+    <div id="posBarcodeStatus" class="status">Select a product and scan its barcode into the field, then save.</div>
+   </div>
+  </section>
 
  <section id="inventory" class="page">
   <div class="section-head"><div><h3>Inventory</h3><p>Choose the department you want to manage</p></div></div>
@@ -760,6 +788,7 @@ var purchaseRequirementRows=[];
 const SUPABASE_URL="https://abulaaaezuajnuobzsdj.supabase.co";
 const SUPABASE_KEY="sb_publishable_ae6FQ3C13ru6drINn53jDA_THBBArV5";
 let db=null,user=null,products=[],saleCart=[],purchaseCart=[];
+let posScanBusy=false,posScanQueue=[];
 let saleHistoryDailyData={};
 const EXCEL_BRAND_ORDER=["BLENDER RESERVE BLUE", "BLENDER PRIDE", "BLENDER 4 ELEMENT", "ANTIQUTI BLUE", "SIGNATURE PREMIUM", "ROYAL THAMBOARE", "ROYAL STAG DOUBLE DARK", "ROYAL STAG", "ROYAL CHALLENGE", "OFFICEAR CHOICE BLUE", "OFICIER CHOICE", "IMPERIAL BLUE", "MACDOWEL NO.1", "MACDOWEL DOUBLE BARELL", "ROYAL STAG BARELL", "EXCLAMATION WHISKEY", "R.G 8 JAMUN", "8 PM BLACK", "8 PM GOLD", "8 PM WHISKEY", "STRELLING B7", "ROYAL GREEN", "WHITE & BLUE", "ALL SEASON SARTAAJ", "GOLFER SHOT 18", "ICONIC WINTER", "GOLFER SHOT A.K", "OCANE GLOW", "ROCKFORD RESERVE", "RED RUSSIAN APPLE", "OCTAINE", "MAGIC MOMENT JAMUN", "AMRUT PESTING WHISKEY", "OAK SMITH", "DOUBLE BLUE", "WHISLER BAREL", "ICONIC WHISKEY", "AFTER DARK", "BATCH 9", "SRISTY FINEST", "AMERICAN PRIDE", "MOUNTAIN OAK", "BX HIPPI", "SINGAL", "MARPHOS X&O BRANDY", "MARPHOUS BLUE BRANDY", "MATSYA", "THE CRAFTRES", "BOHO", "ALL SEASON", "DHURANDHAR", "SIWAS REGAL", "GODAOON", "JONNY WALKER GOLD LEBAL", "JONNY WALKER BLACK LEBAL", "JONNY WALKER DOUBLE BLACK", "JONNY WALKER RED LEBAL", "100 PIPER (12 YEARS)", "100 PIPER", "BLACK DOG TRIPLE GOLD", "BLACK DOG CENETERY", "TEACHERS 50", "TEACHER HIGHLAND", "VAT 69", "BLACK & WHITE", "INDREE", "JAG MISTER", "JACK DANIAEL", "GLAN MORANJI", "BOMBEY SUFFAIR", "DEWARS", "MACDOWEL", "SIMRAN OF CRAFT", "SIMRAN MINTY JAMUN", "SIMRAN MANGO MIRCHI", "SIMRAN JESTY LEMON", "MAGIC VERB LEMON", "MAGIC VERB", "MAGIC MOMENT LEMON", "MAGIC MOMENT APPLE", "MAGIC MOMENT PINK", "MAGIC MOMENT", "1 GL BUNTY", "G R 8 APPLE", "ONE MORE NEXT CANBERRY", "ONE MORE APPLE", "ONE MORE PLANE", "AMAZING PLANE", "MOON WALK APPLE", "MOON WALK ORANGE", "SNOSKI JAMUN VODKA", "SNOSKI SADA VODKA", "CULTER RUM", "ORTHIK CANBERRY", "LIPTOP PLANE", "MAGIC MOMENT AAM PANA", "BUNTY JAMUN", "BAKARDI WHITE", "BAKARDI MANGO CHILLI", "BAKARDI LEMON", "BAKARDI ORANGE", "BAKARDI BLACK", "OLD MONK LEGEND", "BERRY OLD MONK RESERVED'", "OLD MONK COFFEE", "MACDOWELL DARK RUM", "CAPTAIN MORGAIN", "1965 XXX RUM", "BUM LEMON RUM", "LEMON DEDDY RUM", "HIGH IMPACT", "MACDAWELL CITRONN RUM"];
 let stockPurchased={},stockSold={},stockMovementError="";
@@ -805,9 +834,18 @@ function applyBeerRateCard(product){
 function setMsg(id,text){$(id).textContent=text}
 function safe(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function initDb(){if(!window.supabase)throw new Error("Supabase library could not load. Check internet connection and refresh.");if(!db)db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);return db}
-async function login(){const b=$("loginBtn");b.disabled=true;b.textContent="Signing in…";try{setMsg("loginMsg","Connecting securely…");initDb();const {data,error}=await db.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});if(error)throw error;user=data.user;await openApp()}catch(e){setMsg("loginMsg","Login error: "+(e.message||String(e)));console.error(e)}finally{b.disabled=false;b.textContent="Sign in to dashboard →"}}
+async function login(){
+ const b=$("loginBtn");b.disabled=true;b.textContent="Signing in…";
+ try{
+  setMsg("loginMsg","Connecting securely…");initDb();
+  const {data,error}=await db.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});
+  if(error)throw error;
+  user=data.user;await openApp();
+ }catch(e){setMsg("loginMsg","Login error: "+(e.message||String(e)));console.error(e)}
+ finally{b.disabled=false;b.textContent="Sign in to dashboard →"}
+}
 async function logout(){if(db)await db.auth.signOut();user=null;location.reload()}
-async function openApp(){$("loginView").style.display="none";$("appView").style.display="block";$("who").textContent=user?.email||"Signed in";["dayCounterDate","daybookDate"].forEach(id=>$(id).value=today()<STOCK_START_DATE?STOCK_START_DATE:today());$("inventoryDate").value=today()<STOCK_START_DATE?STOCK_START_DATE:today();await loadProducts();$("dayCounterDate").value=$("inventoryDate").value;$("daybookDate").value=$("inventoryDate").value;await refresh();fillBrandFilters();drawWholesaleRates();await loadInventoryDayCounter();await loadDaybook();if($("autoReportDate")){$("autoReportDate").value=$("inventoryDate").value||today();await loadDashboardAutoReport($("autoReportDate").value)}}
+async function openApp(){$("loginView").style.display="none";$("appView").style.display="block";$("who").textContent=user?.email||"Signed in";["dayCounterDate","daybookDate"].forEach(id=>$(id).value=today()<STOCK_START_DATE?STOCK_START_DATE:today());$("inventoryDate").value=today()<STOCK_START_DATE?STOCK_START_DATE:today();await loadProducts();posPopulateBarcodeProducts();$("dayCounterDate").value=$("inventoryDate").value;$("daybookDate").value=$("inventoryDate").value;await refresh();fillBrandFilters();drawWholesaleRates();await loadInventoryDayCounter();await loadDaybook();if($("autoReportDate")){$("autoReportDate").value=$("inventoryDate").value||today();await loadDashboardAutoReport($("autoReportDate").value)}}
 function toggleWorkspaceMenu(forceOpen){
  const sidebar=document.querySelector("#appView .sidebar");
  const backdrop=$("workspaceBackdrop");
@@ -835,8 +873,9 @@ function showPage(id,button){
  $(id).classList.add("active");
  const navId=id==="inventoryWork"?"inventory":id;
  document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===navId));
- const titles={home:["Business overview","Your store performance at a glance"],inventory:["Choose inventory","Select Liquor or Beer to continue"],inventoryWork:["Inventory register","Manage the selected department"],profit:["Profit & margin","Monthly profit, day-end closing and bottle-wise margin"],cash:["Daybook","Date-wise cash, collections, expenses and profit"],history:["Sales history","Review recent recorded transactions"],fl2:["FL2 to Shop","Separate invoice register and wholesale price management"],purchaseRequirements:["Purchase Order","7-day sales velocity, low stock and next-day purchase order"]};
+ const titles={home:["Business overview","Your store performance at a glance"],cashSalePos:["Cash Sale POS","Barcode scan · Automatic quick sale"],inventory:["Choose inventory","Select Liquor or Beer to continue"],inventoryWork:["Inventory register","Manage the selected department"],profit:["Profit & margin","Monthly profit, day-end closing and bottle-wise margin"],cash:["Daybook","Date-wise cash, collections, expenses and profit"],history:["Sales history","Review recent recorded transactions"],fl2:["FL2 to Shop","Separate invoice register and wholesale price management"],purchaseRequirements:["Purchase Order","7-day sales velocity, low stock and next-day purchase order"]};
  $("pageTitle").textContent=titles[id][0];$("pageSubtitle").textContent=titles[id][1];
+ if(id==="cashSalePos"){posPopulateBarcodeProducts();posLoadRecent();setTimeout(()=>$("posBarcodeInput")?.focus(),80)}
  if(id==="purchaseRequirements"){loadPurchaseRequirements()}if(id==="history"){if(!$("saleFrom").value)$("saleFrom").value=dateBack(29);if(!$("saleTo").value)$("saleTo").value=today();loadSalesHistoryFast()}if(id==="fl2"){fl2Tab("home");fl2FillBrands();fl2FillFilterBrands()}if(id==="profit"){setProfitPeriod();loadProfitReport()}if(id==="cash"){if($("daybookDate"))$("daybookDate").value=$("inventoryDate")?.value||today();loadDaybook()}
 }
 function setCategory(cat){$("cat").value=cat;if($("addLiquorProductPanel"))$("addLiquorProductPanel").style.display=cat==="liquor"?"block":"none";if($("addBeerProductPanel"))$("addBeerProductPanel").style.display=cat==="beer"?"block":"none";if($("whCategory"))$("whCategory").value=cat;$("search").value="";$("inventoryWorkTitle").textContent=cat==="liquor"?"Liquor Inventory":"Beer Inventory";$("inventoryWorkSubtitle").textContent=cat==="liquor"?"Manage all liquor brands and bottle sizes":"Manage beer brands and quantities";showPage("inventoryWork");drawProducts();if($("dayCounterDate")){$("dayCounterDate").value=$("inventoryDate").value||dateBack(0);loadInventoryDayCounter()}}
@@ -2522,6 +2561,73 @@ function showSaleDaySummary(date){
  $("saleDaySummaryPanel").scrollIntoView({behavior:"smooth",block:"start"});
 }
 function closeSaleDaySummary(){$("saleDaySummaryPanel").style.display="none"}
+
+
+// CASH SALE POS — Admin account only; each scan creates one separate bill at saved MRP.
+function posPopulateBarcodeProducts(){
+ const select=$("posBarcodeProduct");if(!select)return;
+ select.innerHTML=products.map(p=>`<option value="${safe(p.id)}">${safe(p.category)} · ${safe(p.brand_name)} · ${safe(p.size)}</option>`).join("")||'<option value="">No products loaded</option>';
+}
+async function posSaveBarcode(){
+ 
+ const id=$("posBarcodeProduct").value,barcode=$("posBarcodeValue").value.trim();
+ if(!id||!barcode){setMsg("posBarcodeStatus","Product aur barcode dono zaroori hain.");return;}
+ setMsg("posBarcodeStatus","Saving barcode…");
+ const {error}=await db.from("inventory_products").update({barcode}).eq("id",id).eq("user_id",user.id);
+ if(error){setMsg("posBarcodeStatus","Barcode save failed: "+error.message);return;}
+ $("posBarcodeValue").value="";setMsg("posBarcodeStatus","Barcode successfully saved. Ab scanner se product sell kar sakte hain.");
+}
+function posRequestId(){
+ if(crypto?.randomUUID)return crypto.randomUUID();
+ return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==="x"?r:(r&3|8)).toString(16)});
+}
+async function posHandleScan(){
+ const input=$("posBarcodeInput"),barcode=String(input?.value||"").trim();
+ if(!barcode)return;
+ input.value="";posScanQueue.push(barcode);
+ if(posScanBusy)return;
+ posScanBusy=true;
+ try{
+  while(posScanQueue.length){
+   const nextBarcode=posScanQueue.shift(),status=$("posStatus");
+   status.className="status";status.textContent="Processing scan… ("+posScanQueue.length+" waiting)";
+   try{
+    const {data,error}=await db.rpc("pos_quick_sale",{p_barcode:nextBarcode,p_payment_mode:$("posPaymentMode").value,p_request_id:posRequestId()});
+    if(error)throw error;
+    if(!data?.success)throw new Error("Sale confirmation missing from server.");
+    if(data.duplicate_request){status.className="status pos-error";status.textContent="This scan request was already processed. No second sale created.";}
+    else{
+     status.className="status pos-success";
+     status.textContent=`SOLD ✓ ${data.category.toUpperCase()} · ${data.brand_name} · ${data.size} · ${money(data.sale_rate)} · Stock left: ${data.available_after}`;
+     $("posLastSale").textContent=`${data.bill_number} · ${data.category.toUpperCase()} · ${data.brand_name} ${data.size} · ${money(data.sale_rate)}`;
+    }
+   }catch(e){status.className="status pos-error";status.textContent="SALE NOT CONFIRMED: "+(e.message||String(e));}
+  }
+  await posLoadRecent();
+ }finally{posScanBusy=false;input?.focus();}
+}
+$("posBarcodeInput")?.addEventListener("keydown",event=>{
+ if(event.key==="Enter"){event.preventDefault();posHandleScan();}
+});
+async function posLoadRecent(){
+ const body=$("posRecentRows");if(!body||!db||!user)return;
+ body.innerHTML='<tr><td colspan="6" class="empty">Loading recent bills…</td></tr>';
+ try{
+  const {data,error}=await db.rpc("pos_recent_bills");if(error)throw error;
+  const rows=data||[];
+  body.innerHTML=rows.map(x=>`<tr><td><b>${safe(x.bill_number)}</b></td><td>${safe(x.sale_date)}</td><td><span class="tag">${safe(x.category)}</span></td><td>${safe(x.payment_mode)}</td><td><b>${money(x.amount)}</b></td><td>${`<button class="btn danger" type="button" onclick="posVoidBill('${safe(x.id)}')">Cancel</button>`}</td></tr>`).join("")||'<tr><td colspan="6" class="empty">No POS bills yet.</td></tr>';
+ }catch(e){body.innerHTML=`<tr><td colspan="6" class="empty">Could not load POS bills: ${safe(e.message||e)}</td></tr>`;}
+}
+async function posVoidBill(id){
+ 
+ const remark=prompt("Cancellation reason is mandatory:");if(remark===null)return;
+ if(remark.trim().length<3){alert("Please enter a clear cancellation remark (at least 3 characters).");return;}
+ if(!confirm("Cancel this POS bill? Its stock will be restored in the sales calculation."))return;
+ const {data,error}=await db.rpc("pos_void_sale",{p_sale_id:id,p_remark:remark.trim()});
+ if(error){alert("Bill cancel failed: "+error.message);return;}
+ alert("Bill cancelled. Audit remark saved: "+remark.trim());
+ await posLoadRecent();await loadProducts();await refresh();
+}
 
 </script>
 </body>
