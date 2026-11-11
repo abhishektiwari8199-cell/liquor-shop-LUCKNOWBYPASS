@@ -550,10 +550,9 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
    </div>
    <div class="panel glass" id="stockInPanel">
     <div class="stockin-one-line">
-     <label>Transport Pass No. *<input id="stockInPassNumber" type="text" autocomplete="off" placeholder="WHOLESALE..."></label>
-     <label>Pass Date *<input id="stockInDate" type="date"></label>
-     <label>Supplier / FL2 Unit *<input id="stockInSupplier" type="text" placeholder="Supplier name"></label>
-     <label class="stockin-scan-field">Scan Bottle QR<input id="stockInScanInput" type="text" autocomplete="off" placeholder="Thermal scanner: scan QR and press Enter"></label>
+     <label class="stockin-scan-field" style="flex:1">Scan Bottle QR
+      <input id="stockInScanInput" type="text" autocomplete="off" autofocus placeholder="Thermal scanner: scan QR — stock will add automatically">
+     </label>
      <button class="btn" id="stockInCameraBtn" type="button" onclick="stockInStartCamera()">📷 Camera Scan</button>
     </div>
     <div id="stockInCameraReader" style="display:none;max-width:440px;margin:14px auto"></div>
@@ -2766,11 +2765,7 @@ function stockInSetStatus(message,kind){
  el.className="status"+(kind==="error"?" pos-error":kind==="success"?" pos-success":"");
  el.textContent=message;
 }
-function stockInGetHeader(){
- const pass=$("stockInPassNumber").value.trim(),date=$("stockInDate").value,supplier=$("stockInSupplier").value.trim();
- if(!pass||!date||!supplier)throw new Error("Pehle Transport Pass Number, Pass Date aur Supplier bharein.");
- return {transport_pass_no:pass,issue_date:date,supplier_name:supplier,tp_type:"FG",tp_year:Number((pass.match(/Nov(\d{2,4})/i)||[])[1])||2026};
-}
+function stockInGetHeader(){return {};}
 function stockInNormalizeCode(value){return String(value||"").trim().replace(/\s+/g,"");}
 function extractExciseGtin(value){
  const raw=stockInNormalizeCode(value),m=raw.match(/^01(\d{14})/);
@@ -2797,21 +2792,20 @@ async function stockInProcessScan(rawCode){
  if(!code||stockInScanBusy)return;
  stockInScanBusy=true;
  try{
-  const pass=stockInGetHeader();
   const product=await stockInLookupProduct(code);
   if(!product)throw new Error("Barcode/QR inventory mein mapped nahi hai. Pehle neeche POS ke 'Assign barcode to inventory product' mein is product ka QR save karein.");
   const rate=Number(product.wholesale_price||0),mrp=Number(product.mrp||0);
   if(!(rate>0))throw new Error("Product mil gaya, lekin Wholesale Price missing/zero hai. Inventory mein wholesale price update karein.");
   stockInSetStatus("Product matched: "+product.brand_name+" · "+product.size+" · stock saving…");
   const {data,error}=await db.rpc("stock_in_scan_bottle",{
-   p_pass:pass,p_product_id:product.id,p_scanned_code:code
+   p_pass:{},p_product_id:product.id,p_scanned_code:code
   });
   if(error)throw error;
   if(!data?.success)throw new Error("Stock In confirmation missing.");
   $("stockInCurrentProduct").innerHTML=`<b>${safe(product.brand_name)}</b> · ${safe(product.size)} · MRP ${money(mrp)} · Wholesale ${money(rate)} <span class="tag">+1 bottle saved</span>`;
   stockInRecentScans.unshift({brand:product.brand_name,size:product.size,mrp,rate});
   stockInRecentScans=stockInRecentScans.slice(0,100);
-  stockInSetStatus(`STOCK IN ✓ ${product.brand_name} · ${product.size} · +1 bottle · Pass ${pass.transport_pass_no}`, "success");
+  stockInSetStatus(`STOCK IN ✓ ${product.brand_name} · ${product.size} · +1 bottle added automatically`, "success");
   await stockInRefreshSummary();
  }catch(e){
   stockInSetStatus("Scan not saved: "+(e.message||String(e)),"error");
@@ -2823,19 +2817,20 @@ async function stockInProcessScan(rawCode){
 }
 async function stockInRefreshSummary(){
  try{
-  const passNo=$("stockInPassNumber")?.value.trim();
-  if(!passNo)return;
-  const {data,error}=await db.from("stock_in_passes")
-   .select("id,total_bottles,purchase_invoice_id")
-   .eq("user_id",user.id).eq("transport_pass_no",passNo).maybeSingle();
+  const today=new Date().toISOString().slice(0,10).replaceAll("-","");
+  const prefix="QRSCAN-"+today+"-";
+  const {data:passes,error}=await db.from("stock_in_passes")
+   .select("id,purchase_invoice_id")
+   .eq("user_id",user.id).like("transport_pass_no",prefix+"%");
   if(error)throw error;
-  if(!data){
+  const invoiceIds=(passes||[]).map(x=>x.purchase_invoice_id).filter(Boolean);
+  if(!invoiceIds.length){
    $("stockInBottleCount").textContent="0";$("stockInProductCount").textContent="0";$("stockInValue").textContent=money(0);
-   $("stockInSummaryRows").innerHTML='<tr><td colspan="6">No bottles scanned for this pass yet.</td></tr>';return;
+   $("stockInSummaryRows").innerHTML='<tr><td colspan="6">Aaj abhi koi bottle scan nahi hui.</td></tr>';return;
   }
   const {data:items,error:ie}=await db.from("purchase_items")
    .select("product_id,quantity,purchase_rate")
-   .eq("user_id",user.id).eq("invoice_id",data.purchase_invoice_id);
+   .eq("user_id",user.id).in("invoice_id",invoiceIds);
   if(ie)throw ie;
   const grouped={};
   (items||[]).forEach(it=>{
