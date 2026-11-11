@@ -919,6 +919,11 @@ var purchaseRequirementRows=[];
 const SUPABASE_URL="https://abulaaaezuajnuobzsdj.supabase.co";
 const SUPABASE_KEY="sb_publishable_ae6FQ3C13ru6drINn53jDA_THBBArV5";
 let db=null,user=null,products=[],saleCart=[],purchaseCart=[];
+// Safe read-only bridge for isolated add-on scripts. Existing app variables remain private.
+window.__ABH_POS_BRIDGE__={
+ get db(){return db}, get user(){return user}, get products(){return products},
+ today:()=>today(), get showPage(){return showPage}, get closeWorkspaceMenu(){return closeWorkspaceMenu}
+};
 let posScanBusy=false,posScanQueue=[];
 let saleHistoryDailyData={};
 const EXCEL_BRAND_ORDER=["BLENDER RESERVE BLUE", "BLENDER PRIDE", "BLENDER 4 ELEMENT", "ANTIQUTI BLUE", "SIGNATURE PREMIUM", "ROYAL THAMBOARE", "ROYAL STAG DOUBLE DARK", "ROYAL STAG", "ROYAL CHALLENGE", "OFFICEAR CHOICE BLUE", "OFICIER CHOICE", "IMPERIAL BLUE", "MACDOWEL NO.1", "MACDOWEL DOUBLE BARELL", "ROYAL STAG BARELL", "EXCLAMATION WHISKEY", "R.G 8 JAMUN", "8 PM BLACK", "8 PM GOLD", "8 PM WHISKEY", "STRELLING B7", "ROYAL GREEN", "WHITE & BLUE", "ALL SEASON SARTAAJ", "GOLFER SHOT 18", "ICONIC WINTER", "GOLFER SHOT A.K", "OCANE GLOW", "ROCKFORD RESERVE", "RED RUSSIAN APPLE", "OCTAINE", "MAGIC MOMENT JAMUN", "AMRUT PESTING WHISKEY", "OAK SMITH", "DOUBLE BLUE", "WHISLER BAREL", "ICONIC WHISKEY", "AFTER DARK", "BATCH 9", "SRISTY FINEST", "AMERICAN PRIDE", "MOUNTAIN OAK", "BX HIPPI", "SINGAL", "MARPHOS X&O BRANDY", "MARPHOUS BLUE BRANDY", "MATSYA", "THE CRAFTRES", "BOHO", "ALL SEASON", "DHURANDHAR", "SIWAS REGAL", "GODAOON", "JONNY WALKER GOLD LEBAL", "JONNY WALKER BLACK LEBAL", "JONNY WALKER DOUBLE BLACK", "JONNY WALKER RED LEBAL", "100 PIPER (12 YEARS)", "100 PIPER", "BLACK DOG TRIPLE GOLD", "BLACK DOG CENETERY", "TEACHERS 50", "TEACHER HIGHLAND", "VAT 69", "BLACK & WHITE", "INDREE", "JAG MISTER", "JACK DANIAEL", "GLAN MORANJI", "BOMBEY SUFFAIR", "DEWARS", "MACDOWEL", "SIMRAN OF CRAFT", "SIMRAN MINTY JAMUN", "SIMRAN MANGO MIRCHI", "SIMRAN JESTY LEMON", "MAGIC VERB LEMON", "MAGIC VERB", "MAGIC MOMENT LEMON", "MAGIC MOMENT APPLE", "MAGIC MOMENT PINK", "MAGIC MOMENT", "1 GL BUNTY", "G R 8 APPLE", "ONE MORE NEXT CANBERRY", "ONE MORE APPLE", "ONE MORE PLANE", "AMAZING PLANE", "MOON WALK APPLE", "MOON WALK ORANGE", "SNOSKI JAMUN VODKA", "SNOSKI SADA VODKA", "CULTER RUM", "ORTHIK CANBERRY", "LIPTOP PLANE", "MAGIC MOMENT AAM PANA", "BUNTY JAMUN", "BAKARDI WHITE", "BAKARDI MANGO CHILLI", "BAKARDI LEMON", "BAKARDI ORANGE", "BAKARDI BLACK", "OLD MONK LEGEND", "BERRY OLD MONK RESERVED'", "OLD MONK COFFEE", "MACDOWELL DARK RUM", "CAPTAIN MORGAIN", "1965 XXX RUM", "BUM LEMON RUM", "LEMON DEDDY RUM", "HIGH IMPACT", "MACDAWELL CITRONN RUM"];
@@ -990,7 +995,7 @@ async function logout(){if(db)await db.auth.signOut();user=null;location.reload(
 async function openApp(){$("loginView").style.display="none";$("appView").style.display="block";
  const stockScanInput=$("stockInScanInput");
  if(stockScanInput&&!stockScanInput.dataset.bound){stockScanInput.dataset.bound="1";stockScanInput.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();stockInProcessScan(stockScanInput.value);}});}
- $("who").textContent=user?.email||"Signed in";["dayCounterDate","daybookDate"].forEach(id=>$(id).value=today()<STOCK_START_DATE?STOCK_START_DATE:today());$("inventoryDate").value=today()<STOCK_START_DATE?STOCK_START_DATE:today();await loadProducts();posPopulateBarcodeProducts();$("dayCounterDate").value=$("inventoryDate").value;$("daybookDate").value=$("inventoryDate").value;await refresh();fillBrandFilters();drawWholesaleRates();await loadInventoryDayCounter();await loadDaybook();if($("autoReportDate")){$("autoReportDate").value=$("inventoryDate").value||today();await loadDashboardAutoReport($("autoReportDate").value)}}
+ $("who").textContent=user?.email||"Signed in";["dayCounterDate","daybookDate"].forEach(id=>$(id).value=today()<STOCK_START_DATE?STOCK_START_DATE:today());$("inventoryDate").value=today()<STOCK_START_DATE?STOCK_START_DATE:today();await loadProducts();posPopulateBarcodeProducts();$("dayCounterDate").value=$("inventoryDate").value;$("daybookDate").value=$("inventoryDate").value;await refresh();fillBrandFilters();drawWholesaleRates();await loadInventoryDayCounter();await loadDaybook();if($("autoReportDate")){$("autoReportDate").value=$("inventoryDate").value||today();await loadDashboardAutoReport($("autoReportDate").value)}window.MadhushalaToolsAfterOpen?.()} 
 function toggleWorkspaceMenu(forceOpen){
  const sidebar=document.querySelector("#appView .sidebar");
  const backdrop=$("workspaceBackdrop");
@@ -3392,5 +3397,6 @@ async function stockInStopCamera(){
 }
 
 </script>
+<script src="./madhushala-tools.js?v=2"></script>
 </body>
 </html>
