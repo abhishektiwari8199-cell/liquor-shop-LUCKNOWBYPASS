@@ -606,10 +606,10 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
   <div class="toolbar" style="margin:12px 0"><span class="muted" id="stockSummary">Select a date to view stock.</span><button class="btn secondary" type="button" onclick="downloadActiveInventoryReport()">↓ Download Active Stock PDF</button><button class="btn" type="button" onclick="saveFinalInventory(this)">Final Save — Save All Inventory</button></div>
   <div class="status">Important: Inventory ke Sale column ko ek baar Final Save karein. Ye entry Sales History, Overview aur Daybook mein automatically dikhegi.</div>
   <div class="status" id="inventoryDateStatus">02 Nov 2026 ka original opening stock base hai. Har agle din ka Opening Qty pichhle din ke closing balance se automatically carry forward hota hai; selected date ki purchase aur sale alag dikhte hain.</div>
-  <div id="liquorInventoryWrap" class="table-wrap"><table class="inventory-register liquor-register"><colgroup><col style="width:230px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:108px"><col style="width:108px"><col style="width:108px"><col style="width:108px"></colgroup><thead>
-   <tr><th rowspan="2">S.No. / Brand</th><th colspan="4" id="inventoryOpeningHeader">Opening Stock</th><th colspan="4">Purchase</th><th colspan="4">Total Stock</th><th colspan="4">Sale Qty</th><th colspan="4">Sale Total (₹)</th><th colspan="4">Balance Stock</th><th colspan="4">Balance Stock Value (₹)</th></tr>
-   <tr><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th></tr>
-  </thead><tbody id="liquorInventoryRows"><tr><td colspan="29" class="empty">Loading inventory…</td></tr></tbody></table></div>
+  <div id="liquorInventoryWrap" class="table-wrap"><table class="inventory-register liquor-register"><colgroup><col style="width:230px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"></colgroup><thead>
+   <tr><th rowspan="2">S.No. / Brand</th><th colspan="4" id="inventoryOpeningHeader">Opening Stock</th><th colspan="4">Purchase</th><th colspan="4">Total Stock</th><th colspan="4">Sale</th><th colspan="4">Balance Stock</th><th colspan="4">Balance Stock Value (₹)</th></tr>
+   <tr><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th><th>750 ML</th><th>375 ML</th><th>180 ML</th><th>90 ML</th></tr>
+  </thead><tbody id="liquorInventoryRows"><tr><td colspan="25" class="empty">Loading inventory…</td></tr></tbody></table></div>
   <div id="beerInventoryWrap" class="table-wrap"><table class="inventory-register beer-register"><colgroup><col style="width:48px"><col style="width:238px"><col style="width:82px"><col style="width:108px"><col style="width:82px"><col style="width:82px"><col style="width:108px"><col style="width:96px"><col style="width:108px"><col style="width:96px"></colgroup><thead>
    <tr><th>QTY</th><th>Brand Name</th><th>Opening Qty</th><th>Opening Total ₹</th><th>Purchase</th><th>Sale</th><th>Sale Total ₹</th><th>Closing Stock</th><th>Stock Value ₹</th><th>Profit ₹</th></tr>
   </thead><tbody id="beerInventoryRows"><tr><td colspan="10" class="empty">Loading beer inventory…</td></tr></tbody></table></div>
@@ -639,7 +639,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
      <label>Payment mode<select id="invExpenseMode"><option value="Cash">Cash</option><option value="Online">Online / UPI</option></select></label>
      <div style="align-self:end"><button class="btn" type="button" id="invExpenseSaveBtn" onclick="addInventoryExpense(this)">＋ Add line</button></div>
     </div>
-    <div class="table-wrap" style="margin-top:10px"><table style="min-width:320px;max-width:620px"><thead><tr><th>Expenses Book</th><th style="text-align:right">Amount</th><th>Action</th></tr></thead><tbody id="invExpenseRows"><tr><td colspan="3" class="empty">Loading expenses…</td></tr></tbody><tfoot><tr><th>TOTAL</th><th id="invExpenseTotal" style="text-align:right">₹0.00</th><th></th></tr></tfoot></table></div>
+    <div class="table-wrap" style="margin-top:10px"><table style="min-width:320px;max-width:620px"><thead><tr><th>Expenses Book</th><th>Department</th><th style="text-align:right">Amount</th><th>Action</th></tr></thead><tbody id="invExpenseRows"><tr><td colspan="3" class="empty">Loading expenses…</td></tr></tbody><tfoot><tr><th>TOTAL</th><th id="invExpenseTotal" style="text-align:right">₹0.00</th><th></th></tr></tfoot></table></div>
     <div class="status" id="invExpenseStatus">Entries automatically Daybook mein bhi visible hongi.</div>
    </div>
    <div class="toolbar" style="margin-top:12px"><span class="muted" id="dcDifference">Total received vs total sale difference ₹0.00</span><strong id="dcClosingCash">Present Day Rokad ₹0.00</strong><button class="btn" type="button" onclick="saveInventoryDayCounter()">Save daily counter</button></div>
@@ -695,7 +695,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
    <div class="kpi glass"><small>Total Cash</small><strong id="dbCash">₹0.00</strong></div>
    <div class="kpi glass"><small>Total Online</small><strong id="dbOnline">₹0.00</strong></div>
    <div class="kpi glass"><small>Present Day Rokad</small><strong id="dbRokad">₹0.00</strong></div>
-   <div class="kpi glass"><small>Reconciliation Total (Cash + Online + Rokad + Expenses)</small><strong id="dbGrand">₹0.00</strong></div><div class="kpi glass"><small>Cash / Sale Difference</small><strong id="dbDifference" style="color:#ff6b75">₹0.00</strong></div>
+   <div class="kpi glass"><small>Reconciliation Total (Cash + Online + Rokad + Expenses)</small><strong id="dbGrand">₹0.00</strong></div>
   </div>
   <div class="panel glass"><div class="section-head" style="margin-top:0"><div><h3>Department-wise counter summary</h3><p>Liquor and Beer counter entries for the selected date</p></div></div><div class="table-wrap"><table style="min-width:600px"><thead><tr><th>Department</th><th>Cash</th><th>Online</th><th>Present Day Rokad</th><th>Counter Expenses</th></tr></thead><tbody id="daybookCounterRows"><tr><td colspan="5" class="empty">Select a date.</td></tr></tbody></table></div></div>
   <div class="section-head"><div><h3>Money received</h3><p>Other incoming amount and notes recorded for this date</p></div></div>
@@ -703,7 +703,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
   <div class="panel glass"><div class="section-head" style="margin-top:0"><div><h3>Night Cash Received — Saved Entry</h3><p>Department-wise night collection fetched from Supabase</p></div></div><div class="table-wrap"><table><thead><tr><th>Department</th><th>Cash</th><th>Online</th><th>Rokad</th><th>Cash + Online Total</th></tr></thead><tbody id="daybookNightCashRows"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody></table></div></div>
   <div class="panel glass"><div class="section-head" style="margin-top:0"><div><h3>Daily cash register details</h3><p>Entries saved from Cash / Night Closing for the selected date</p></div></div><div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-top:0"><div class="kpi glass"><small>Cash received</small><strong id="dbRegisterCash">₹0.00</strong></div><div class="kpi glass"><small>Online received</small><strong id="dbRegisterOnline">₹0.00</strong></div><div class="kpi glass"><small>Rokad received</small><strong id="dbRegisterRokad">₹0.00</strong></div><div class="kpi glass"><small>Expenses</small><strong id="dbRegisterExpenses">₹0.00</strong></div><div class="kpi glass"><small>Register total</small><strong id="dbRegisterTotal">₹0.00</strong></div></div></div>
   <div class="section-head"><div><h3>Expenses register</h3><p>See exactly what was spent, payment mode and total expense on the selected date</p></div></div>
-  <div class="panel glass"><div class="form-grid"><label>Expense description<input id="daybookExpenseName" placeholder="Tea, transport, staff, electricity..."></label><label>Amount (₹)<input id="daybookExpenseAmount" type="number" min="0.01" step="0.01" placeholder="0.00"></label><label>Payment type<select id="daybookExpenseMode"><option value="Cash">Cash</option><option value="Online">Online</option></select></label><div style="align-self:end"><button class="btn" type="button" onclick="addDaybookExpense()">＋ Add expense</button></div></div><div class="table-wrap"><table><thead><tr><th>Description</th><th>Payment</th><th>Amount</th><th>Action</th></tr></thead><tbody id="daybookExpenseRows"><tr><td colspan="4" class="empty">Select a date.</td></tr></tbody></table></div><div class="total-line"><span>Total expenses</span><strong id="dbExpenseTotal">₹0.00</strong></div></div>
+  <div class="panel glass"><div class="form-grid"><label>Expense description<input id="daybookExpenseName" placeholder="Tea, transport, staff, electricity..."></label><label>Amount (₹)<input id="daybookExpenseAmount" type="number" min="0.01" step="0.01" placeholder="0.00"></label><label>Payment type<select id="daybookExpenseMode"><option value="Cash">Cash</option><option value="Online">Online</option></select></label><div style="align-self:end"><button class="btn" type="button" onclick="addDaybookExpense()">＋ Add expense</button></div></div><div class="table-wrap"><table><thead><tr><th>Department</th><th>Description</th><th>Payment</th><th>Amount</th><th>Action</th></tr></thead><tbody id="daybookExpenseRows"><tr><td colspan="5" class="empty">Select a date.</td></tr></tbody></table></div><div class="total-line"><span>Total expenses</span><strong id="dbExpenseTotal">₹0.00</strong></div><div id="dbExpenseDepartmentTotals" class="toolbar" style="justify-content:space-between"><span>Liquor: ₹0.00</span><span>Beer: ₹0.00</span></div></div>
   <div class="section-head"><div><h3>Daybook summary</h3><p>Daily profit fetched from saved Inventory sale quantities and product wholesale rates</p></div></div>
   <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))"><div class="kpi glass"><small>Today's Inventory Profit</small><strong id="dbProfit">₹0.00</strong></div><div class="kpi glass"><small>Profit after listed expenses</small><strong id="dbNetProfit">₹0.00</strong></div><div class="kpi glass"><small>Total expenses</small><strong id="dbSummaryExpenses">₹0.00</strong></div></div>
  </section>
@@ -919,6 +919,11 @@ var purchaseRequirementRows=[];
 const SUPABASE_URL="https://abulaaaezuajnuobzsdj.supabase.co";
 const SUPABASE_KEY="sb_publishable_ae6FQ3C13ru6drINn53jDA_THBBArV5";
 let db=null,user=null,products=[],saleCart=[],purchaseCart=[];
+// Safe read-only bridge for isolated add-on scripts. Existing app variables remain private.
+window.__ABH_POS_BRIDGE__={
+ get db(){return db}, get user(){return user}, get products(){return products},
+ today:()=>today(), get showPage(){return showPage}, get closeWorkspaceMenu(){return closeWorkspaceMenu}
+};
 let posScanBusy=false,posScanQueue=[];
 let saleHistoryDailyData={};
 const EXCEL_BRAND_ORDER=["BLENDER RESERVE BLUE", "BLENDER PRIDE", "BLENDER 4 ELEMENT", "ANTIQUTI BLUE", "SIGNATURE PREMIUM", "ROYAL THAMBOARE", "ROYAL STAG DOUBLE DARK", "ROYAL STAG", "ROYAL CHALLENGE", "OFFICEAR CHOICE BLUE", "OFICIER CHOICE", "IMPERIAL BLUE", "MACDOWEL NO.1", "MACDOWEL DOUBLE BARELL", "ROYAL STAG BARELL", "EXCLAMATION WHISKEY", "R.G 8 JAMUN", "8 PM BLACK", "8 PM GOLD", "8 PM WHISKEY", "STRELLING B7", "ROYAL GREEN", "WHITE & BLUE", "ALL SEASON SARTAAJ", "GOLFER SHOT 18", "ICONIC WINTER", "GOLFER SHOT A.K", "OCANE GLOW", "ROCKFORD RESERVE", "RED RUSSIAN APPLE", "OCTAINE", "MAGIC MOMENT JAMUN", "AMRUT PESTING WHISKEY", "OAK SMITH", "DOUBLE BLUE", "WHISLER BAREL", "ICONIC WHISKEY", "AFTER DARK", "BATCH 9", "SRISTY FINEST", "AMERICAN PRIDE", "MOUNTAIN OAK", "BX HIPPI", "SINGAL", "MARPHOS X&O BRANDY", "MARPHOUS BLUE BRANDY", "MATSYA", "THE CRAFTRES", "BOHO", "ALL SEASON", "DHURANDHAR", "SIWAS REGAL", "GODAOON", "JONNY WALKER GOLD LEBAL", "JONNY WALKER BLACK LEBAL", "JONNY WALKER DOUBLE BLACK", "JONNY WALKER RED LEBAL", "100 PIPER (12 YEARS)", "100 PIPER", "BLACK DOG TRIPLE GOLD", "BLACK DOG CENETERY", "TEACHERS 50", "TEACHER HIGHLAND", "VAT 69", "BLACK & WHITE", "INDREE", "JAG MISTER", "JACK DANIAEL", "GLAN MORANJI", "BOMBEY SUFFAIR", "DEWARS", "MACDOWEL", "SIMRAN OF CRAFT", "SIMRAN MINTY JAMUN", "SIMRAN MANGO MIRCHI", "SIMRAN JESTY LEMON", "MAGIC VERB LEMON", "MAGIC VERB", "MAGIC MOMENT LEMON", "MAGIC MOMENT APPLE", "MAGIC MOMENT PINK", "MAGIC MOMENT", "1 GL BUNTY", "G R 8 APPLE", "ONE MORE NEXT CANBERRY", "ONE MORE APPLE", "ONE MORE PLANE", "AMAZING PLANE", "MOON WALK APPLE", "MOON WALK ORANGE", "SNOSKI JAMUN VODKA", "SNOSKI SADA VODKA", "CULTER RUM", "ORTHIK CANBERRY", "LIPTOP PLANE", "MAGIC MOMENT AAM PANA", "BUNTY JAMUN", "BAKARDI WHITE", "BAKARDI MANGO CHILLI", "BAKARDI LEMON", "BAKARDI ORANGE", "BAKARDI BLACK", "OLD MONK LEGEND", "BERRY OLD MONK RESERVED'", "OLD MONK COFFEE", "MACDOWELL DARK RUM", "CAPTAIN MORGAIN", "1965 XXX RUM", "BUM LEMON RUM", "LEMON DEDDY RUM", "HIGH IMPACT", "MACDAWELL CITRONN RUM"];
@@ -929,8 +934,6 @@ let inventoryManualCurrent={},inventoryManualTotals={},inventoryOpeningForDate={
 let inventoryDateHasBeenSaved=false;
 const $=id=>document.getElementById(id),num=v=>Number(v)||0;
 const money=v=>"₹"+num(v).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
-// Profit is counted only when a positive wholesale cost is recorded.
-function productGrossProfit(qty,product){const wholesale=num(product?.wholesale_price);if(!(wholesale>0))return 0;return num(qty)*(num(product?.mrp)-wholesale);}
 const today=()=>{const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)};
 const STOCK_START_DATE="2026-11-02";
 // Authoritative beer rate card supplied by the shop owner (07 Nov 2026).
@@ -992,7 +995,7 @@ async function logout(){if(db)await db.auth.signOut();user=null;location.reload(
 async function openApp(){$("loginView").style.display="none";$("appView").style.display="block";
  const stockScanInput=$("stockInScanInput");
  if(stockScanInput&&!stockScanInput.dataset.bound){stockScanInput.dataset.bound="1";stockScanInput.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();stockInProcessScan(stockScanInput.value);}});}
- $("who").textContent=user?.email||"Signed in";["dayCounterDate","daybookDate"].forEach(id=>$(id).value=today()<STOCK_START_DATE?STOCK_START_DATE:today());$("inventoryDate").value=today()<STOCK_START_DATE?STOCK_START_DATE:today();await loadProducts();posPopulateBarcodeProducts();$("dayCounterDate").value=$("inventoryDate").value;$("daybookDate").value=$("inventoryDate").value;await refresh();fillBrandFilters();drawWholesaleRates();await loadInventoryDayCounter();await loadDaybook();if($("autoReportDate")){$("autoReportDate").value=$("inventoryDate").value||today();await loadDashboardAutoReport($("autoReportDate").value)}}
+ $("who").textContent=user?.email||"Signed in";["dayCounterDate","daybookDate"].forEach(id=>$(id).value=today()<STOCK_START_DATE?STOCK_START_DATE:today());$("inventoryDate").value=today()<STOCK_START_DATE?STOCK_START_DATE:today();await loadProducts();posPopulateBarcodeProducts();$("dayCounterDate").value=$("inventoryDate").value;$("daybookDate").value=$("inventoryDate").value;await refresh();fillBrandFilters();drawWholesaleRates();await loadInventoryDayCounter();await loadDaybook();if($("autoReportDate")){$("autoReportDate").value=$("inventoryDate").value||today();await loadDashboardAutoReport($("autoReportDate").value)}window.MadhushalaToolsAfterOpen?.()} 
 function toggleWorkspaceMenu(forceOpen){
  const sidebar=document.querySelector("#appView .sidebar");
  const backdrop=$("workspaceBackdrop");
@@ -1316,27 +1319,27 @@ function drawProducts(){
   const L=[],sizes=["750","375","180","90"];
   const fmt=a=>a.map(v=>`<td class="calc">${Number(v||0).toLocaleString("en-IN",{maximumFractionDigits:2})}</td>`).join("");
   const fmtM=a=>a.map(v=>`<td class="value">${money(v)}</td>`).join("");
-  const liqTotals={o:[0,0,0,0],p:[0,0,0,0],t:[0,0,0,0],s:[0,0,0,0],sv:[0,0,0,0],b:[0,0,0,0],v:[0,0,0,0]};
+  const liqTotals={o:[0,0,0,0],p:[0,0,0,0],t:[0,0,0,0],s:[0,0,0,0],b:[0,0,0,0],v:[0,0,0,0]};
   // Subtotals are calculated from EVERY liquor brand, not only the currently visible search results.
   const allLiquorGroups=orderedBrandGroups(products.filter(x=>String(x.category).toLowerCase()==="liquor"));
   for(const g of allLiquorGroups){
     const map=[null,null,null,null];g.products.forEach(x=>{const k=sizeIndex(x.size);if(k>=0)map[k]=x;});
-    const o=map.map(x=>x?num(inventoryOpeningForDate[String(x.id)]??x.opening_stock):0),p=map.map(x=>x?num(inventoryPurchased[String(x.id)]):0),sale=map.map(x=>x?num(inventorySold[String(x.id)]):0),t=o.map((v,k)=>v+p[k]),sv=map.map((x,k)=>sale[k]*num(x?inventoryRate(x).mrp:0)),b=t.map((v,k)=>v-sale[k]),v=b.map((x,k)=>x*num(map[k]?inventoryRate(map[k]).wholesale_price:0));
-    [o,p,t,sale,sv,b,v].forEach((a,ai)=>a.forEach((n,k)=>{[liqTotals.o,liqTotals.p,liqTotals.t,liqTotals.s,liqTotals.sv,liqTotals.b,liqTotals.v][ai][k]+=n;}));
+    const o=map.map(x=>x?num(inventoryOpeningForDate[String(x.id)]??x.opening_stock):0),p=map.map(x=>x?num(inventoryPurchased[String(x.id)]):0),sale=map.map(x=>x?num(inventorySold[String(x.id)]):0),t=o.map((v,k)=>v+p[k]),b=t.map((v,k)=>v-sale[k]),v=b.map((x,k)=>x*num(map[k]?inventoryRate(map[k]).wholesale_price:0));
+    [o,p,t,sale,b,v].forEach((a,ai)=>a.forEach((n,k)=>{[liqTotals.o,liqTotals.p,liqTotals.t,liqTotals.s,liqTotals.b,liqTotals.v][ai][k]+=n;}));
   }
   liquor.forEach((g,idx)=>{
     const map=[null,null,null,null];g.products.forEach(p=>{const k=sizeIndex(p.size);if(k>=0)map[k]=p;});
-    const o=map.map(p=>p?num(inventoryOpeningForDate[String(p.id)]??p.opening_stock):0),p=map.map(x=>x?num(inventoryPurchased[String(x.id)]):0),s=map.map(x=>x?num(inventorySold[String(x.id)]):0),t=o.map((v,k)=>v+p[k]),sv=map.map((x,k)=>s[k]*num(x?inventoryRate(x).mrp:0)),b=t.map((v,k)=>v-s[k]),v=b.map((x,k)=>x*num(map[k]?inventoryRate(map[k]).wholesale_price:0));
+    const o=map.map(p=>p?num(inventoryOpeningForDate[String(p.id)]??p.opening_stock):0),p=map.map(x=>x?num(inventoryPurchased[String(x.id)]):0),s=map.map(x=>x?num(inventorySold[String(x.id)]):0),t=o.map((v,k)=>v+p[k]),b=t.map((v,k)=>v-s[k]),v=b.map((x,k)=>x*num(map[k]?inventoryRate(map[k]).wholesale_price:0));
     for(let k=0;k<4;k++){grand.opening+=o[k];grand.purchase+=p[k];grand.total+=t[k];grand.sale+=s[k];grand.balance+=b[k];grand.value+=v[k];}
     const inputs=(arr,prefix,label)=>map.map((x,k)=>`<td>${x?`<input aria-label="${safe(g.name)} ${sizes[k]} ${label}" id="${prefix}_${safe(x.id)}" type="number" min="0" step=".01" value="${arr[k]}" ${prefix==="opening"&&($("inventoryDate").value||STOCK_START_DATE)!==STOCK_START_DATE?"readonly title='Auto carried forward from previous day'":"oninput='recalculateInventoryLive()' onkeydown='inventoryEnterNext(event)'"}>`:"—"}</td>`).join("");
-    L.push(`<tr data-order-key="${safe(brandKey(g.name))}"><td><span class="inventory-drag-handle" title="Drag to reorder">⠿</span> ${idx+1}. ${safe(g.name)} <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='editInventoryBrand(${JSON.stringify(g.products.map(x=>String(x.id)))})'>Edit name/rates</button> <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='hideInventoryBrand(${JSON.stringify(g.products.map(x=>String(x.id)))})'>Hide</button></td>${inputs(o,"opening","opening stock")}${inputs(map.map(x=>x?(inventoryManualCurrent[String(x.id)]?.purchase||0):0),"reg_purchase","purchase")}${fmt(t)}${inputs(map.map(x=>x?(inventoryManualCurrent[String(x.id)]?.sale||0):0),"reg_sale","sale")}${fmtM(sv)}${fmt(b)}${fmtM(v)}</tr>`);
+    L.push(`<tr data-order-key="${safe(brandKey(g.name))}"><td><span class="inventory-drag-handle" title="Drag to reorder">⠿</span> ${idx+1}. ${safe(g.name)} <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='editInventoryBrand(${JSON.stringify(g.products.map(x=>String(x.id)))})'>Edit name/rates</button> <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='hideInventoryBrand(${JSON.stringify(g.products.map(x=>String(x.id)))})'>Hide</button></td>${inputs(o,"opening","opening stock")}${inputs(map.map(x=>x?(inventoryManualCurrent[String(x.id)]?.purchase||0):0),"reg_purchase","purchase")}${fmt(t)}${inputs(map.map(x=>x?(inventoryManualCurrent[String(x.id)]?.sale||0):0),"reg_sale","sale")}${fmt(b)}${fmtM(v)}</tr>`);
   });
-  if(allLiquorGroups.length)L.push(`<tr class="inventory-subtotal-row liquor-total-row"><td>TOTAL ALL LIQUOR BRANDS</td>${fmt(liqTotals.o)}${fmt(liqTotals.p)}${fmt(liqTotals.t)}${fmt(liqTotals.s)}${fmtM(liqTotals.sv)}${fmt(liqTotals.b)}${fmtM(liqTotals.v)}</tr>`);
-  $("liquorInventoryRows").innerHTML=L.join("")||'<tr><td colspan="29" class="empty">No liquor brands found.</td></tr>';
+  if(allLiquorGroups.length)L.push(`<tr class="inventory-subtotal-row liquor-total-row"><td>TOTAL ALL LIQUOR BRANDS</td>${fmt(liqTotals.o)}${fmt(liqTotals.p)}${fmt(liqTotals.t)}${fmt(liqTotals.s)}${fmt(liqTotals.b)}${fmtM(liqTotals.v)}</tr>`);
+  $("liquorInventoryRows").innerHTML=L.join("")||'<tr><td colspan="25" class="empty">No liquor brands found.</td></tr>';
   const B=[];let bt={o:0,ov:0,p:0,s:0,sv:0,c:0,cv:0,profit:0};
   beer.forEach((x,idx)=>{
     const opening=num(inventoryOpeningForDate[String(x.id)]??x.opening_stock),purchase=num(inventoryPurchased[String(x.id)]),sale=num(inventorySold[String(x.id)]);
-    const openingValue=opening*inventoryRate(x).mrp,available=opening+purchase,saleValue=sale*inventoryRate(x).mrp,closing=available-sale,stockValue=closing*inventoryRate(x).wholesale_price,profit=productGrossProfit(sale,inventoryRate(x));
+    const openingValue=opening*inventoryRate(x).mrp,available=opening+purchase,saleValue=sale*inventoryRate(x).mrp,closing=available-sale,stockValue=closing*inventoryRate(x).wholesale_price,profit=sale*(inventoryRate(x).mrp-inventoryRate(x).wholesale_price);
     bt.o+=opening;bt.ov+=openingValue;bt.p+=purchase;bt.s+=sale;bt.sv+=saleValue;bt.c+=closing;bt.cv+=stockValue;bt.profit+=profit;
     for(const [k,n] of Object.entries({opening,purchase,sale,available,closing,openingValue,saleValue,stockValue,profit}))grand[k]=(grand[k]||0)+n;
     const entry=inventoryManualCurrent[String(x.id)]||{};
@@ -1434,50 +1437,31 @@ function recalculateInventoryLive(){
     const purchase=Math.max(0,(inventoryPurchased[id]||0)-num(manual.purchase))+currentPurchase;
     const sale=Math.max(0,(inventorySold[id]||0)-num(manual.sale))+currentSale;
     const total=opening+purchase,balance=total-sale;
-    current[id]={opening,purchase,sale,total,balance,openingValue:opening*inventoryRate(p).mrp,saleValue:sale*inventoryRate(p).mrp,stockValue:balance*inventoryRate(p).wholesale_price,profit:productGrossProfit(sale,inventoryRate(p))};
+    current[id]={opening,purchase,sale,total,balance,openingValue:opening*inventoryRate(p).mrp,saleValue:sale*inventoryRate(p).mrp,stockValue:balance*inventoryRate(p).wholesale_price,profit:sale*(inventoryRate(p).mrp-inventoryRate(p).wholesale_price)};
   }
   const allGroups=orderedBrandGroups(products.filter(x=>String(x.category).toLowerCase()==="liquor"));
-  const totals={o:[0,0,0,0],p:[0,0,0,0],t:[0,0,0,0],s:[0,0,0,0],sv:[0,0,0,0],b:[0,0,0,0],v:[0,0,0,0]};
+  const totals={o:[0,0,0,0],p:[0,0,0,0],t:[0,0,0,0],s:[0,0,0,0],b:[0,0,0,0],v:[0,0,0,0]};
   allGroups.forEach(g=>{
     const map=[null,null,null,null];g.products.forEach(x=>{const k=sizeIndex(x.size);if(k>=0)map[k]=x;});
-    const vals={o:[],p:[],t:[],s:[],sv:[],b:[],v:[]};
-    map.forEach((x,k)=>{const z=x?current[String(x.id)]:null;vals.o[k]=z?.opening||0;vals.p[k]=z?.purchase||0;vals.t[k]=z?.total||0;vals.s[k]=z?.sale||0;vals.sv[k]=z?.saleValue||0;vals.b[k]=z?.balance||0;vals.v[k]=z?.stockValue||0;});
-    ["o","p","t","s","sv","b","v"].forEach(key=>vals[key].forEach((n,k)=>totals[key][k]+=n));
+    const vals={o:[],p:[],t:[],s:[],b:[],v:[]};
+    map.forEach((x,k)=>{const z=x?current[String(x.id)]:null;vals.o[k]=z?.opening||0;vals.p[k]=z?.purchase||0;vals.t[k]=z?.total||0;vals.s[k]=z?.sale||0;vals.b[k]=z?.balance||0;vals.v[k]=z?.stockValue||0;});
+    ["o","p","t","s","b","v"].forEach(key=>vals[key].forEach((n,k)=>totals[key][k]+=n));
   });
-  // Match the exact same filtered/visible brand groups rendered by drawProducts().
-  // The previous code indexed every brand against the shorter Active-only DOM list,
-  // which shifted live totals onto the wrong brands when zero-activity brands were hidden.
-  const visibility=$("inventoryVisibilityMode")?.value||(inventoryDateHasBeenSaved?"active":"full");
-  const category=$("cat")?.value||"all";
-  const searchText=($("search")?.value||"").toLowerCase();
-  const hiddenIds=getHiddenInventoryIds();
-  const visibleGroups=orderedBrandGroups(products.filter(x=>
-    String(x.category).toLowerCase()==="liquor"&&
-    !hiddenIds.has(String(x.id))&&
-    (category==="all"||category==="liquor")&&
-    (`${x.brand_name||""} ${x.size||""}`).toLowerCase().includes(searchText)
-  ));
-  const renderedGroups=visibility==="active"?visibleGroups.filter(inventoryLiquorGroupHasActivity):visibleGroups;
-  renderedGroups.forEach((g,idx)=>{
-    const tr=$("liquorInventoryRows")?.rows[idx];if(!tr||tr.classList.contains("liquor-total-row"))return;const cells=tr.cells;
+  const visibleGroups=orderedBrandGroups(products.filter(x=>String(x.category).toLowerCase()==="liquor"&&(`${x.brand_name||""} ${x.size||""}`).toLowerCase().includes(($("search")?.value||"").toLowerCase())));
+  visibleGroups.forEach((g,idx)=>{
+    const tr=$("liquorInventoryRows")?.rows[idx];if(!tr)return;const cells=tr.cells;
     const map=[null,null,null,null];g.products.forEach(x=>{const k=sizeIndex(x.size);if(k>=0)map[k]=x;});
-    const vals={t:[],sv:[],b:[],v:[]};
-    map.forEach((x,k)=>{const z=x?current[String(x.id)]:null;vals.t[k]=z?.total||0;vals.sv[k]=z?.saleValue||0;vals.b[k]=z?.balance||0;vals.v[k]=z?.stockValue||0;});
-    ["t","sv","b"].forEach((key,section)=>vals[key].forEach((n,k)=>{const cell=cells[(section===0?9:section===1?17:21)+k];if(cell)cell.textContent=section===1?money(n):fmtQty(n);}));
-    vals.v.forEach((n,k)=>{const cell=cells[25+k];if(cell)cell.textContent=money(n);});
+    const vals={t:[],b:[],v:[]};
+    map.forEach((x,k)=>{const z=x?current[String(x.id)]:null;vals.t[k]=z?.total||0;vals.b[k]=z?.balance||0;vals.v[k]=z?.stockValue||0;});
+    ["t","b"].forEach((key,section)=>vals[key].forEach((n,k)=>{const cell=cells[(section===0?9:17)+k];if(cell)cell.textContent=fmtQty(n);}));
+    vals.v.forEach((n,k)=>{const cell=cells[21+k];if(cell)cell.textContent=money(n);});
   });
   const subtotal=$("liquorInventoryRows")?.querySelector(".liquor-total-row");
-  if(subtotal){let c=1;["o","p","t","s"].forEach(key=>totals[key].forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=fmtQty(n);}));totals.sv.forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=money(n);});totals.b.forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=fmtQty(n);});totals.v.forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=money(n);});}
+  if(subtotal){let c=1;["o","p","t","s","b"].forEach(key=>totals[key].forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=fmtQty(n);}));totals.v.forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=money(n);});}
   let beerTotals={o:0,ov:0,p:0,s:0,sv:0,c:0,cv:0,profit:0};
-  const visibleBeerAll=orderedBeerProducts(products.filter(x=>
-    String(x.category).toLowerCase()==="beer"&&
-    !hiddenIds.has(String(x.id))&&
-    (category==="all"||category==="beer")&&
-    (`${x.brand_name||""} ${x.size||""}`).toLowerCase().includes(searchText)
-  ));
-  const visibleBeer=visibility==="active"?visibleBeerAll.filter(inventoryProductHasActivity):visibleBeerAll;
+  const visibleBeer=orderedBeerProducts(products.filter(x=>String(x.category).toLowerCase()==="beer"&&(($("cat")?.value||"all")==="all"||$("cat").value==="beer")&&(`${x.brand_name||""} ${x.size||""}`).toLowerCase().includes(($("search")?.value||"").toLowerCase())));
   visibleBeer.forEach((x,idx)=>{
-    const z=current[String(x.id)];if(!z)return;const tr=$("beerInventoryRows")?.rows[idx];if(!tr||tr.classList.contains("inventory-subtotal-row"))return;
+    const z=current[String(x.id)];if(!z)return;const tr=$("beerInventoryRows")?.rows[idx];
     if(tr){if(tr.cells[3])tr.cells[3].textContent=money(z.openingValue);if(tr.cells[6])tr.cells[6].textContent=money(z.saleValue);if(tr.cells[7])tr.cells[7].textContent=fmtQty(z.balance);if(tr.cells[8])tr.cells[8].textContent=money(z.stockValue);if(tr.cells[9])tr.cells[9].textContent=money(z.profit);}
     beerTotals.o+=z.opening;beerTotals.ov+=z.openingValue;beerTotals.p+=z.purchase;beerTotals.s+=z.sale;beerTotals.sv+=z.saleValue;beerTotals.c+=z.balance;beerTotals.cv+=z.stockValue;beerTotals.profit+=z.profit;
   });
@@ -2111,18 +2095,18 @@ async function loadProfitReport(){
   const byProduct={},byDay={};let revenue=0,cost=0,liquorProfit=0,beerProfit=0,liquorQty=0,beerQty=0;
   for(const item of items){
    const p=products.find(x=>String(x.id)===String(item.product_id));if(!p)continue;
-   const qty=num(item.quantity),saleRate=num(item.sale_rate),costRate=num(p.wholesale_price),sales=qty*saleRate,costAmount=qty*costRate,profit=costRate>0?sales-costAmount:0,category=String(p.category||"").toLowerCase();
+   const qty=num(item.quantity),saleRate=num(item.sale_rate),costRate=num(p.wholesale_price),sales=qty*saleRate,costAmount=qty*costRate,profit=sales-costAmount,category=String(p.category||"").toLowerCase();
    revenue+=sales;cost+=costAmount;
    if(category==="beer"){beerProfit+=profit;beerQty+=qty}else{liquorProfit+=profit;liquorQty+=qty}
    const key=String(p.id);if(!byProduct[key])byProduct[key]={p,qty:0,sales:0,cost:0,profit:0,rateSum:0,costRate};
    const b=byProduct[key];b.qty+=qty;b.sales+=sales;b.cost+=costAmount;b.profit+=profit;b.rateSum+=sales;
    const day=headers.find(h=>h.id===item.sale_id)?.sale_date||"Unknown";if(!byDay[day])byDay[day]={sales:0,cost:0,profit:0};byDay[day].sales+=sales;byDay[day].cost+=costAmount;byDay[day].profit+=profit;
   }
-  const gross=Object.values(byProduct).reduce((sum,b)=>sum+b.profit,0);
+  const gross=revenue-cost;
   $("profitRevenue").textContent=money(revenue);$("profitCost").textContent=money(cost);$("profitGross").textContent=money(gross);$("profitMargin").textContent=(revenue?gross/revenue*100:0).toFixed(1)+"%";
   $("profitLiquor").textContent=money(liquorProfit);$("profitBeer").textContent=money(beerProfit);$("profitLiquorQty").textContent=liquorQty+" bottles sold";$("profitBeerQty").textContent=beerQty+" units sold";
   $("dailyProfitRows").innerHTML=Object.keys(byDay).sort().reverse().map(day=>`<tr><td>${day}</td><td>${money(byDay[day].sales)}</td><td>${money(byDay[day].cost)}</td><td><b>${money(byDay[day].profit)}</b></td></tr>`).join("")||'<tr><td colspan="4" class="empty">No sales in this period.</td></tr>';
-  $("brandProfitRows").innerHTML=Object.values(byProduct).sort((a,b)=>b.profit-a.profit).map(b=>`<tr><td>${safe(b.p.category)}</td><td><b>${safe(b.p.brand_name)}</b></td><td>${safe(b.p.size)}</td><td>${b.qty}</td><td>${money(b.sales/b.qty)}</td><td>${money(b.costRate)}</td><td>${money(b.costRate>0?b.sales/b.qty-b.costRate:0)}</td><td><b>${money(b.profit)}</b></td></tr>`).join("")||'<tr><td colspan="8" class="empty">No product sales found.</td></tr>';
+  $("brandProfitRows").innerHTML=Object.values(byProduct).sort((a,b)=>b.profit-a.profit).map(b=>`<tr><td>${safe(b.p.category)}</td><td><b>${safe(b.p.brand_name)}</b></td><td>${safe(b.p.size)}</td><td>${b.qty}</td><td>${money(b.sales/b.qty)}</td><td>${money(b.costRate)}</td><td>${money(b.sales/b.qty-b.costRate)}</td><td><b>${money(b.profit)}</b></td></tr>`).join("")||'<tr><td colspan="8" class="empty">No product sales found.</td></tr>';
   setMsg("profitMsg","Estimated gross profit calculated for "+from+" to "+to+". Current saved wholesale rates are used as product cost; operating expenses, rent, salary and taxes are not deducted.");
  }catch(e){setMsg("profitMsg","Profit report error: "+e.message)}
 }
@@ -2131,11 +2115,11 @@ async function loadInventoryExpenses(){
  const date=$("inventoryDate")?.value||$("dayCounterDate")?.value||today();
  try{
   const {data,error}=await db.from("daily_expenses")
-   .select("id,expense_date,expense_name,amount,payment_type")
-   .eq("user_id",user.id).eq("expense_date",date).order("created_at");
+   .select("id,expense_date,expense_name,amount,payment_type,category")
+   .eq("user_id",user.id).eq("expense_date",date).eq("category",dayCounterCategory()).order("created_at");
   if(error)throw error;
   const rows=data||[];
-  $("invExpenseRows").innerHTML=rows.map(x=>`<tr><td>${safe(x.expense_name)}</td><td style="text-align:right">${money(x.amount)}</td><td><button class="btn danger" type="button" onclick="deleteInventoryExpense('${x.id}')">Delete</button></td></tr>`).join("")||'<tr><td colspan="3" class="empty">No expenses for this date.</td></tr>';
+  $("invExpenseRows").innerHTML=rows.map(x=>`<tr><td>${safe(x.expense_name)}</td><td>${String(x.category||"").toLowerCase()==="beer"?"Beer":"Liquor"}</td><td style="text-align:right">${money(x.amount)}</td><td><button class="btn danger" type="button" onclick="deleteInventoryExpense('${x.id}')">Delete</button></td></tr>`).join("")||'<tr><td colspan="4" class="empty">No expenses for this department on this date.</td></tr>';
   $("invExpenseTotal").textContent=money(rows.reduce((sum,x)=>sum+num(x.amount),0));
   setMsg("invExpenseStatus",`${rows.length} expense line(s) · ${date} · Description Daybook mein bhi visible.`);
  }catch(e){setMsg("invExpenseStatus","Expense load error: "+(e.message||String(e)));}
@@ -2150,7 +2134,7 @@ async function addInventoryExpense(button){
  const btn=button||$("invExpenseSaveBtn");if(btn){btn.disabled=true;btn.textContent="Saving…";}
  try{
   const {error}=await db.from("daily_expenses").insert({
-   user_id:user.id,expense_date:date,expense_name:name,amount,payment_type:mode
+   user_id:user.id,expense_date:date,expense_name:name,amount,payment_type:mode,category:dayCounterCategory()
   });
   if(error)throw error;
   $("invExpenseName").value="";$("invExpenseAmount").value="";
@@ -2165,7 +2149,7 @@ async function deleteInventoryExpense(id){
  if(!confirm("Is expense entry ko delete karna hai?"))return;
  const {error}=await db.from("daily_expenses").delete().eq("id",id).eq("user_id",user.id);
  if(error){setMsg("invExpenseStatus","Delete failed: "+error.message);return;}
- await loadInventoryExpenses();if($("daybookDate")?.value===$("invExpenseDate")?.value)await loadDaybook();
+ await loadInventoryExpenses();const expenseDate=$("inventoryDate")?.value||$("dayCounterDate")?.value;if($("daybookDate")?.value===expenseDate)await loadDaybook();
 }
 let nightCashReceiver="",nightCashReceiverName="";
 function toggleNightReceiverOther(){const other=$("nightReceiverSelect")?.value==="Others";$("nightReceiverOtherWrap").style.display=other?"block":"none";}
@@ -2258,45 +2242,40 @@ async function loadDaybook(){
   const {data:nightRows,error:nightRowsError}=await db.from("night_cash_received").select("category,cash_received,online_received,rokad_received").eq("user_id",user.id).eq("record_date",date);if(nightRowsError)throw nightRowsError;
   const nightByCat={liquor:(nightRows||[]).find(x=>String(x.category).toLowerCase()==="liquor")||{},beer:(nightRows||[]).find(x=>String(x.category).toLowerCase()==="beer")||{}};
   $("daybookNightCashRows").innerHTML=["liquor","beer"].map(cat=>{const r=nightByCat[cat];return `<tr><td><b>${cat==="liquor"?"Liquor":"Beer"}</b></td><td>${money(r.cash_received||0)}</td><td>${money(r.online_received||0)}</td><td>${money(r.rokad_received||0)}</td><td><b>${money(num(r.cash_received)+num(r.online_received))}</b></td><td><b>${money(num(r.cash_received)+num(r.online_received)+num(r.rokad_received))}</b></td></tr>`}).join("");
-  const inventoryTotals=(nightRows||[]).reduce((a,r)=>{a.cash+=num(r.cash_received);a.online+=num(r.online_received);a.rokad+=num(r.rokad_received);return a;},{cash:0,online:0,rokad:0});
-  const counterExpense=rows.reduce((a,r)=>a+num(r.expense_amount),0);
+  const totals=rows.reduce((a,r)=>{a.cash+=num(r.cash_received);a.online+=num(r.online_received);a.counterExpense+=num(r.expense_amount);return a;},{cash:0,online:0,rokad:0,counterExpense:0});
+  $("dbCash").textContent=money(totals.cash);$("dbOnline").textContent=money(totals.online);$("dbRokad").textContent=money(totals.rokad);$("dbGrand").textContent=money(totals.cash+totals.online+totals.rokad+totals.counterExpense);
   const byCat={liquor:"Liquor",beer:"Beer"};
-  $("daybookCounterRows").innerHTML=["liquor","beer"].map(cat=>{const r=rows.find(x=>String(x.category||"").toLowerCase()===cat)||{},n=nightByCat[cat]||{};return `<tr><td><b>${byCat[cat]}</b></td><td>${money(n.cash_received||0)}</td><td>${money(n.online_received||0)}</td><td>${money(n.rokad_received||0)}</td><td>${money(r.expense_amount||0)}${r.expense_note?`<br><small>${safe(r.expense_note)}</small>`:""}</td></tr>`}).join("");
+  $("daybookCounterRows").innerHTML=["liquor","beer"].map(cat=>{const r=rows.find(x=>String(x.category||"").toLowerCase()===cat)||{};return `<tr><td><b>${byCat[cat]}</b></td><td>${money(r.cash_received||0)}</td><td>${money(r.online_received||0)}</td><td>—</td><td>${money(r.expense_amount||0)}${r.expense_note?`<br><small>${safe(r.expense_note)}</small>`:""}</td></tr>`}).join("");
   const {data:cashRow,error:cashErr}=await db.from("daily_cash").select("cash_received,online_received,credit_rokad,other_cash_in,expenses,notes").eq("user_id",user.id).eq("record_date",date).maybeSingle();if(cashErr)throw cashErr;
-  // Daybook register stays independent; only the overview combines both sources.
-  const daybookCash=num(cashRow?.cash_received),daybookOnline=num(cashRow?.online_received),daybookRokad=num(cashRow?.credit_rokad);
-  const totalCash=inventoryTotals.cash+daybookCash,totalOnline=inventoryTotals.online+daybookOnline,totalRokad=inventoryTotals.rokad+daybookRokad;
-  const totals={cash:totalCash,online:totalOnline,rokad:totalRokad,counterExpense};
-  $("dbCash").textContent=money(totalCash);$("dbOnline").textContent=money(totalOnline);$("dbRokad").textContent=money(totalRokad);
-  $("dbGrand").textContent=money(totalCash+totalOnline+totalRokad+counterExpense);
+  totals.rokad=num(cashRow?.credit_rokad);
+  // Rokad is stored once in daily_cash for the whole day, not separately by Liquor/Beer.
+  // Show it as a clearly labelled overall row instead of leaving the department cells blank.
+  const rokadRow=document.createElement("tr");
+  rokadRow.className="daybook-overall-rokad";
+  rokadRow.innerHTML=`<td><b>Overall daily cash register</b><br><small>Rokad is saved for the full day, not split by department</small></td><td>—</td><td>—</td><td><b>${money(totals.rokad)}</b></td><td>—</td>`;
+  $("daybookCounterRows").appendChild(rokadRow);
+  $("dbRokad").textContent=money(totals.rokad);
+  $("dbGrand").textContent=money(totals.cash+totals.online+totals.rokad+totals.counterExpense);
   $("dbOtherIn").textContent=money(cashRow?.other_cash_in||0);$("dbNotes").textContent=cashRow?.notes||"—";
-  $("dbRegisterCash").textContent=money(daybookCash);
-  $("dbRegisterOnline").textContent=money(daybookOnline);
-  $("dbRegisterRokad").textContent=money(daybookRokad);
+  $("dbRegisterCash").textContent=money(cashRow?.cash_received||0);
+  $("dbRegisterOnline").textContent=money(cashRow?.online_received||0);
+  $("dbRegisterRokad").textContent=money(cashRow?.credit_rokad||0);
   $("dbRegisterExpenses").textContent=money(cashRow?.expenses||0);
-  $("dbRegisterTotal").textContent=money(daybookCash+daybookOnline+daybookRokad+num(cashRow?.other_cash_in));
-  const {data:expenses,error:ee}=await db.from("daily_expenses").select("id,expense_name,amount,payment_type").eq("user_id",user.id).eq("expense_date",date).order("created_at");if(ee)throw ee;
-  const exp=expenses||[],expenseTotal=exp.reduce((a,x)=>a+num(x.amount),0);
-  $("daybookExpenseRows").innerHTML=exp.map(x=>`<tr><td>${safe(x.expense_name)}</td><td>${safe(x.payment_type)}</td><td>${money(x.amount)}</td><td><button class="btn danger" type="button" onclick="deleteDaybookExpense('${x.id}')">Delete</button></td></tr>`).join("")||'<tr><td colspan="4" class="empty">No expenses recorded for this date.</td></tr>';
-  $("dbExpenseTotal").textContent=money(expenseTotal);$("dbSummaryExpenses").textContent=money(expenseTotal+totals.counterExpense);$("dbGrand").textContent=money(totalCash+totalOnline+totalRokad+counterExpense+expenseTotal);
-  const [manualSalesForDay,saleHeadersForDay]=await Promise.all([
-   getInventorySaleRows(date,date,"all"),
-   db.from("sales").select("id").eq("user_id",user.id).eq("sale_date",date)
-  ]);
-  if(saleHeadersForDay.error)throw saleHeadersForDay.error;
-  const saleIds=(saleHeadersForDay.data||[]).map(x=>x.id);let billedSaleTotal=0;
-  if(saleIds.length){const {data:billLines,error:billError}=await db.from("sale_items").select("quantity,sale_rate").eq("user_id",user.id).in("sale_id",saleIds);if(billError)throw billError;billedSaleTotal=(billLines||[]).reduce((a,x)=>a+num(x.quantity)*num(x.sale_rate),0);}
-  const daySaleTotal=billedSaleTotal+inventorySalesSum(manualSalesForDay);
-  const dayDifference=totalCash+totalOnline+totalRokad+counterExpense+expenseTotal-daySaleTotal;
-  const diffEl=$("dbDifference");if(diffEl){diffEl.textContent=money(dayDifference);diffEl.style.color=Math.abs(dayDifference)>0.009?"#ff5b67":"#39c98a";diffEl.title=`Combined Inventory + Daybook receipts and expenses minus total sales ${money(daySaleTotal)}`;}
+  $("dbRegisterTotal").textContent=money(num(cashRow?.cash_received)+num(cashRow?.online_received)+num(cashRow?.credit_rokad)+num(cashRow?.other_cash_in));
+  const {data:expenses,error:ee}=await db.from("daily_expenses").select("id,expense_name,amount,payment_type,category").eq("user_id",user.id).eq("expense_date",date).order("created_at");if(ee)throw ee;
+  const exp=expenses||[],expenseTotal=exp.reduce((a,x)=>a+num(x.amount),0),liquorExpense=exp.filter(x=>String(x.category||"").toLowerCase()==="liquor").reduce((a,x)=>a+num(x.amount),0),beerExpense=exp.filter(x=>String(x.category||"").toLowerCase()==="beer").reduce((a,x)=>a+num(x.amount),0);
+  $("daybookExpenseRows").innerHTML=exp.map(x=>`<tr><td><b>${String(x.category||"").toLowerCase()==="beer"?"Beer":String(x.category||"").toLowerCase()==="liquor"?"Liquor":"Unassigned"}</b></td><td>${safe(x.expense_name)}</td><td>${safe(x.payment_type)}</td><td>${money(x.amount)}</td><td><button class="btn danger" type="button" onclick="deleteDaybookExpense('${x.id}')">Delete</button></td></tr>`).join("")||'<tr><td colspan="5" class="empty">No expenses recorded for this date.</td></tr>';
+  const expenseTotalLabel=document.querySelector("#dbExpenseTotal");if(expenseTotalLabel)expenseTotalLabel.textContent=money(expenseTotal);
+  const deptExpenseLabel=document.querySelector("#dbExpenseDepartmentTotals");if(deptExpenseLabel)deptExpenseLabel.innerHTML=`<span>Liquor: <b>${money(liquorExpense)}</b></span><span>Beer: <b>${money(beerExpense)}</b></span>`;
+  $("dbExpenseTotal").textContent=money(expenseTotal);$("dbSummaryExpenses").textContent=money(expenseTotal+totals.counterExpense);
   const {data:movementRows,error:me}=await db.from("inventory_register_entries").select("sale_qty,product_id").eq("user_id",user.id).eq("entry_date",date);if(me)throw me;
   let profit=0;
-  if((movementRows||[]).length){const pids=[...new Set(movementRows.map(x=>x.product_id).filter(Boolean))];const {data:productRows,error:pe}=await db.from("inventory_products").select("id,mrp,wholesale_price").in("id",pids);if(pe)throw pe;const productMap=new Map((productRows||[]).map(x=>[String(x.id),x]));for(const m of movementRows){const product=productMap.get(String(m.product_id));if(product)profit+=productGrossProfit(m.sale_qty,product);}}
+  if((movementRows||[]).length){const pids=[...new Set(movementRows.map(x=>x.product_id).filter(Boolean))];const {data:productRows,error:pe}=await db.from("inventory_products").select("id,mrp,wholesale_price").in("id",pids);if(pe)throw pe;const productMap=new Map((productRows||[]).map(x=>[String(x.id),x]));for(const m of movementRows){const product=productMap.get(String(m.product_id));if(product)profit+=num(m.sale_qty)*(num(product.mrp)-num(product.wholesale_price));}}
   $("dbProfit").textContent=money(profit);$("dbNetProfit").textContent=money(profit-expenseTotal-totals.counterExpense);
-  setMsg("daybookStatus",`Daybook loaded for ${date}. Inventory cash/online/rokad + separate Daybook cash register are combined in overview; Daybook register remains unchanged.`);
+  setMsg("daybookStatus",`Daybook loaded for ${date}. Cash, online, present-day rokad and expenses are combined from the saved Liquor and Beer Daily Counter entries.`);
  }catch(e){setMsg("daybookStatus","Daybook load error: "+(e.message||String(e)));console.error(e);}
 }
-async function addDaybookExpense(){const date=$("daybookDate").value,name=$("daybookExpenseName").value.trim(),amount=num($("daybookExpenseAmount").value),mode=$("daybookExpenseMode").value;if(!date||date<STOCK_START_DATE){setMsg("daybookStatus","Valid date select karein.");return;}if(!name||amount<=0){setMsg("daybookStatus","Expense description aur valid amount enter karein.");return;}const {error}=await db.from("daily_expenses").insert({user_id:user.id,expense_date:date,expense_name:name,amount,payment_type:mode});if(error){setMsg("daybookStatus","Expense save error: "+error.message);return;}$("daybookExpenseName").value="";$("daybookExpenseAmount").value="";await loadDaybook();}
+async function addDaybookExpense(){const date=$("daybookDate").value,name=$("daybookExpenseName").value.trim(),amount=num($("daybookExpenseAmount").value),mode=$("daybookExpenseMode").value;if(!date||date<STOCK_START_DATE){setMsg("daybookStatus","Valid date select karein.");return;}if(!name||amount<=0){setMsg("daybookStatus","Expense description aur valid amount enter karein.");return;}const {error}=await db.from("daily_expenses").insert({user_id:user.id,expense_date:date,expense_name:name,amount,payment_type:mode,category:"unassigned"});if(error){setMsg("daybookStatus","Expense save error: "+error.message);return;}$("daybookExpenseName").value="";$("daybookExpenseAmount").value="";await loadDaybook();}
 async function deleteDaybookExpense(id){if(!confirm("Delete this expense entry?"))return;const {error}=await db.from("daily_expenses").delete().eq("id",id).eq("user_id",user.id);if(error){setMsg("daybookStatus","Delete error: "+error.message);return;}await loadDaybook();}
 function cashPreview(){const expected=num($("closeCashSales")?.dataset.value)-num($("expenseCashTotal")?.value);$("cashCalc").textContent=money(expected);$("cashDiff").textContent=money(num($("cashin").value)-expected)}
 async function loadDailyClosing(){if(!db||!user)return;const date=$("inventoryDate").value||$("cd").value;if(!date||date<STOCK_START_DATE){setMsg("cashMsg","Date 2 November 2026 ya uske baad select karein.");return}try{
@@ -2309,7 +2288,7 @@ async function loadDailyClosing(){if(!db||!user)return;const date=$("inventoryDa
  $("expenseRows").innerHTML=exp.map(x=>`<tr><td>${safe(x.expense_name)}</td><td>${safe(x.payment_type)}</td><td>${money(x.amount)}</td><td><button class="btn danger" onclick="deleteDailyExpense('${x.id}')">Delete</button></td></tr>`).join("")||'<tr><td colspan="4" class="empty">No expenses for this date.</td></tr>';
  cashPreview();setMsg("cashMsg",`Total sale includes inventory entries ₹${money(totals.inventory)} (payment mode not recorded) + bill sales. Inventory sale is included in expected cash provisionally; record actual online/cash received in closing.`);
  }catch(e){setMsg("cashMsg","Closing load error: "+e.message)}}
-async function addDailyExpense(){const date=$("inventoryDate").value||$("cd").value,name=$("expenseName").value.trim(),amount=num($("expenseAmount").value),mode=$("expenseMode").value;if(!date||date<STOCK_START_DATE){setMsg("cashMsg","Date 2 November 2026 ya uske baad honi chahiye.");return}if(!name||amount<=0){setMsg("cashMsg","Expense name aur valid amount enter karein.");return}const {error}=await db.from("daily_expenses").insert({user_id:user.id,expense_date:date,expense_name:name,amount,payment_type:mode});if(error){setMsg("cashMsg","Expense save error: "+error.message);return}$("expenseName").value="";$("expenseAmount").value="";await loadDailyClosing()}
+async function addDailyExpense(){const date=$("inventoryDate").value||$("cd").value,name=$("expenseName").value.trim(),amount=num($("expenseAmount").value),mode=$("expenseMode").value;if(!date||date<STOCK_START_DATE){setMsg("cashMsg","Date 2 November 2026 ya uske baad honi chahiye.");return}if(!name||amount<=0){setMsg("cashMsg","Expense name aur valid amount enter karein.");return}const {error}=await db.from("daily_expenses").insert({user_id:user.id,expense_date:date,expense_name:name,amount,payment_type:mode,category:dayCounterCategory()});if(error){setMsg("cashMsg","Expense save error: "+error.message);return}$("expenseName").value="";$("expenseAmount").value="";await loadDailyClosing()}
 async function deleteDailyExpense(id){if(!confirm("Delete this expense entry?"))return;const {error}=await db.from("daily_expenses").delete().eq("id",id).eq("user_id",user.id);if(error){setMsg("cashMsg","Delete error: "+error.message);return}await loadDailyClosing()}
 async function saveCash(){const date=$("inventoryDate").value||$("cd").value;if(!date||date<STOCK_START_DATE){setMsg("cashMsg","Date 2 November 2026 ya uske baad honi chahiye.");return}const row={user_id:user.id,record_date:date,cash_received:num($("cashin").value),online_received:num($("online").value),credit_rokad:num($("rokad").value),other_cash_in:num($("other").value),expenses:num($("closeExpenses").textContent.replace(/[^0-9.]/g,"")),notes:$("notes").value};const {error}=await db.from("daily_cash").upsert(row,{onConflict:"user_id,record_date"});setMsg("cashMsg",error?"Save error: "+error.message:"Night closing saved successfully.");cashPreview()}
 function dashboardGo(target){if(target==='liquorSales'||target==='beerSales'){const category=target==='beerSales'?'beer':'liquor';showPage('history');$('saleFrom').value=dateBack(1);$('saleTo').value=dateBack(1);$('saleCategory').value=category;refresh();return}if(target==='sales'){showPage('cash');$('daybookDate').value=dateBack(0);loadDaybook();return}if(target==='purchases'){setCategory('liquor');return}if(target==='history'){showPage('history');return}if(target==='beer'||target==='liquor'){setCategory(target);return}if(target==='stock'||target==='low'){setCategory('liquor');return}}
@@ -2358,40 +2337,31 @@ async function loadInventoryDayCounter(){
   $("dcPresentRokad").value=Number(nightRow?.rokad_received||0).toFixed(2);
   $("dcCashReceived").value=Number(nightRow?.cash_received||0).toFixed(2);
   $("dcOnlineReceived").value=Number(nightRow?.online_received||0).toFixed(2);
-  ["dcPresentRokad","dcCashReceived","dcOnlineReceived"].forEach(id=>{if($(id))$(id).readOnly=false;});
+  ["dcPresentRokad","dcCashReceived","dcOnlineReceived"].forEach(id=>{if($(id))$(id).readOnly=true;});
   $("dcExpenseAmount").value=summary?.expense_amount??0;
   $("dcExpenseNote").value=summary?.expense_note??"";
   $("dcExpenseTotal").textContent=money(summary?.expense_amount||0);
   dayCounterDiff();dayCounterCashPreview();
-  setMsg("dcStatus",`Loaded ${category} Inventory cash entry for ${date}. Cash, Online aur Rokad yahin edit karke save karein. Daybook ki entry alag rahegi. Inventory sales ₹${money(manualTotal)} are included.`);
+  setMsg("dcStatus",`Loaded ${category} counter for ${date}. Night Cash Received se Cash, Online aur Rokad automatic fetch hue hain; yahan sirf Sale/Expense reconciliation update karein. Inventory sales ₹${money(manualTotal)} are included.`);
  }catch(e){setMsg("dcStatus","Counter load error: "+(e.message||String(e)))}
 }
 async function saveInventoryDayCounter(){
  if(!db||!user)return;
- const date=$("inventoryDate").value||$("dayCounterDate").value,category=dayCounterCategory(),
+ const date=$("dayCounterDate").value,category=dayCounterCategory(),
  rokad=num($("dcPresentRokad").value),cash=num($("dcCashReceived").value),
  online=num($("dcOnlineReceived").value),expense=num($("dcExpenseAmount").value),
  note=$("dcExpenseNote").value.trim();
- if(!date||date<STOCK_START_DATE){setMsg("dcStatus","Date 2 November 2026 ya uske baad select karein.");return}
- try{
-  // Inventory cash is stored independently from the Daybook's daily_cash register.
-  const {data:existing,error:readError}=await db.from("night_cash_received").select("received_by,received_by_name").eq("user_id",user.id).eq("record_date",date).eq("category",category).maybeSingle();
-  if(readError)throw readError;
-  const inventoryCashRow={user_id:user.id,record_date:date,category,cash_received:cash,online_received:online,rokad_received:rokad};
-  if(existing?.received_by)inventoryCashRow.received_by=existing.received_by;
-  if(existing?.received_by_name)inventoryCashRow.received_by_name=existing.received_by_name;
-  const {error:cashError}=await db.from("night_cash_received").upsert(inventoryCashRow,{onConflict:"user_id,record_date,category"});
-  if(cashError)throw cashError;
-  const {data:oldCounter,error:oldCounterError}=await db.from("inventory_day_summary").select("cash_received,online_received").eq("user_id",user.id).eq("record_date",date).eq("category",category).maybeSingle();
-  if(oldCounterError)throw oldCounterError;
-  const counterRow={user_id:user.id,record_date:date,category,cash_received:num(oldCounter?.cash_received),online_received:num(oldCounter?.online_received),expense_amount:expense,expense_note:note};
-  const {error:counterError}=await db.from("inventory_day_summary").upsert(counterRow,{onConflict:"user_id,record_date,category"});
-  if(counterError)throw counterError;
-  const sale=num(String($("dcTotalSale")?.textContent||"").replace(/[^0-9.]/g,""));
-  $("dcExpenseTotal").textContent=money(expense);dayCounterDiff();dayCounterCashPreview();
-  setMsg("dcStatus",`${category.toUpperCase()} Inventory cash, online, rokad and expense saved for ${date}. Daybook register remains separate. Sale ${money(sale)}.`);
-  if($("daybookDate")?.value===date)await loadDaybook();
- }catch(e){setMsg("dcStatus","Inventory cash save error: "+(e.message||String(e)));}
+ if(!date||date<STOCK_START_DATE){setMsg("dcStatus","Date 2 November 2026 ya uske baad honi chahiye.");return}
+ const accounted=cash+online+expense+rokad;
+ const sale=num(String($("dcTotalSale")?.textContent||"").replace(/[^0-9.]/g,""));
+ const difference=accounted-sale;
+ const row={user_id:user.id,record_date:date,category,
+ cash_received:cash,online_received:online,expense_amount:expense,expense_note:note};
+ const {error}=await db.from("inventory_day_summary").upsert(row,{onConflict:"user_id,record_date,category"});
+ if(error){setMsg("dcStatus","Save error: "+error.message);return}
+ // Department-wise Rokad remains in night_cash_received; do not overwrite the shared daily_cash Rokad.
+ $("dcExpenseTotal").textContent=money(expense);dayCounterDiff();dayCounterCashPreview();
+ setMsg("dcStatus",`${category.toUpperCase()} counter saved for ${date}. Reconciliation ${money(accounted)} · Sale ${money(sale)} · Difference ${money(difference)}.`);
 }
 
 function prMoney(v){return "₹"+num(v).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2})}
@@ -2481,7 +2451,7 @@ async function loadSalesHistoryFast(){
   const items=billItemsResult.data||[],purchaseItems=purchaseItemsResult.data||[],productMap=new Map(products.map(p=>[String(p.id),p]));
   const daily=new Map(),getDay=date=>{if(!daily.has(date))daily.set(date,{date,beerQty:0,liquorQty:0,totalQty:0,saleAmount:0,profit:0,expenses:0,purchaseBeer:0,purchaseLiquor:0,purchaseBeerQty:0,purchaseLiquorQty:0,cashReceived:0,onlineReceived:0,previousRokad:0,closingRokad:0,registerCash:0,registerOnline:0,registerRokad:0,registerOther:0,registerExpenses:0,registerNotes:"",products:new Map(),bills:[],expenseRows:[]});return daily.get(date)};
   const addSale=(date,pid,qty,amount,catHint)=>{
-   const p=productMap.get(String(pid)),cat=String(p?.category||catHint||"").toLowerCase(),d=getDay(date),profit=productGrossProfit(qty,p);
+   const p=productMap.get(String(pid)),cat=String(p?.category||catHint||"").toLowerCase(),d=getDay(date),profit=num(qty)*(num(p?.mrp)-num(p?.wholesale_price));
    d.totalQty+=num(qty);d.saleAmount+=num(amount);d.profit+=profit;
    if(cat==="beer")d.beerQty+=num(qty);else if(cat==="liquor")d.liquorQty+=num(qty);
    const key=String(pid),x=d.products.get(key)||{category:cat,brand:p?.brand_name||"Product",size:p?.size||"",qty:0,amount:0,profit:0};
@@ -2593,7 +2563,7 @@ async function refresh(){
   const productFor=id=>productById.get(String(id));
   const addProductSale=(date,productId,qty,amount,categoryHint)=>{
    const p=productFor(productId),cat=String(p?.category||categoryHint||"").toLowerCase(),day=getDay(date);
-   const profit=productGrossProfit(qty,p);
+   const profit=num(qty)*(num(p?.mrp)-num(p?.wholesale_price));
    day.totalQty+=num(qty);day.saleAmount+=num(amount);day.profit+=profit;
    if(cat==="beer")day.beerQty+=num(qty);else if(cat==="liquor")day.liquorQty+=num(qty);
    const key=String(productId),item=day.products.get(key)||{category:cat,brand:p?.brand_name||"Product",size:p?.size||"",qty:0,amount:0,profit:0};
@@ -2812,7 +2782,8 @@ async function fl2SaveAllRates(button){
  for(const x of updates){
   if(!x.p){notify("Product "+x.id+" inventory list mein nahi mila. Refresh karke retry karein.",false);return;}
  }
- // Save valid changed rows independently. Blank/invalid rows must not block other products.
+ // Important: validate only rows the user actually changed.
+ // An old product with a blank/zero rate must not block saving an unrelated edit.
  const changed=updates.filter(x=>
   x.brand_name!==String(x.p.brand_name||"").trim()||
   x.size!==String(x.p.size||"").trim()||
@@ -2820,26 +2791,22 @@ async function fl2SaveAllRates(button){
   x.mrp!==Number(x.p.mrp||0)
  );
  if(!changed.length){notify("No changes detected. Values already saved in Supabase.",true);return;}
- const ready=[],skipped=[];
  for(const x of changed){
-  // Brand and size are required; MRP and wholesale can be entered independently.
-  // A missing wholesale rate is allowed and its profit will remain excluded.
-  if(!x.brand_name||!x.size||!Number.isFinite(x.wholesale_price)||!Number.isFinite(x.mrp)||x.wholesale_price<0||x.mrp<0){
-   skipped.push((x.p.brand_name||"Product")+" · incomplete/invalid information");continue;
+  if(!x.brand_name||!x.size||!Number.isFinite(x.wholesale_price)||!Number.isFinite(x.mrp)||x.wholesale_price<=0||x.mrp<=0){
+   notify(`${x.p.brand_name||"Selected product"}: edited row mein Brand, Size, Wholesale aur MRP valid aur zero se zyada hone chahiye.`,false);return;
   }
-  const duplicate=products.some(p=>String(p.id)!==String(x.id)&&
+  if(products.some(p=>String(p.id)!==String(x.id)&&
    String(p.category||"").toLowerCase()===String(x.p.category||"").toLowerCase()&&
    String(p.brand_name||"").trim().toLowerCase()===x.brand_name.toLowerCase()&&
-   String(p.size||"").trim().toLowerCase()===x.size.toLowerCase());
-  if(duplicate){skipped.push(x.brand_name+" · "+x.size+" duplicate");continue;}
-  ready.push(x);
+   String(p.size||"").trim().toLowerCase()===x.size.toLowerCase())){
+   notify(`Duplicate product: ${x.brand_name} · ${x.size}. Same category + brand + size already exists.`,false);return;
+  }
  }
- if(!ready.length){notify("Koi valid changed row nahi mili. Brand aur Size bhar kar retry karein. "+skipped.length+" row(s) skip hui.",false);return;}
  if(btn){btn.disabled=true;btn.setAttribute("aria-disabled","true");btn.textContent="Saving to Supabase…";btn.classList.add("saving");}
- notify(`Saving ${ready.length} valid product(s) to Supabase…`,true);
+ notify(`Saving ${changed.length} changed product(s) to Supabase…`,true);
  let saved=0;const failures=[];
  try{
-  for(const x of ready){
+  for(const x of changed){
    const {data,error}=await db.from("inventory_products")
     .update({brand_name:x.brand_name,size:x.size,wholesale_price:x.wholesale_price,mrp:x.mrp})
     .eq("id",x.id).eq("user_id",user.id)
@@ -2852,8 +2819,8 @@ async function fl2SaveAllRates(button){
    inventoryRateByProduct[String(x.id)]={mrp:Number(data.mrp),wholesale_price:Number(data.wholesale_price)};
    saved++;
   }
-  if(failures.length||skipped.length){
-   notify(`${saved} saved; ${failures.length} failed; ${skipped.length} skipped. ${[...failures,...skipped].join(" | ")}`,false);
+  if(failures.length){
+   notify(`${saved} saved; ${failures.length} failed. ${failures.join(" | ")}`,false);
   }else{
    notify(`✓ SAVE TO SUPABASE CONFIRMED — ${saved} product(s) updated successfully.`,true);
    drawProducts();fillBrandFilters();fl2DrawWholesale();
@@ -2918,7 +2885,7 @@ async function loadFl2Reconciliation(){
    const product=productMap.get(String(row.product_id));if(!product)continue;
    const cat=String(product.category||"").toLowerCase();if(!["liquor","beer"].includes(cat)||(category!=="all"&&category!==cat))continue;
    const purchase=num(row.purchase_qty),sale=num(row.sale_qty),wh=num(product.wholesale_price),mrp=num(product.mrp);
-   const values={purchaseQty:purchase,wholesaleCost:purchase*wh,incomingMrp:purchase*mrp,saleQty:sale,actualSales:sale*mrp,grossProfit:wh>0?sale*(mrp-wh):0};
+   const values={purchaseQty:purchase,wholesaleCost:purchase*wh,incomingMrp:purchase*mrp,saleQty:sale,actualSales:sale*mrp,grossProfit:sale*(mrp-wh)};
    const addTo=(target)=>{Object.keys(values).forEach(k=>target[k]+=values[k]);if(cat==="liquor")target.liquorPurchaseQty+=purchase;else target.beerPurchaseQty+=purchase};
    addTo(get(daily,row.entry_date));addTo(get(monthly,fl2MonthKey(row.entry_date)));
   }
@@ -2976,7 +2943,7 @@ async function loadDashboardAutoReport(date){
   const report={date,qty:0,sale:0,profit:0,expenses:0,cash:0,online:0,rokad:0,brands:new Map(),expenseRows:[],billRows:[]};
   const addSale=(productId,qty,amount,categoryHint)=>{
    const p=productMap.get(String(productId)),category=String(p?.category||categoryHint||"").toLowerCase();
-   const profit=productGrossProfit(qty,p);
+   const profit=num(qty)*(num(p?.mrp)-num(p?.wholesale_price));
    report.qty+=num(qty);report.sale+=num(amount);report.profit+=profit;
    const key=String(productId),x=report.brands.get(key)||{category,brand:p?.brand_name||"Product",size:p?.size||"",qty:0,amount:0,profit:0};
    x.qty+=num(qty);x.amount+=num(amount);x.profit+=profit;report.brands.set(key,x);
@@ -3432,5 +3399,6 @@ async function stockInStopCamera(){
 }
 
 </script>
+<script src="./madhushala-tools.js?v=2"></script>
 </body>
 </html>
