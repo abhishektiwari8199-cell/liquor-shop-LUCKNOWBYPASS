@@ -929,6 +929,8 @@ let inventoryManualCurrent={},inventoryManualTotals={},inventoryOpeningForDate={
 let inventoryDateHasBeenSaved=false;
 const $=id=>document.getElementById(id),num=v=>Number(v)||0;
 const money=v=>"₹"+num(v).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
+// Profit is counted only when a positive wholesale cost is recorded.
+function productGrossProfit(qty,product){const wholesale=num(product?.wholesale_price);if(!(wholesale>0))return 0;return num(qty)*(num(product?.mrp)-wholesale);}
 const today=()=>{const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)};
 const STOCK_START_DATE="2026-11-02";
 // Authoritative beer rate card supplied by the shop owner (07 Nov 2026).
@@ -1334,7 +1336,7 @@ function drawProducts(){
   const B=[];let bt={o:0,ov:0,p:0,s:0,sv:0,c:0,cv:0,profit:0};
   beer.forEach((x,idx)=>{
     const opening=num(inventoryOpeningForDate[String(x.id)]??x.opening_stock),purchase=num(inventoryPurchased[String(x.id)]),sale=num(inventorySold[String(x.id)]);
-    const openingValue=opening*inventoryRate(x).mrp,available=opening+purchase,saleValue=sale*inventoryRate(x).mrp,closing=available-sale,stockValue=closing*inventoryRate(x).wholesale_price,profit=sale*(inventoryRate(x).mrp-inventoryRate(x).wholesale_price);
+    const openingValue=opening*inventoryRate(x).mrp,available=opening+purchase,saleValue=sale*inventoryRate(x).mrp,closing=available-sale,stockValue=closing*inventoryRate(x).wholesale_price,profit=productGrossProfit(sale,inventoryRate(x));
     bt.o+=opening;bt.ov+=openingValue;bt.p+=purchase;bt.s+=sale;bt.sv+=saleValue;bt.c+=closing;bt.cv+=stockValue;bt.profit+=profit;
     for(const [k,n] of Object.entries({opening,purchase,sale,available,closing,openingValue,saleValue,stockValue,profit}))grand[k]=(grand[k]||0)+n;
     const entry=inventoryManualCurrent[String(x.id)]||{};
@@ -1432,7 +1434,7 @@ function recalculateInventoryLive(){
     const purchase=Math.max(0,(inventoryPurchased[id]||0)-num(manual.purchase))+currentPurchase;
     const sale=Math.max(0,(inventorySold[id]||0)-num(manual.sale))+currentSale;
     const total=opening+purchase,balance=total-sale;
-    current[id]={opening,purchase,sale,total,balance,openingValue:opening*inventoryRate(p).mrp,saleValue:sale*inventoryRate(p).mrp,stockValue:balance*inventoryRate(p).wholesale_price,profit:sale*(inventoryRate(p).mrp-inventoryRate(p).wholesale_price)};
+    current[id]={opening,purchase,sale,total,balance,openingValue:opening*inventoryRate(p).mrp,saleValue:sale*inventoryRate(p).mrp,stockValue:balance*inventoryRate(p).wholesale_price,profit:productGrossProfit(sale,inventoryRate(p))};
   }
   const allGroups=orderedBrandGroups(products.filter(x=>String(x.category).toLowerCase()==="liquor"));
   const totals={o:[0,0,0,0],p:[0,0,0,0],t:[0,0,0,0],s:[0,0,0,0],sv:[0,0,0,0],b:[0,0,0,0],v:[0,0,0,0]};
@@ -2090,18 +2092,18 @@ async function loadProfitReport(){
   const byProduct={},byDay={};let revenue=0,cost=0,liquorProfit=0,beerProfit=0,liquorQty=0,beerQty=0;
   for(const item of items){
    const p=products.find(x=>String(x.id)===String(item.product_id));if(!p)continue;
-   const qty=num(item.quantity),saleRate=num(item.sale_rate),costRate=num(p.wholesale_price),sales=qty*saleRate,costAmount=qty*costRate,profit=sales-costAmount,category=String(p.category||"").toLowerCase();
+   const qty=num(item.quantity),saleRate=num(item.sale_rate),costRate=num(p.wholesale_price),sales=qty*saleRate,costAmount=qty*costRate,profit=costRate>0?sales-costAmount:0,category=String(p.category||"").toLowerCase();
    revenue+=sales;cost+=costAmount;
    if(category==="beer"){beerProfit+=profit;beerQty+=qty}else{liquorProfit+=profit;liquorQty+=qty}
    const key=String(p.id);if(!byProduct[key])byProduct[key]={p,qty:0,sales:0,cost:0,profit:0,rateSum:0,costRate};
    const b=byProduct[key];b.qty+=qty;b.sales+=sales;b.cost+=costAmount;b.profit+=profit;b.rateSum+=sales;
    const day=headers.find(h=>h.id===item.sale_id)?.sale_date||"Unknown";if(!byDay[day])byDay[day]={sales:0,cost:0,profit:0};byDay[day].sales+=sales;byDay[day].cost+=costAmount;byDay[day].profit+=profit;
   }
-  const gross=revenue-cost;
+  const gross=Object.values(byProduct).reduce((sum,b)=>sum+b.profit,0);
   $("profitRevenue").textContent=money(revenue);$("profitCost").textContent=money(cost);$("profitGross").textContent=money(gross);$("profitMargin").textContent=(revenue?gross/revenue*100:0).toFixed(1)+"%";
   $("profitLiquor").textContent=money(liquorProfit);$("profitBeer").textContent=money(beerProfit);$("profitLiquorQty").textContent=liquorQty+" bottles sold";$("profitBeerQty").textContent=beerQty+" units sold";
   $("dailyProfitRows").innerHTML=Object.keys(byDay).sort().reverse().map(day=>`<tr><td>${day}</td><td>${money(byDay[day].sales)}</td><td>${money(byDay[day].cost)}</td><td><b>${money(byDay[day].profit)}</b></td></tr>`).join("")||'<tr><td colspan="4" class="empty">No sales in this period.</td></tr>';
-  $("brandProfitRows").innerHTML=Object.values(byProduct).sort((a,b)=>b.profit-a.profit).map(b=>`<tr><td>${safe(b.p.category)}</td><td><b>${safe(b.p.brand_name)}</b></td><td>${safe(b.p.size)}</td><td>${b.qty}</td><td>${money(b.sales/b.qty)}</td><td>${money(b.costRate)}</td><td>${money(b.sales/b.qty-b.costRate)}</td><td><b>${money(b.profit)}</b></td></tr>`).join("")||'<tr><td colspan="8" class="empty">No product sales found.</td></tr>';
+  $("brandProfitRows").innerHTML=Object.values(byProduct).sort((a,b)=>b.profit-a.profit).map(b=>`<tr><td>${safe(b.p.category)}</td><td><b>${safe(b.p.brand_name)}</b></td><td>${safe(b.p.size)}</td><td>${b.qty}</td><td>${money(b.sales/b.qty)}</td><td>${money(b.costRate)}</td><td>${money(b.costRate>0?b.sales/b.qty-b.costRate:0)}</td><td><b>${money(b.profit)}</b></td></tr>`).join("")||'<tr><td colspan="8" class="empty">No product sales found.</td></tr>';
   setMsg("profitMsg","Estimated gross profit calculated for "+from+" to "+to+". Current saved wholesale rates are used as product cost; operating expenses, rent, salary and taxes are not deducted.");
  }catch(e){setMsg("profitMsg","Profit report error: "+e.message)}
 }
@@ -2263,7 +2265,7 @@ async function loadDaybook(){
   $("dbExpenseTotal").textContent=money(expenseTotal);$("dbSummaryExpenses").textContent=money(expenseTotal+totals.counterExpense);
   const {data:movementRows,error:me}=await db.from("inventory_register_entries").select("sale_qty,product_id").eq("user_id",user.id).eq("entry_date",date);if(me)throw me;
   let profit=0;
-  if((movementRows||[]).length){const pids=[...new Set(movementRows.map(x=>x.product_id).filter(Boolean))];const {data:productRows,error:pe}=await db.from("inventory_products").select("id,mrp,wholesale_price").in("id",pids);if(pe)throw pe;const productMap=new Map((productRows||[]).map(x=>[String(x.id),x]));for(const m of movementRows){const product=productMap.get(String(m.product_id));if(product)profit+=num(m.sale_qty)*(num(product.mrp)-num(product.wholesale_price));}}
+  if((movementRows||[]).length){const pids=[...new Set(movementRows.map(x=>x.product_id).filter(Boolean))];const {data:productRows,error:pe}=await db.from("inventory_products").select("id,mrp,wholesale_price").in("id",pids);if(pe)throw pe;const productMap=new Map((productRows||[]).map(x=>[String(x.id),x]));for(const m of movementRows){const product=productMap.get(String(m.product_id));if(product)profit+=productGrossProfit(m.sale_qty,product);}}
   $("dbProfit").textContent=money(profit);$("dbNetProfit").textContent=money(profit-expenseTotal-totals.counterExpense);
   setMsg("daybookStatus",`Daybook loaded for ${date}. Cash, online, present-day rokad and expenses are combined from the saved Liquor and Beer Daily Counter entries.`);
  }catch(e){setMsg("daybookStatus","Daybook load error: "+(e.message||String(e)));console.error(e);}
@@ -2444,7 +2446,7 @@ async function loadSalesHistoryFast(){
   const items=billItemsResult.data||[],purchaseItems=purchaseItemsResult.data||[],productMap=new Map(products.map(p=>[String(p.id),p]));
   const daily=new Map(),getDay=date=>{if(!daily.has(date))daily.set(date,{date,beerQty:0,liquorQty:0,totalQty:0,saleAmount:0,profit:0,expenses:0,purchaseBeer:0,purchaseLiquor:0,purchaseBeerQty:0,purchaseLiquorQty:0,cashReceived:0,onlineReceived:0,previousRokad:0,closingRokad:0,registerCash:0,registerOnline:0,registerRokad:0,registerOther:0,registerExpenses:0,registerNotes:"",products:new Map(),bills:[],expenseRows:[]});return daily.get(date)};
   const addSale=(date,pid,qty,amount,catHint)=>{
-   const p=productMap.get(String(pid)),cat=String(p?.category||catHint||"").toLowerCase(),d=getDay(date),profit=num(qty)*(num(p?.mrp)-num(p?.wholesale_price));
+   const p=productMap.get(String(pid)),cat=String(p?.category||catHint||"").toLowerCase(),d=getDay(date),profit=productGrossProfit(qty,p);
    d.totalQty+=num(qty);d.saleAmount+=num(amount);d.profit+=profit;
    if(cat==="beer")d.beerQty+=num(qty);else if(cat==="liquor")d.liquorQty+=num(qty);
    const key=String(pid),x=d.products.get(key)||{category:cat,brand:p?.brand_name||"Product",size:p?.size||"",qty:0,amount:0,profit:0};
@@ -2556,7 +2558,7 @@ async function refresh(){
   const productFor=id=>productById.get(String(id));
   const addProductSale=(date,productId,qty,amount,categoryHint)=>{
    const p=productFor(productId),cat=String(p?.category||categoryHint||"").toLowerCase(),day=getDay(date);
-   const profit=num(qty)*(num(p?.mrp)-num(p?.wholesale_price));
+   const profit=productGrossProfit(qty,p);
    day.totalQty+=num(qty);day.saleAmount+=num(amount);day.profit+=profit;
    if(cat==="beer")day.beerQty+=num(qty);else if(cat==="liquor")day.liquorQty+=num(qty);
    const key=String(productId),item=day.products.get(key)||{category:cat,brand:p?.brand_name||"Product",size:p?.size||"",qty:0,amount:0,profit:0};
@@ -2775,8 +2777,7 @@ async function fl2SaveAllRates(button){
  for(const x of updates){
   if(!x.p){notify("Product "+x.id+" inventory list mein nahi mila. Refresh karke retry karein.",false);return;}
  }
- // Important: validate only rows the user actually changed.
- // An old product with a blank/zero rate must not block saving an unrelated edit.
+ // Save valid changed rows independently. Blank/invalid rows must not block other products.
  const changed=updates.filter(x=>
   x.brand_name!==String(x.p.brand_name||"").trim()||
   x.size!==String(x.p.size||"").trim()||
@@ -2784,22 +2785,26 @@ async function fl2SaveAllRates(button){
   x.mrp!==Number(x.p.mrp||0)
  );
  if(!changed.length){notify("No changes detected. Values already saved in Supabase.",true);return;}
+ const ready=[],skipped=[];
  for(const x of changed){
-  if(!x.brand_name||!x.size||!Number.isFinite(x.wholesale_price)||!Number.isFinite(x.mrp)||x.wholesale_price<=0||x.mrp<=0){
-   notify(`${x.p.brand_name||"Selected product"}: edited row mein Brand, Size, Wholesale aur MRP valid aur zero se zyada hone chahiye.`,false);return;
+  // Brand and size are required; MRP and wholesale can be entered independently.
+  // A missing wholesale rate is allowed and its profit will remain excluded.
+  if(!x.brand_name||!x.size||!Number.isFinite(x.wholesale_price)||!Number.isFinite(x.mrp)||x.wholesale_price<0||x.mrp<0){
+   skipped.push((x.p.brand_name||"Product")+" · incomplete/invalid information");continue;
   }
-  if(products.some(p=>String(p.id)!==String(x.id)&&
+  const duplicate=products.some(p=>String(p.id)!==String(x.id)&&
    String(p.category||"").toLowerCase()===String(x.p.category||"").toLowerCase()&&
    String(p.brand_name||"").trim().toLowerCase()===x.brand_name.toLowerCase()&&
-   String(p.size||"").trim().toLowerCase()===x.size.toLowerCase())){
-   notify(`Duplicate product: ${x.brand_name} · ${x.size}. Same category + brand + size already exists.`,false);return;
-  }
+   String(p.size||"").trim().toLowerCase()===x.size.toLowerCase());
+  if(duplicate){skipped.push(x.brand_name+" · "+x.size+" duplicate");continue;}
+  ready.push(x);
  }
+ if(!ready.length){notify("Koi valid changed row nahi mili. Brand aur Size bhar kar retry karein. "+skipped.length+" row(s) skip hui.",false);return;}
  if(btn){btn.disabled=true;btn.setAttribute("aria-disabled","true");btn.textContent="Saving to Supabase…";btn.classList.add("saving");}
- notify(`Saving ${changed.length} changed product(s) to Supabase…`,true);
+ notify(`Saving ${ready.length} valid product(s) to Supabase…`,true);
  let saved=0;const failures=[];
  try{
-  for(const x of changed){
+  for(const x of ready){
    const {data,error}=await db.from("inventory_products")
     .update({brand_name:x.brand_name,size:x.size,wholesale_price:x.wholesale_price,mrp:x.mrp})
     .eq("id",x.id).eq("user_id",user.id)
@@ -2812,8 +2817,8 @@ async function fl2SaveAllRates(button){
    inventoryRateByProduct[String(x.id)]={mrp:Number(data.mrp),wholesale_price:Number(data.wholesale_price)};
    saved++;
   }
-  if(failures.length){
-   notify(`${saved} saved; ${failures.length} failed. ${failures.join(" | ")}`,false);
+  if(failures.length||skipped.length){
+   notify(`${saved} saved; ${failures.length} failed; ${skipped.length} skipped. ${[...failures,...skipped].join(" | ")}`,false);
   }else{
    notify(`✓ SAVE TO SUPABASE CONFIRMED — ${saved} product(s) updated successfully.`,true);
    drawProducts();fillBrandFilters();fl2DrawWholesale();
@@ -2878,7 +2883,7 @@ async function loadFl2Reconciliation(){
    const product=productMap.get(String(row.product_id));if(!product)continue;
    const cat=String(product.category||"").toLowerCase();if(!["liquor","beer"].includes(cat)||(category!=="all"&&category!==cat))continue;
    const purchase=num(row.purchase_qty),sale=num(row.sale_qty),wh=num(product.wholesale_price),mrp=num(product.mrp);
-   const values={purchaseQty:purchase,wholesaleCost:purchase*wh,incomingMrp:purchase*mrp,saleQty:sale,actualSales:sale*mrp,grossProfit:sale*(mrp-wh)};
+   const values={purchaseQty:purchase,wholesaleCost:purchase*wh,incomingMrp:purchase*mrp,saleQty:sale,actualSales:sale*mrp,grossProfit:wh>0?sale*(mrp-wh):0};
    const addTo=(target)=>{Object.keys(values).forEach(k=>target[k]+=values[k]);if(cat==="liquor")target.liquorPurchaseQty+=purchase;else target.beerPurchaseQty+=purchase};
    addTo(get(daily,row.entry_date));addTo(get(monthly,fl2MonthKey(row.entry_date)));
   }
@@ -2936,7 +2941,7 @@ async function loadDashboardAutoReport(date){
   const report={date,qty:0,sale:0,profit:0,expenses:0,cash:0,online:0,rokad:0,brands:new Map(),expenseRows:[],billRows:[]};
   const addSale=(productId,qty,amount,categoryHint)=>{
    const p=productMap.get(String(productId)),category=String(p?.category||categoryHint||"").toLowerCase();
-   const profit=num(qty)*(num(p?.mrp)-num(p?.wholesale_price));
+   const profit=productGrossProfit(qty,p);
    report.qty+=num(qty);report.sale+=num(amount);report.profit+=profit;
    const key=String(productId),x=report.brands.get(key)||{category,brand:p?.brand_name||"Product",size:p?.size||"",qty:0,amount:0,profit:0};
    x.qty+=num(qty);x.amount+=num(amount);x.profit+=profit;report.brands.set(key,x);
