@@ -1444,9 +1444,22 @@ function recalculateInventoryLive(){
     map.forEach((x,k)=>{const z=x?current[String(x.id)]:null;vals.o[k]=z?.opening||0;vals.p[k]=z?.purchase||0;vals.t[k]=z?.total||0;vals.s[k]=z?.sale||0;vals.sv[k]=z?.saleValue||0;vals.b[k]=z?.balance||0;vals.v[k]=z?.stockValue||0;});
     ["o","p","t","s","sv","b","v"].forEach(key=>vals[key].forEach((n,k)=>totals[key][k]+=n));
   });
-  const visibleGroups=orderedBrandGroups(products.filter(x=>String(x.category).toLowerCase()==="liquor"&&(`${x.brand_name||""} ${x.size||""}`).toLowerCase().includes(($("search")?.value||"").toLowerCase())));
-  visibleGroups.forEach((g,idx)=>{
-    const tr=$("liquorInventoryRows")?.rows[idx];if(!tr)return;const cells=tr.cells;
+  // Match the exact same filtered/visible brand groups rendered by drawProducts().
+  // The previous code indexed every brand against the shorter Active-only DOM list,
+  // which shifted live totals onto the wrong brands when zero-activity brands were hidden.
+  const visibility=$("inventoryVisibilityMode")?.value||(inventoryDateHasBeenSaved?"active":"full");
+  const category=$("cat")?.value||"all";
+  const searchText=($("search")?.value||"").toLowerCase();
+  const hiddenIds=getHiddenInventoryIds();
+  const visibleGroups=orderedBrandGroups(products.filter(x=>
+    String(x.category).toLowerCase()==="liquor"&&
+    !hiddenIds.has(String(x.id))&&
+    (category==="all"||category==="liquor")&&
+    (`${x.brand_name||""} ${x.size||""}`).toLowerCase().includes(searchText)
+  ));
+  const renderedGroups=visibility==="active"?visibleGroups.filter(inventoryLiquorGroupHasActivity):visibleGroups;
+  renderedGroups.forEach((g,idx)=>{
+    const tr=$("liquorInventoryRows")?.rows[idx];if(!tr||tr.classList.contains("liquor-total-row"))return;const cells=tr.cells;
     const map=[null,null,null,null];g.products.forEach(x=>{const k=sizeIndex(x.size);if(k>=0)map[k]=x;});
     const vals={t:[],sv:[],b:[],v:[]};
     map.forEach((x,k)=>{const z=x?current[String(x.id)]:null;vals.t[k]=z?.total||0;vals.sv[k]=z?.saleValue||0;vals.b[k]=z?.balance||0;vals.v[k]=z?.stockValue||0;});
@@ -1456,9 +1469,15 @@ function recalculateInventoryLive(){
   const subtotal=$("liquorInventoryRows")?.querySelector(".liquor-total-row");
   if(subtotal){let c=1;["o","p","t","s"].forEach(key=>totals[key].forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=fmtQty(n);}));totals.sv.forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=money(n);});totals.b.forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=fmtQty(n);});totals.v.forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=money(n);});}
   let beerTotals={o:0,ov:0,p:0,s:0,sv:0,c:0,cv:0,profit:0};
-  const visibleBeer=orderedBeerProducts(products.filter(x=>String(x.category).toLowerCase()==="beer"&&(($("cat")?.value||"all")==="all"||$("cat").value==="beer")&&(`${x.brand_name||""} ${x.size||""}`).toLowerCase().includes(($("search")?.value||"").toLowerCase())));
+  const visibleBeerAll=orderedBeerProducts(products.filter(x=>
+    String(x.category).toLowerCase()==="beer"&&
+    !hiddenIds.has(String(x.id))&&
+    (category==="all"||category==="beer")&&
+    (`${x.brand_name||""} ${x.size||""}`).toLowerCase().includes(searchText)
+  ));
+  const visibleBeer=visibility==="active"?visibleBeerAll.filter(inventoryProductHasActivity):visibleBeerAll;
   visibleBeer.forEach((x,idx)=>{
-    const z=current[String(x.id)];if(!z)return;const tr=$("beerInventoryRows")?.rows[idx];
+    const z=current[String(x.id)];if(!z)return;const tr=$("beerInventoryRows")?.rows[idx];if(!tr||tr.classList.contains("inventory-subtotal-row"))return;
     if(tr){if(tr.cells[3])tr.cells[3].textContent=money(z.openingValue);if(tr.cells[6])tr.cells[6].textContent=money(z.saleValue);if(tr.cells[7])tr.cells[7].textContent=fmtQty(z.balance);if(tr.cells[8])tr.cells[8].textContent=money(z.stockValue);if(tr.cells[9])tr.cells[9].textContent=money(z.profit);}
     beerTotals.o+=z.opening;beerTotals.ov+=z.openingValue;beerTotals.p+=z.purchase;beerTotals.s+=z.sale;beerTotals.sv+=z.saleValue;beerTotals.c+=z.balance;beerTotals.cv+=z.stockValue;beerTotals.profit+=z.profit;
   });
