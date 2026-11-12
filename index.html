@@ -695,7 +695,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
    <div class="kpi glass"><small>Total Cash</small><strong id="dbCash">₹0.00</strong></div>
    <div class="kpi glass"><small>Total Online</small><strong id="dbOnline">₹0.00</strong></div>
    <div class="kpi glass"><small>Present Day Rokad</small><strong id="dbRokad">₹0.00</strong></div>
-   <div class="kpi glass"><small>Reconciliation Total (Cash + Online + Rokad + Expenses)</small><strong id="dbGrand">₹0.00</strong></div>
+   <div class="kpi glass"><small>Reconciliation Total (Cash + Online + Rokad + Expenses)</small><strong id="dbGrand">₹0.00</strong></div><div class="kpi glass"><small>Cash / Sale Difference</small><strong id="dbDifference" style="color:#ff6b75">₹0.00</strong></div>
   </div>
   <div class="panel glass"><div class="section-head" style="margin-top:0"><div><h3>Department-wise counter summary</h3><p>Liquor and Beer counter entries for the selected date</p></div></div><div class="table-wrap"><table style="min-width:600px"><thead><tr><th>Department</th><th>Cash</th><th>Online</th><th>Present Day Rokad</th><th>Counter Expenses</th></tr></thead><tbody id="daybookCounterRows"><tr><td colspan="5" class="empty">Select a date.</td></tr></tbody></table></div></div>
   <div class="section-head"><div><h3>Money received</h3><p>Other incoming amount and notes recorded for this date</p></div></div>
@@ -2258,35 +2258,42 @@ async function loadDaybook(){
   const {data:nightRows,error:nightRowsError}=await db.from("night_cash_received").select("category,cash_received,online_received,rokad_received").eq("user_id",user.id).eq("record_date",date);if(nightRowsError)throw nightRowsError;
   const nightByCat={liquor:(nightRows||[]).find(x=>String(x.category).toLowerCase()==="liquor")||{},beer:(nightRows||[]).find(x=>String(x.category).toLowerCase()==="beer")||{}};
   $("daybookNightCashRows").innerHTML=["liquor","beer"].map(cat=>{const r=nightByCat[cat];return `<tr><td><b>${cat==="liquor"?"Liquor":"Beer"}</b></td><td>${money(r.cash_received||0)}</td><td>${money(r.online_received||0)}</td><td>${money(r.rokad_received||0)}</td><td><b>${money(num(r.cash_received)+num(r.online_received))}</b></td><td><b>${money(num(r.cash_received)+num(r.online_received)+num(r.rokad_received))}</b></td></tr>`}).join("");
-  const totals=rows.reduce((a,r)=>{a.cash+=num(r.cash_received);a.online+=num(r.online_received);a.counterExpense+=num(r.expense_amount);return a;},{cash:0,online:0,rokad:0,counterExpense:0});
-  $("dbCash").textContent=money(totals.cash);$("dbOnline").textContent=money(totals.online);$("dbRokad").textContent=money(totals.rokad);$("dbGrand").textContent=money(totals.cash+totals.online+totals.rokad+totals.counterExpense);
+  const inventoryTotals=(nightRows||[]).reduce((a,r)=>{a.cash+=num(r.cash_received);a.online+=num(r.online_received);a.rokad+=num(r.rokad_received);return a;},{cash:0,online:0,rokad:0});
+  const counterExpense=rows.reduce((a,r)=>a+num(r.expense_amount),0);
   const byCat={liquor:"Liquor",beer:"Beer"};
-  $("daybookCounterRows").innerHTML=["liquor","beer"].map(cat=>{const r=rows.find(x=>String(x.category||"").toLowerCase()===cat)||{};return `<tr><td><b>${byCat[cat]}</b></td><td>${money(r.cash_received||0)}</td><td>${money(r.online_received||0)}</td><td>—</td><td>${money(r.expense_amount||0)}${r.expense_note?`<br><small>${safe(r.expense_note)}</small>`:""}</td></tr>`}).join("");
+  $("daybookCounterRows").innerHTML=["liquor","beer"].map(cat=>{const r=rows.find(x=>String(x.category||"").toLowerCase()===cat)||{},n=nightByCat[cat]||{};return `<tr><td><b>${byCat[cat]}</b></td><td>${money(n.cash_received||0)}</td><td>${money(n.online_received||0)}</td><td>${money(n.rokad_received||0)}</td><td>${money(r.expense_amount||0)}${r.expense_note?`<br><small>${safe(r.expense_note)}</small>`:""}</td></tr>`}).join("");
   const {data:cashRow,error:cashErr}=await db.from("daily_cash").select("cash_received,online_received,credit_rokad,other_cash_in,expenses,notes").eq("user_id",user.id).eq("record_date",date).maybeSingle();if(cashErr)throw cashErr;
-  totals.rokad=num(cashRow?.credit_rokad);
-  // Rokad is stored once in daily_cash for the whole day, not separately by Liquor/Beer.
-  // Show it as a clearly labelled overall row instead of leaving the department cells blank.
-  const rokadRow=document.createElement("tr");
-  rokadRow.className="daybook-overall-rokad";
-  rokadRow.innerHTML=`<td><b>Overall daily cash register</b><br><small>Rokad is saved for the full day, not split by department</small></td><td>—</td><td>—</td><td><b>${money(totals.rokad)}</b></td><td>—</td>`;
-  $("daybookCounterRows").appendChild(rokadRow);
-  $("dbRokad").textContent=money(totals.rokad);
-  $("dbGrand").textContent=money(totals.cash+totals.online+totals.rokad+totals.counterExpense);
+  // Daybook register stays independent; only the overview combines both sources.
+  const daybookCash=num(cashRow?.cash_received),daybookOnline=num(cashRow?.online_received),daybookRokad=num(cashRow?.credit_rokad);
+  const totalCash=inventoryTotals.cash+daybookCash,totalOnline=inventoryTotals.online+daybookOnline,totalRokad=inventoryTotals.rokad+daybookRokad;
+  const totals={cash:totalCash,online:totalOnline,rokad:totalRokad,counterExpense};
+  $("dbCash").textContent=money(totalCash);$("dbOnline").textContent=money(totalOnline);$("dbRokad").textContent=money(totalRokad);
+  $("dbGrand").textContent=money(totalCash+totalOnline+totalRokad+counterExpense);
   $("dbOtherIn").textContent=money(cashRow?.other_cash_in||0);$("dbNotes").textContent=cashRow?.notes||"—";
-  $("dbRegisterCash").textContent=money(cashRow?.cash_received||0);
-  $("dbRegisterOnline").textContent=money(cashRow?.online_received||0);
-  $("dbRegisterRokad").textContent=money(cashRow?.credit_rokad||0);
+  $("dbRegisterCash").textContent=money(daybookCash);
+  $("dbRegisterOnline").textContent=money(daybookOnline);
+  $("dbRegisterRokad").textContent=money(daybookRokad);
   $("dbRegisterExpenses").textContent=money(cashRow?.expenses||0);
-  $("dbRegisterTotal").textContent=money(num(cashRow?.cash_received)+num(cashRow?.online_received)+num(cashRow?.credit_rokad)+num(cashRow?.other_cash_in));
+  $("dbRegisterTotal").textContent=money(daybookCash+daybookOnline+daybookRokad+num(cashRow?.other_cash_in));
   const {data:expenses,error:ee}=await db.from("daily_expenses").select("id,expense_name,amount,payment_type").eq("user_id",user.id).eq("expense_date",date).order("created_at");if(ee)throw ee;
   const exp=expenses||[],expenseTotal=exp.reduce((a,x)=>a+num(x.amount),0);
   $("daybookExpenseRows").innerHTML=exp.map(x=>`<tr><td>${safe(x.expense_name)}</td><td>${safe(x.payment_type)}</td><td>${money(x.amount)}</td><td><button class="btn danger" type="button" onclick="deleteDaybookExpense('${x.id}')">Delete</button></td></tr>`).join("")||'<tr><td colspan="4" class="empty">No expenses recorded for this date.</td></tr>';
-  $("dbExpenseTotal").textContent=money(expenseTotal);$("dbSummaryExpenses").textContent=money(expenseTotal+totals.counterExpense);
+  $("dbExpenseTotal").textContent=money(expenseTotal);$("dbSummaryExpenses").textContent=money(expenseTotal+totals.counterExpense);$("dbGrand").textContent=money(totalCash+totalOnline+totalRokad+counterExpense+expenseTotal);
+  const [manualSalesForDay,saleHeadersForDay]=await Promise.all([
+   getInventorySaleRows(date,date,"all"),
+   db.from("sales").select("id").eq("user_id",user.id).eq("sale_date",date)
+  ]);
+  if(saleHeadersForDay.error)throw saleHeadersForDay.error;
+  const saleIds=(saleHeadersForDay.data||[]).map(x=>x.id);let billedSaleTotal=0;
+  if(saleIds.length){const {data:billLines,error:billError}=await db.from("sale_items").select("quantity,sale_rate").eq("user_id",user.id).in("sale_id",saleIds);if(billError)throw billError;billedSaleTotal=(billLines||[]).reduce((a,x)=>a+num(x.quantity)*num(x.sale_rate),0);}
+  const daySaleTotal=billedSaleTotal+inventorySalesSum(manualSalesForDay);
+  const dayDifference=totalCash+totalOnline+totalRokad+counterExpense+expenseTotal-daySaleTotal;
+  const diffEl=$("dbDifference");if(diffEl){diffEl.textContent=money(dayDifference);diffEl.style.color=Math.abs(dayDifference)>0.009?"#ff5b67":"#39c98a";diffEl.title=`Combined Inventory + Daybook receipts and expenses minus total sales ${money(daySaleTotal)}`;}
   const {data:movementRows,error:me}=await db.from("inventory_register_entries").select("sale_qty,product_id").eq("user_id",user.id).eq("entry_date",date);if(me)throw me;
   let profit=0;
   if((movementRows||[]).length){const pids=[...new Set(movementRows.map(x=>x.product_id).filter(Boolean))];const {data:productRows,error:pe}=await db.from("inventory_products").select("id,mrp,wholesale_price").in("id",pids);if(pe)throw pe;const productMap=new Map((productRows||[]).map(x=>[String(x.id),x]));for(const m of movementRows){const product=productMap.get(String(m.product_id));if(product)profit+=productGrossProfit(m.sale_qty,product);}}
   $("dbProfit").textContent=money(profit);$("dbNetProfit").textContent=money(profit-expenseTotal-totals.counterExpense);
-  setMsg("daybookStatus",`Daybook loaded for ${date}. Cash, online, present-day rokad and expenses are combined from the saved Liquor and Beer Daily Counter entries.`);
+  setMsg("daybookStatus",`Daybook loaded for ${date}. Inventory cash/online/rokad + separate Daybook cash register are combined in overview; Daybook register remains unchanged.`);
  }catch(e){setMsg("daybookStatus","Daybook load error: "+(e.message||String(e)));console.error(e);}
 }
 async function addDaybookExpense(){const date=$("daybookDate").value,name=$("daybookExpenseName").value.trim(),amount=num($("daybookExpenseAmount").value),mode=$("daybookExpenseMode").value;if(!date||date<STOCK_START_DATE){setMsg("daybookStatus","Valid date select karein.");return;}if(!name||amount<=0){setMsg("daybookStatus","Expense description aur valid amount enter karein.");return;}const {error}=await db.from("daily_expenses").insert({user_id:user.id,expense_date:date,expense_name:name,amount,payment_type:mode});if(error){setMsg("daybookStatus","Expense save error: "+error.message);return;}$("daybookExpenseName").value="";$("daybookExpenseAmount").value="";await loadDaybook();}
@@ -2351,31 +2358,40 @@ async function loadInventoryDayCounter(){
   $("dcPresentRokad").value=Number(nightRow?.rokad_received||0).toFixed(2);
   $("dcCashReceived").value=Number(nightRow?.cash_received||0).toFixed(2);
   $("dcOnlineReceived").value=Number(nightRow?.online_received||0).toFixed(2);
-  ["dcPresentRokad","dcCashReceived","dcOnlineReceived"].forEach(id=>{if($(id))$(id).readOnly=true;});
+  ["dcPresentRokad","dcCashReceived","dcOnlineReceived"].forEach(id=>{if($(id))$(id).readOnly=false;});
   $("dcExpenseAmount").value=summary?.expense_amount??0;
   $("dcExpenseNote").value=summary?.expense_note??"";
   $("dcExpenseTotal").textContent=money(summary?.expense_amount||0);
   dayCounterDiff();dayCounterCashPreview();
-  setMsg("dcStatus",`Loaded ${category} counter for ${date}. Night Cash Received se Cash, Online aur Rokad automatic fetch hue hain; yahan sirf Sale/Expense reconciliation update karein. Inventory sales ₹${money(manualTotal)} are included.`);
+  setMsg("dcStatus",`Loaded ${category} Inventory cash entry for ${date}. Cash, Online aur Rokad yahin edit karke save karein. Daybook ki entry alag rahegi. Inventory sales ₹${money(manualTotal)} are included.`);
  }catch(e){setMsg("dcStatus","Counter load error: "+(e.message||String(e)))}
 }
 async function saveInventoryDayCounter(){
  if(!db||!user)return;
- const date=$("dayCounterDate").value,category=dayCounterCategory(),
+ const date=$("inventoryDate").value||$("dayCounterDate").value,category=dayCounterCategory(),
  rokad=num($("dcPresentRokad").value),cash=num($("dcCashReceived").value),
  online=num($("dcOnlineReceived").value),expense=num($("dcExpenseAmount").value),
  note=$("dcExpenseNote").value.trim();
- if(!date||date<STOCK_START_DATE){setMsg("dcStatus","Date 2 November 2026 ya uske baad honi chahiye.");return}
- const accounted=cash+online+expense+rokad;
- const sale=num(String($("dcTotalSale")?.textContent||"").replace(/[^0-9.]/g,""));
- const difference=accounted-sale;
- const row={user_id:user.id,record_date:date,category,
- cash_received:cash,online_received:online,expense_amount:expense,expense_note:note};
- const {error}=await db.from("inventory_day_summary").upsert(row,{onConflict:"user_id,record_date,category"});
- if(error){setMsg("dcStatus","Save error: "+error.message);return}
- // Department-wise Rokad remains in night_cash_received; do not overwrite the shared daily_cash Rokad.
- $("dcExpenseTotal").textContent=money(expense);dayCounterDiff();dayCounterCashPreview();
- setMsg("dcStatus",`${category.toUpperCase()} counter saved for ${date}. Reconciliation ${money(accounted)} · Sale ${money(sale)} · Difference ${money(difference)}.`);
+ if(!date||date<STOCK_START_DATE){setMsg("dcStatus","Date 2 November 2026 ya uske baad select karein.");return}
+ try{
+  // Inventory cash is stored independently from the Daybook's daily_cash register.
+  const {data:existing,error:readError}=await db.from("night_cash_received").select("received_by,received_by_name").eq("user_id",user.id).eq("record_date",date).eq("category",category).maybeSingle();
+  if(readError)throw readError;
+  const inventoryCashRow={user_id:user.id,record_date:date,category,cash_received:cash,online_received:online,rokad_received:rokad};
+  if(existing?.received_by)inventoryCashRow.received_by=existing.received_by;
+  if(existing?.received_by_name)inventoryCashRow.received_by_name=existing.received_by_name;
+  const {error:cashError}=await db.from("night_cash_received").upsert(inventoryCashRow,{onConflict:"user_id,record_date,category"});
+  if(cashError)throw cashError;
+  const {data:oldCounter,error:oldCounterError}=await db.from("inventory_day_summary").select("cash_received,online_received").eq("user_id",user.id).eq("record_date",date).eq("category",category).maybeSingle();
+  if(oldCounterError)throw oldCounterError;
+  const counterRow={user_id:user.id,record_date:date,category,cash_received:num(oldCounter?.cash_received),online_received:num(oldCounter?.online_received),expense_amount:expense,expense_note:note};
+  const {error:counterError}=await db.from("inventory_day_summary").upsert(counterRow,{onConflict:"user_id,record_date,category"});
+  if(counterError)throw counterError;
+  const sale=num(String($("dcTotalSale")?.textContent||"").replace(/[^0-9.]/g,""));
+  $("dcExpenseTotal").textContent=money(expense);dayCounterDiff();dayCounterCashPreview();
+  setMsg("dcStatus",`${category.toUpperCase()} Inventory cash, online, rokad and expense saved for ${date}. Daybook register remains separate. Sale ${money(sale)}.`);
+  if($("daybookDate")?.value===date)await loadDaybook();
+ }catch(e){setMsg("dcStatus","Inventory cash save error: "+(e.message||String(e)));}
 }
 
 function prMoney(v){return "₹"+num(v).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2})}
