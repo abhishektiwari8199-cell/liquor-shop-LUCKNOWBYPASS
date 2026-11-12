@@ -1354,7 +1354,7 @@ function recalculateInventoryLive(){
   const totals={o:[0,0,0,0],p:[0,0,0,0],t:[0,0,0,0],s:[0,0,0,0],sv:[0,0,0,0],b:[0,0,0,0],v:[0,0,0,0]};
   allGroups.forEach(g=>{
     const map=[null,null,null,null];g.products.forEach(x=>{const k=sizeIndex(x.size);if(k>=0)map[k]=x;});
-    const vals={o:[],p:[],t:[],s:[],b:[],v:[]};
+    const vals={o:[],p:[],t:[],s:[],sv:[],b:[],v:[]};
     map.forEach((x,k)=>{const z=x?current[String(x.id)]:null;vals.o[k]=z?.opening||0;vals.p[k]=z?.purchase||0;vals.t[k]=z?.total||0;vals.s[k]=z?.sale||0;vals.sv[k]=z?.saleValue||0;vals.b[k]=z?.balance||0;vals.v[k]=z?.stockValue||0;});
     ["o","p","t","s","sv","b","v"].forEach(key=>vals[key].forEach((n,k)=>totals[key][k]+=n));
   });
@@ -1374,11 +1374,9 @@ function recalculateInventoryLive(){
    const subtotal=$("liquorInventoryRows")?.querySelector(".liquor-total-row");
    if(subtotal){let c=1;["o","p","t","s"].forEach(key=>totals[key].forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=fmtQty(n);}));totals.sv.forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=money(n);});totals.b.forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=fmtQty(n);});totals.v.forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=money(n);});}
    let beerTotals={o:0,ov:0,p:0,s:0,sv:0,c:0,cv:0,profit:0};
-  const allBeer=orderedBeerProducts(products.filter(x=>String(x.category).toLowerCase()==="beer"));
-  const renderedBeerRows=new Map([...($("beerInventoryRows")?.querySelectorAll("tr[data-order-key]")||[])].map(tr=>[String(tr.dataset.orderKey),tr]));
-  allBeer.forEach(x=>{
-    const z=current[String(x.id)];if(!z)return;
-    const tr=renderedBeerRows.get(String(x.id));
+  const visibleBeer=orderedBeerProducts(products.filter(x=>String(x.category).toLowerCase()==="beer"&&(($("cat")?.value||"all")==="all"||$("cat").value==="beer")&&(`${x.brand_name||""} ${x.size||""}`).toLowerCase().includes(($("search")?.value||"").toLowerCase())));
+  visibleBeer.forEach((x,idx)=>{
+    const z=current[String(x.id)];if(!z)return;const tr=$("beerInventoryRows")?.rows[idx];
     if(tr){if(tr.cells[3])tr.cells[3].textContent=money(z.openingValue);if(tr.cells[6])tr.cells[6].textContent=money(z.saleValue);if(tr.cells[7])tr.cells[7].textContent=fmtQty(z.balance);if(tr.cells[8])tr.cells[8].textContent=money(z.stockValue);if(tr.cells[9])tr.cells[9].textContent=money(z.profit);}
     beerTotals.o+=z.opening;beerTotals.ov+=z.openingValue;beerTotals.p+=z.purchase;beerTotals.s+=z.sale;beerTotals.sv+=z.saleValue;beerTotals.c+=z.balance;beerTotals.cv+=z.stockValue;beerTotals.profit+=z.profit;
   });
@@ -1476,8 +1474,6 @@ async function saveFinalInventory(button){
   if(!db||!user){alert("Pehle login karein.");return;}
   const date=$("inventoryDate").value||STOCK_START_DATE;
   if(date<STOCK_START_DATE){alert("02 Nov 2026 se pehle entry allowed nahi hai.");return;}
-  if(button?.disabled)return;
-
   const saveOpening=(date===STOCK_START_DATE);
   const openingUpdates=[],movementRows=[];
   for(const p of products){
@@ -1496,48 +1492,13 @@ async function saveFinalInventory(button){
     }
   }
   if(!openingUpdates.length&&!movementRows.length){alert("Save karne ke liye koi visible inventory input nahi mila.");return;}
-
+  if(button){button.disabled=true;button.textContent="Saving to Supabase…";}
   const status=$("inventoryDateStatus");
-  const originalText=button?.textContent||"Final Save — Save All Inventory";
-  if(button){button.disabled=true;button.classList.add("saving");button.textContent="Saving to Supabase…";}
-  if(status)status.textContent="Saving Inventory to Supabase…";
+  if(status)status.textContent="Saving Inventory Register entries to Supabase…";
   let databaseSaved=false;
-
   try{
-    // 1) Read existing date rows once. Only non-zero new rows and already-existing
-    // rows are upserted, so untouched products do not create unnecessary zero rows.
-    let rowsToWrite=[];
-    if(movementRows.length){
-      const {data:existing,error:readError}=await db.from("inventory_register_entries")
-        .select("id,product_id")
-        .eq("user_id",user.id).eq("entry_date",date);
-      if(readError)throw new Error("Inventory Register read failed: "+readError.message);
-      const existingByProduct=new Map((existing||[]).map(r=>[String(r.product_id),r]));
-      rowsToWrite=movementRows.filter(r=>existingByProduct.has(String(r.product_id))||r.purchase_qty!==0||r.sale_qty!==0);
-      const updates=[],inserts=[];
-      for(const row of rowsToWrite){
-        const old=existingByProduct.get(String(row.product_id));
-        if(old)updates.push({id:old.id,row});
-        else inserts.push(row);
-      }
-      // Update existing rows in small parallel batches; insert new rows together.
-      for(let i=0;i<updates.length;i+=8){
-        const batch=updates.slice(i,i+8);
-        await Promise.all(batch.map(async item=>{
-          const {error}=await db.from("inventory_register_entries").update({
-            purchase_qty:item.row.purchase_qty,sale_qty:item.row.sale_qty
-          }).eq("id",item.id).eq("user_id",user.id);
-          if(error)throw new Error("Purchase/Sale update failed for product "+item.row.product_id+": "+error.message);
-        }));
-      }
-      if(inserts.length){
-        const {error}=await db.from("inventory_register_entries").insert(inserts);
-        if(error)throw new Error("Purchase/Sale insert failed: "+error.message);
-      }
-    }
-
-    // 2) Save opening stock with bounded parallel requests instead of one slow
-    // serial request per product. No other product fields are overwritten.
+    // Opening stock is saved only for the configured stock-start date.
+    // Small batches reduce total wait time without flooding Supabase.
     for(let i=0;i<openingUpdates.length;i+=8){
       const batch=openingUpdates.slice(i,i+8);
       const results=await Promise.all(batch.map(async item=>{
@@ -1545,56 +1506,87 @@ async function saveFinalInventory(button){
           .update({opening_stock:item.value}).eq("id",item.product.id).eq("user_id",user.id)
           .select("id,opening_stock").maybeSingle();
         if(error)throw new Error(item.product.brand_name+": "+error.message);
-        if(!data)throw new Error(item.product.brand_name+": opening stock update returned no row (check Supabase RLS/user_id policy).");
+        if(!data)throw new Error(item.product.brand_name+": opening stock update returned no row (check Supabase RLS/policy).");
         return {item,data};
       }));
-      results.forEach(({item,data})=>{item.product.opening_stock=data.opening_stock;});
+      for(const {item,data} of results)item.product.opening_stock=data.opening_stock;
     }
 
-    // 3) Verify the saved movements with one read before calling it successful.
-    if(rowsToWrite.length){
+    if(movementRows.length){
+      const {data:existing,error:readError}=await db.from("inventory_register_entries")
+        .select("id,product_id,purchase_qty,sale_qty")
+        .eq("user_id",user.id).eq("entry_date",date);
+      if(readError)throw new Error("Existing Inventory Register rows read nahi hue: "+readError.message);
+      const byProduct=new Map((existing||[]).map(row=>[String(row.product_id),row]));
+      const updates=[],inserts=[];
+      for(const row of movementRows){
+        const old=byProduct.get(String(row.product_id));
+        if(old)updates.push({id:old.id,row});
+        else if(num(row.purchase_qty)!==0||num(row.sale_qty)!==0)inserts.push(row);
+      }
+      for(let i=0;i<updates.length;i+=8){
+        const batch=updates.slice(i,i+8);
+        const results=await Promise.all(batch.map(async item=>{
+          const {data,error}=await db.from("inventory_register_entries").update({
+            purchase_qty:item.row.purchase_qty,sale_qty:item.row.sale_qty
+          }).eq("id",item.id).eq("user_id",user.id)
+            .select("id,product_id,purchase_qty,sale_qty").maybeSingle();
+          if(error)throw error;
+          if(!data)throw new Error("Update returned no row for product ID "+item.row.product_id+" (check Supabase RLS/policy).");
+          return data;
+        }));
+        void results;
+      }
+      if(inserts.length){
+        const {data:inserted,error:insertError}=await db.from("inventory_register_entries")
+          .insert(inserts).select("id,product_id,purchase_qty,sale_qty");
+        if(insertError)throw new Error("New Inventory Register rows insert nahi hue: "+insertError.message);
+        if(!inserted||inserted.length!==inserts.length)
+          throw new Error("Supabase ne sabhi new Inventory Register rows return nahi kiye. Expected "+inserts.length+", received "+(inserted||[]).length+".");
+      }
+      // Verify exact saved values from Supabase, not merely a successful request.
       const {data:verified,error:verifyError}=await db.from("inventory_register_entries")
         .select("product_id,purchase_qty,sale_qty")
         .eq("user_id",user.id).eq("entry_date",date);
-      if(verifyError)throw new Error("Save verification read failed: "+verifyError.message);
+      if(verifyError)throw new Error("Save verification query failed: "+verifyError.message);
       const savedMap=new Map((verified||[]).map(row=>[String(row.product_id),row]));
-      for(const row of rowsToWrite){
+      for(const row of movementRows){
         const saved=savedMap.get(String(row.product_id));
-        if(!saved||num(saved.purchase_qty)!==num(row.purchase_qty)||num(saved.sale_qty)!==num(row.sale_qty)){
-          throw new Error("Supabase verification mismatch for product ID "+row.product_id+".");
-        }
+        const existed=byProduct.has(String(row.product_id));
+        if(!saved&&(existed||num(row.purchase_qty)!==0||num(row.sale_qty)!==0))
+          throw new Error("Save verification failed for product ID "+row.product_id+". Row Supabase se wapas nahi mili.");
+        if(saved&&(num(saved.purchase_qty)!==num(row.purchase_qty)||num(saved.sale_qty)!==num(row.sale_qty)))
+          throw new Error("Saved quantity mismatch for product ID "+row.product_id+".");
       }
     }
     databaseSaved=true;
-    if(status)status.textContent="Supabase save verified for "+date+". Updating only Inventory screen…";
   }catch(e){
     const message=e?.message||String(e);
-    if(status)status.textContent="SUPABASE SAVE FAILED — "+message;
-    alert("Supabase mein Inventory save nahi hui: "+message);
+    if(status)status.textContent="DATABASE SAVE / VERIFY FAILED: "+message+". Agar kuch rows pehle save hui hon to date reload karke check karein.";
+    alert("Inventory Supabase save/verify error: "+message);
     console.error("Final inventory database save failed",e);
     return;
   }finally{
-    if(button){button.disabled=false;button.classList.remove("saving");button.textContent=originalText;}
+    if(button){button.disabled=false;button.textContent="Final Save — Save All Inventory";}
   }
 
-  // Refresh is deliberately outside the database-save try/catch. A display/report
-  // refresh failure must never falsely report that a verified database save failed.
+  // Database save is complete. Refresh only Inventory; do not run the heavy
+  // dashboard/history/daybook refresh chain from this Inventory Save button.
   if(databaseSaved){
     try{
       await loadInventoryForDate();
-      recalculateInventoryLive();
-      if(status)status.textContent="✓ Supabase mein save aur verify ho gaya: "+date+".";
-      const toast=$("supabaseSaveToast");
-      if(toast){toast.textContent="Inventory saved and verified in Supabase.";toast.style.display="block";setTimeout(()=>{toast.style.display="none";},3500);}
-      alert("Save successful: Inventory Supabase mein save aur verify ho gayi.");
+      if(inventoryMovementError)throw new Error(inventoryMovementError);
+      if(status)status.textContent="✓ Supabase verified: Inventory Register saved for "+date+". Inventory screen refreshed.";
+      alert("Save successful: Inventory data Supabase mein save aur verify ho gaya hai.");
     }catch(refreshError){
       const message=refreshError?.message||String(refreshError);
-      if(status)status.textContent="✓ Supabase save verified. Inventory screen refresh issue: "+message;
-      alert("Supabase mein data save aur verify ho gaya hai, lekin screen refresh mein dikkat aayi: "+message);
-      console.error("Inventory post-save screen refresh failed",refreshError);
+      if(status)status.textContent="✓ DATA SUPABASE MEIN SAVE AUR VERIFY HO GAYA. Screen refresh error: "+message+". Save dobara karne ki zaroorat nahi hai.";
+      alert("Supabase mein data save aur verify ho gaya hai, lekin Inventory screen refresh mein dikkat aayi: "+message+". Save dobara mat karein.");
+      console.error("Inventory saved; screen refresh failed",refreshError);
     }
   }
 }
+
 async function saveOpeningStock(button){
   const date=$("inventoryDate").value||STOCK_START_DATE;
   if(date!==STOCK_START_DATE){alert("Opening stock sirf 02 November 2026 ke opening balance ke liye enter karein. Date selector ko 02 Nov par set karke save karein.");return;}
