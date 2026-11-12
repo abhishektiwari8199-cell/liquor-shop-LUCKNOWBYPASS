@@ -1043,31 +1043,62 @@ async function loadProducts(){
   fillSelects();
   setMsg("dashMsg","Cloud sync complete · "+products.length+" products loaded.");
 }
+// Supabase/PostgREST commonly limits each response to 1,000 rows.
+// Pass a query factory so every page gets a fresh, identical query.
+async function fetchAllInventoryRows(makeQuery, pageSize = 1000) {
+  const allRows = [];
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await makeQuery().range(offset, offset + pageSize - 1);
+    if (error) throw error;
+    const page = data || [];
+    allRows.push(...page);
+    if (page.length < pageSize) break;
+  }
+  return allRows;
+}
+
+// Keep .in() requests below URL/query-size limits.
+async function fetchInventoryItems(table, fields, column, ids) {
+  const rows = [];
+  const batchSize = 300;
+  for (let i = 0; i < ids.length; i += batchSize) {
+    const batch = ids.slice(i, i + batchSize);
+    const page = await fetchAllInventoryRows(
+      () => db.from(table).select(fields).in(column, batch).order(column)
+    );
+    rows.push(...page);
+  }
+  return rows;
+}
+
 async function loadStockMovements(){
   stockPurchased={}; stockSold={}; stockMovementError="";
-  const [purchaseHeaders,saleHeaders]=await Promise.all([
-    db.from("purchase_invoices").select("id").gte("invoice_date",STOCK_START_DATE),
-    db.from("sales").select("id").gte("sale_date",STOCK_START_DATE)
-  ]);
-  if(purchaseHeaders.error||saleHeaders.error){
-    stockMovementError=(purchaseHeaders.error||saleHeaders.error).message; return;
-  }
-  const purchaseIds=(purchaseHeaders.data||[]).map(x=>x.id);
-  const saleIds=(saleHeaders.data||[]).map(x=>x.id);
-  const [purchases,sales]=await Promise.all([
-    purchaseIds.length ? db.from("purchase_items").select("product_id,quantity").in("invoice_id",purchaseIds) : Promise.resolve({data:[],error:null}),
-    saleIds.length ? db.from("sale_items").select("product_id,quantity").in("sale_id",saleIds) : Promise.resolve({data:[],error:null})
-  ]);
-  if(purchases.error||sales.error){
-    stockMovementError=(purchases.error||sales.error).message; return;
-  }
-  for(const row of purchases.data||[]){
-    const key=String(row.product_id); stockPurchased[key]=(stockPurchased[key]||0)+num(row.quantity);
-  }
-  for(const row of sales.data||[]){
-    const key=String(row.product_id); stockSold[key]=(stockSold[key]||0)+num(row.quantity);
+  try {
+    const [purchaseHeaders, saleHeaders] = await Promise.all([
+      fetchAllInventoryRows(() => db.from("purchase_invoices").select("id").gte("invoice_date",STOCK_START_DATE).order("id")),
+      fetchAllInventoryRows(() => db.from("sales").select("id").gte("sale_date",STOCK_START_DATE).order("id"))
+    ]);
+    const purchaseIds = purchaseHeaders.map(x=>x.id);
+    const saleIds = saleHeaders.map(x=>x.id);
+    const [purchases, sales] = await Promise.all([
+      fetchInventoryItems("purchase_items","product_id,quantity","invoice_id",purchaseIds),
+      fetchInventoryItems("sale_items","product_id,quantity","sale_id",saleIds)
+    ]);
+    for(const row of purchases){
+      const key=String(row.product_id);
+      stockPurchased[key]=(stockPurchased[key]||0)+num(row.quantity);
+    }
+    for(const row of sales){
+      const key=String(row.product_id);
+      stockSold[key]=(stockSold[key]||0)+num(row.quantity);
+    }
+  } catch(e) {
+    stockMovementError=e.message||String(e);
+    console.error("Stock movement load failed:",e);
+    throw e;
   }
 }
+
 function stockFor(p){
   const key=String(p.id);
   const opening=num(p.opening_stock);
@@ -1111,55 +1142,105 @@ function updateInventoryOpeningHeader(date){
 async function loadInventoryForDate(){
   const date=$("inventoryDate").value||STOCK_START_DATE;
   updateInventoryOpeningHeader(date);
-  if(date<STOCK_START_DATE){$("inventoryDate").value=STOCK_START_DATE;setMsg("inventoryDateStatus","Inventory date 02 November 2026 se pehle nahi ho sakti.");return;}
-  $("inventoryDateStatus").textContent="Loading opening carry-forward and date-wise movements through "+date+"…";
-  inventoryPurchased={};inventorySold={};inventoryManualCurrent={};inventoryManualTotals={};inventoryOpeningForDate={};inventoryDateHasBeenSaved=false;inventoryMovementError="";
+  if(date<STOCK_START_DATE){
+    $("inventoryDate").value=STOCK_START_DATE;
+    setMsg("inventoryDateStatus","Inventory date 02 November 2026 se pehle nahi ho sakti.");
+    return;
+  }
+
+  $("inventoryDateStatus").textContent="Loading complete date-wise inventory from cloud…";
+  // Build into temporary objects. Never clear the displayed stock until every
+  // database read succeeds; a failed read must not turn saved entries into zero.
+  const nextPurchased={}, nextSold={}, nextManualCurrent={}, nextManualTotals={}, nextOpening={};
+
   try{
-    const [ph,sh,mh]=await Promise.all([
-      db.from("purchase_invoices").select("id,invoice_date").gte("invoice_date",STOCK_START_DATE).lte("invoice_date",date),
-      db.from("sales").select("id,sale_date").gte("sale_date",STOCK_START_DATE).lte("sale_date",date),
-      db.from("inventory_register_entries").select("product_id,entry_date,purchase_qty,sale_qty").gte("entry_date",STOCK_START_DATE).lte("entry_date",date)
+    const [purchaseHeaders,saleHeaders,manualRows]=await Promise.all([
+      fetchAllInventoryRows(() => db.from("purchase_invoices")
+        .select("id,invoice_date")
+        .gte("invoice_date",STOCK_START_DATE).lte("invoice_date",date)
+        .order("invoice_date").order("id")),
+      fetchAllInventoryRows(() => db.from("sales")
+        .select("id,sale_date")
+        .gte("sale_date",STOCK_START_DATE).lte("sale_date",date)
+        .order("sale_date").order("id")),
+      fetchAllInventoryRows(() => db.from("inventory_register_entries")
+        .select("product_id,entry_date,purchase_qty,sale_qty")
+        .eq("user_id",user.id)
+        .gte("entry_date",STOCK_START_DATE).lte("entry_date",date)
+        .order("entry_date").order("product_id"))
     ]);
-    if(ph.error||sh.error||mh.error)throw (ph.error||sh.error||mh.error);
-    // A date is considered finalized only when its own inventory register rows exist.
-    // A brand-new date therefore starts with the full catalogue visible.
-    inventoryDateHasBeenSaved=(mh.data||[]).some(x=>x.entry_date===date);
-    const purchaseDateById=Object.fromEntries((ph.data||[]).map(x=>[String(x.id),x.invoice_date]));
-    const saleDateById=Object.fromEntries((sh.data||[]).map(x=>[String(x.id),x.sale_date]));
-    const pids=Object.keys(purchaseDateById),sids=Object.keys(saleDateById);
-    const [pi,si]=await Promise.all([
-      pids.length?db.from("purchase_items").select("invoice_id,product_id,quantity").in("invoice_id",pids):Promise.resolve({data:[],error:null}),
-      sids.length?db.from("sale_items").select("sale_id,product_id,quantity").in("sale_id",sids):Promise.resolve({data:[],error:null})
+
+    const purchaseDateById=Object.fromEntries(purchaseHeaders.map(x=>[String(x.id),x.invoice_date]));
+    const saleDateById=Object.fromEntries(saleHeaders.map(x=>[String(x.id),x.sale_date]));
+    const purchaseIds=purchaseHeaders.map(x=>x.id);
+    const saleIds=saleHeaders.map(x=>x.id);
+
+    const [purchaseItems,saleItems]=await Promise.all([
+      fetchInventoryItems("purchase_items","invoice_id,product_id,quantity","invoice_id",purchaseIds),
+      fetchInventoryItems("sale_items","sale_id,product_id,quantity","sale_id",saleIds)
     ]);
-    if(pi.error||si.error)throw (pi.error||si.error);
+
     const priorPurchase={},priorSale={},dayPurchase={},daySale={};
-    const add=(obj,id,q)=>{const k=String(id);obj[k]=(obj[k]||0)+num(q);};
-    for(const x of pi.data||[]){const d=purchaseDateById[String(x.invoice_id)];add(d===date?dayPurchase:priorPurchase,x.product_id,x.quantity);}
-    for(const x of si.data||[]){const d=saleDateById[String(x.sale_id)];add(d===date?daySale:priorSale,x.product_id,x.quantity);}
-    for(const x of mh.data||[]){
-      const k=String(x.product_id),isToday=x.entry_date===date;
-      if(isToday){
-        inventoryManualCurrent[k]={purchase:num(x.purchase_qty),sale:num(x.sale_qty)};
-        inventoryManualTotals[k]={purchase:num(x.purchase_qty),sale:num(x.sale_qty)};
-        add(dayPurchase,k,x.purchase_qty);add(daySale,k,x.sale_qty);
+    const add=(obj,id,q)=>{
+      const k=String(id);
+      obj[k]=(obj[k]||0)+num(q);
+    };
+
+    for(const x of purchaseItems){
+      const d=purchaseDateById[String(x.invoice_id)];
+      add(d===date?dayPurchase:priorPurchase,x.product_id,x.quantity);
+    }
+    for(const x of saleItems){
+      const d=saleDateById[String(x.sale_id)];
+      add(d===date?daySale:priorSale,x.product_id,x.quantity);
+    }
+
+    for(const x of manualRows){
+      const k=String(x.product_id);
+      if(x.entry_date===date){
+        // Unique key is user_id + product_id + entry_date: one row per product/date.
+        nextManualCurrent[k]={purchase:num(x.purchase_qty),sale:num(x.sale_qty)};
+        nextManualTotals[k]={purchase:num(x.purchase_qty),sale:num(x.sale_qty)};
+        add(dayPurchase,k,x.purchase_qty);
+        add(daySale,k,x.sale_qty);
       }else{
-        add(priorPurchase,k,x.purchase_qty);add(priorSale,k,x.sale_qty);
+        add(priorPurchase,k,x.purchase_qty);
+        add(priorSale,k,x.sale_qty);
       }
     }
+
     for(const p of products){
       const k=String(p.id);
-      inventoryOpeningForDate[k]=num(p.opening_stock)+(priorPurchase[k]||0)-(priorSale[k]||0);
-      inventoryPurchased[k]=dayPurchase[k]||0;
-      inventorySold[k]=daySale[k]||0;
+      nextOpening[k]=num(p.opening_stock)+(priorPurchase[k]||0)-(priorSale[k]||0);
+      nextPurchased[k]=dayPurchase[k]||0;
+      nextSold[k]=daySale[k]||0;
     }
+
+    // Commit the new state only after every read has completed successfully.
+    inventoryPurchased=nextPurchased;
+    inventorySold=nextSold;
+    inventoryManualCurrent=nextManualCurrent;
+    inventoryManualTotals=nextManualTotals;
+    inventoryOpeningForDate=nextOpening;
+    inventoryDateHasBeenSaved=manualRows.some(x=>x.entry_date===date);
+    inventoryMovementError="";
+
     $("inventoryDateStatus").textContent=date===STOCK_START_DATE
       ?"02 Nov 2026: Original opening stock. Aaj ki purchase aur sale is date ke closing balance mein judegi."
       :"Opening Qty automatically previous date ke closing balance se carry forward hai. Selected date ki purchase aur sale alag calculate hoti hai.";
     await loadInventoryRatesForDate(date);
-  }catch(e){inventoryMovementError=e.message||String(e);$("inventoryDateStatus").textContent="Date-wise stock / rate load error: "+inventoryMovementError;}
-  loadInventoryVisibilityChoice();
-  drawProducts();
+    loadInventoryVisibilityChoice();
+    drawProducts();
+  }catch(e){
+    inventoryMovementError=e.message||String(e);
+    $("inventoryDateStatus").textContent=
+      "Inventory reload failed — purana displayed data preserve kiya gaya. Error: "+inventoryMovementError;
+    console.error("Date-wise inventory load failed:",e);
+    // Intentionally do not call drawProducts() and do not replace current values with zero.
+    throw e;
+  }
 }
+
 
 const BEER_SEQUENCE_PATTERNS=[
   /kingfisher.*650.*bottle/,
@@ -1538,6 +1619,34 @@ async function saveFinalInventory(button){
       tasks.push(db.from("inventory_register_entries").upsert(movementRows,{onConflict:"user_id,product_id,entry_date"}).then(({error})=>{if(error)throw error;}));
     }
     await Promise.all(tasks);
+
+    // Verify every submitted product/date row before showing a successful save.
+    // Read in product-id batches so the check is not cut off by the 1,000-row API cap.
+    if(movementRows.length){
+      const ids=movementRows.map(r=>r.product_id);
+      const verifiedRows=[];
+      for(let i=0;i<ids.length;i+=300){
+        const batch=ids.slice(i,i+300);
+        const {data,error}=await db.from("inventory_register_entries")
+          .select("product_id,purchase_qty,sale_qty")
+          .eq("user_id",user.id).eq("entry_date",date)
+          .in("product_id",batch);
+        if(error)throw error;
+        verifiedRows.push(...(data||[]));
+      }
+      const verifiedById=new Map(verifiedRows.map(r=>[String(r.product_id),r]));
+      const mismatches=movementRows.filter(row=>{
+        const saved=verifiedById.get(String(row.product_id));
+        return !saved ||
+          Math.abs(num(saved.purchase_qty)-row.purchase_qty)>0.0001 ||
+          Math.abs(num(saved.sale_qty)-row.sale_qty)>0.0001;
+      });
+      if(mismatches.length){
+        throw new Error("Supabase verification failed for "+mismatches.length+
+          " product(s). Save ko successful mark nahi kiya gaya; date reload karke check karein.");
+      }
+    }
+
     inventoryWriteCompleted=true;
     for(const row of movementRows){
       const id=String(row.product_id),old=inventoryManualCurrent[id]||{purchase:0,sale:0},tot=inventoryManualTotals[id]||{purchase:0,sale:0};
