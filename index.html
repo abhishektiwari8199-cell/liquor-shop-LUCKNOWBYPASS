@@ -1112,319 +1112,46 @@ async function loadInventoryForDate(){
   const date=$("inventoryDate").value||STOCK_START_DATE;
   updateInventoryOpeningHeader(date);
   if(date<STOCK_START_DATE){$("inventoryDate").value=STOCK_START_DATE;setMsg("inventoryDateStatus","Inventory date 02 November 2026 se pehle nahi ho sakti.");return;}
-  $("inventoryDateStatus").textContent="Loading opening carry-forward and date-wise movements through "+date+"…";
+  $("inventoryDateStatus").textContent="Loading Inventory Register entries through "+date+"…";
   inventoryPurchased={};inventorySold={};inventoryManualCurrent={};inventoryManualTotals={};inventoryOpeningForDate={};inventoryDateHasBeenSaved=false;inventoryMovementError="";
   try{
-    const [ph,sh,mh]=await Promise.all([
-      db.from("purchase_invoices").select("id,invoice_date").gte("invoice_date",STOCK_START_DATE).lte("invoice_date",date),
-      db.from("sales").select("id,sale_date").gte("sale_date",STOCK_START_DATE).lte("sale_date",date),
-      db.from("inventory_register_entries").select("product_id,entry_date,purchase_qty,sale_qty").eq("user_id",user.id).gte("entry_date",STOCK_START_DATE).lte("entry_date",date)
-    ]);
-    if(ph.error||sh.error||mh.error)throw (ph.error||sh.error||mh.error);
-    // A date is considered finalized only when its own inventory register rows exist.
-    // A brand-new date therefore starts with the full catalogue visible.
-    inventoryDateHasBeenSaved=(mh.data||[]).some(x=>x.entry_date===date);
-    const purchaseDateById=Object.fromEntries((ph.data||[]).map(x=>[String(x.id),x.invoice_date]));
-    const saleDateById=Object.fromEntries((sh.data||[]).map(x=>[String(x.id),x.sale_date]));
-    const pids=Object.keys(purchaseDateById),sids=Object.keys(saleDateById);
-    const [pi,si]=await Promise.all([
-      pids.length?db.from("purchase_items").select("invoice_id,product_id,quantity").in("invoice_id",pids):Promise.resolve({data:[],error:null}),
-      sids.length?db.from("sale_items").select("sale_id,product_id,quantity").in("sale_id",sids):Promise.resolve({data:[],error:null})
-    ]);
-    if(pi.error||si.error)throw (pi.error||si.error);
+    const {data:registerRows,error}=await db.from("inventory_register_entries")
+      .select("product_id,entry_date,purchase_qty,sale_qty")
+      .eq("user_id",user.id)
+      .gte("entry_date",STOCK_START_DATE).lte("entry_date",date)
+      .order("entry_date",{ascending:true});
+    if(error)throw error;
+
     const priorPurchase={},priorSale={},dayPurchase={},daySale={};
     const add=(obj,id,q)=>{const k=String(id);obj[k]=(obj[k]||0)+num(q);};
-    for(const x of pi.data||[]){const d=purchaseDateById[String(x.invoice_id)];add(d===date?dayPurchase:priorPurchase,x.product_id,x.quantity);}
-    for(const x of si.data||[]){const d=saleDateById[String(x.sale_id)];add(d===date?daySale:priorSale,x.product_id,x.quantity);}
-    for(const x of mh.data||[]){
-      const k=String(x.product_id),isToday=x.entry_date===date;
-      if(isToday){
-        inventoryManualCurrent[k]={purchase:num(x.purchase_qty),sale:num(x.sale_qty)};
-        inventoryManualTotals[k]={purchase:num(x.purchase_qty),sale:num(x.sale_qty)};
-        add(dayPurchase,k,x.purchase_qty);add(daySale,k,x.sale_qty);
+    for(const row of registerRows||[]){
+      const k=String(row.product_id),isSelectedDate=row.entry_date===date;
+      if(isSelectedDate){
+        inventoryManualCurrent[k]={purchase:num(row.purchase_qty),sale:num(row.sale_qty)};
+        inventoryManualTotals[k]={purchase:num(row.purchase_qty),sale:num(row.sale_qty)};
+        add(dayPurchase,k,row.purchase_qty);add(daySale,k,row.sale_qty);
       }else{
-        add(priorPurchase,k,x.purchase_qty);add(priorSale,k,x.sale_qty);
+        add(priorPurchase,k,row.purchase_qty);add(priorSale,k,row.sale_qty);
       }
     }
-    for(const p of products){
-      const k=String(p.id);
-      inventoryOpeningForDate[k]=num(p.opening_stock)+(priorPurchase[k]||0)-(priorSale[k]||0);
+    inventoryDateHasBeenSaved=(registerRows||[]).some(row=>row.entry_date===date);
+    for(const product of products){
+      const k=String(product.id);
+      inventoryOpeningForDate[k]=num(product.opening_stock)+(priorPurchase[k]||0)-(priorSale[k]||0);
       inventoryPurchased[k]=dayPurchase[k]||0;
       inventorySold[k]=daySale[k]||0;
     }
     $("inventoryDateStatus").textContent=date===STOCK_START_DATE
-      ?"02 Nov 2026: Original opening stock. Aaj ki purchase aur sale is date ke closing balance mein judegi."
-      :"Opening Qty automatically previous date ke closing balance se carry forward hai. Selected date ki purchase aur sale alag calculate hoti hai.";
+      ?"02 Nov 2026: Opening stock + sirf Inventory Register ki aaj ki Purchase − Sale."
+      :"Opening stock pichhle din ke Inventory Register closing se carry forward hai. Purchase/Sale ka ek hi source: Inventory Register.";
     await loadInventoryRatesForDate(date);
-  }catch(e){inventoryMovementError=e.message||String(e);$("inventoryDateStatus").textContent="Date-wise stock / rate load error: "+inventoryMovementError;}
+  }catch(e){
+    inventoryMovementError=e.message||String(e);
+    $("inventoryDateStatus").textContent="Inventory Register load error: "+inventoryMovementError;
+  }
   loadInventoryVisibilityChoice();
   drawProducts();
 }
-
-const BEER_SEQUENCE_PATTERNS=[
-  /kingfisher.*650.*bottle/,
-  /ultramax.*650.*bottle/,
-  /tuborg(?!.*classic|.*strong).*650.*bottle/,
-  /eleph?e?nt.*650.*bottle|elephant.*650.*bottle/,
-  /budw[ie]s?er.*650.*bottle|budweiser.*650.*bottle/,
-  /rio.*gold/,
-  /ultramax.*500.*can/,
-  /brocode.*375.*can/,
-  /eleph?e?nt.*500.*can|elephant.*500.*can/,
-  /budw[ie]s?er.*500.*can|budweiser.*500.*can/,
-  /kingfisher.*500.*can/,
-  /tuborg.*classic.*500.*can/,
-  /tuborg.*strong.*500.*can/,
-  /sab.*500.*can/,
-  /god.*father.*500.*can/,
-  /hyw?ards?.*5000.*500.*can|haywards?.*5000.*500.*can/,
-  /x7.*classico.*330/,
-  /elif?hanth?.*smooch.*pre|elephant.*smooch.*pre/,
-  /eleph?e?nt.*330|elephant.*330/
-];
-function cleanBeerBrandName(value){
-  return String(value||"")
-    .replace(/\s*[-–—,:]?\s*\(?\s*AS\s+LISTED\s*\)?/gi,"")
-    .replace(/\s{2,}/g," ")
-    .replace(/\s+([,)])/g,"$1")
-    .trim();
-}
-function beerSequenceIndex(p){
-  const text=(`${p.brand_name||""} ${p.size||""}`).toLowerCase()
-    .replace(/[^a-z0-9]+/g," ").replace(/\s+/g," ").trim();
-  const idx=BEER_SEQUENCE_PATTERNS.findIndex(re=>re.test(text));
-  return idx<0?999:idx;
-}
-
-const INVENTORY_ORDER_KEY="abhishek_inventory_manual_order_v1";
-function getInventoryManualOrder(){
- try{return JSON.parse(localStorage.getItem(INVENTORY_ORDER_KEY)||'{"liquor":[],"beer":[]}')}
- catch(e){return {liquor:[],beer:[]}}
-}
-function applySavedInventoryOrder(rows,category,keyFn){
- const saved=getInventoryManualOrder()[category]||[];
- if(!saved.length)return rows;
- const rank=new Map(saved.map((key,index)=>[String(key),index]));
- return [...rows].sort((a,b)=>{
-  const ar=rank.has(String(keyFn(a)))?rank.get(String(keyFn(a))):Number.MAX_SAFE_INTEGER;
-  const br=rank.has(String(keyFn(b)))?rank.get(String(keyFn(b))):Number.MAX_SAFE_INTEGER;
-  return ar===br?0:ar-br;
- });
-}
-function saveDraggedInventoryOrder(category,keys){
- const state=getInventoryManualOrder(),old=state[category]||[];
- const moved=new Set(keys.map(String));let nextIndex=0;
- const merged=old.map(key=>moved.has(String(key))?keys[nextIndex++]:key);
- const present=new Set(merged.map(String));
- keys.forEach(key=>{if(!present.has(String(key))){merged.push(String(key));present.add(String(key));}});
- state[category]=merged;localStorage.setItem(INVENTORY_ORDER_KEY,JSON.stringify(state));
-}
-function attachInventoryDrag(bodyId,category){
- const body=$(bodyId);if(!body)return;let dragged=null,touchRow=null,touchTarget=null;
- const persist=()=>{const keys=[...body.querySelectorAll("tr[data-order-key]")].map(r=>r.dataset.orderKey);saveDraggedInventoryOrder(category,keys);drawProducts();};
- [...body.querySelectorAll("tr[data-order-key]")].forEach(row=>{
-  row.draggable=true;row.classList.add("inventory-draggable-row");
-  row.addEventListener("dragstart",event=>{dragged=row;row.classList.add("inventory-dragging");event.dataTransfer.effectAllowed="move";event.dataTransfer.setData("text/plain",row.dataset.orderKey);});
-  row.addEventListener("dragover",event=>{if(!dragged||dragged===row)return;event.preventDefault();event.dataTransfer.dropEffect="move";const rect=row.getBoundingClientRect();const after=event.clientY>rect.top+rect.height/2;row.parentNode.insertBefore(dragged,after?row.nextSibling:row);});
-  row.addEventListener("drop",event=>event.preventDefault());
-  row.addEventListener("dragend",()=>{if(!dragged)return;dragged.classList.remove("inventory-dragging");dragged=null;persist();});
-  const handle=row.querySelector(".inventory-drag-handle");
-  if(handle){
-   handle.addEventListener("touchstart",event=>{touchRow=row;touchRow.classList.add("inventory-dragging");},{passive:true});
-   handle.addEventListener("touchmove",event=>{if(!touchRow)return;const t=event.touches[0],target=document.elementFromPoint(t.clientX,t.clientY)?.closest("tr[data-order-key]");if(target&&target!==touchRow){const r=target.getBoundingClientRect();body.insertBefore(touchRow,t.clientY>r.top+r.height/2?target.nextSibling:target);}},{passive:true});
-   handle.addEventListener("touchend",()=>{if(!touchRow)return;touchRow.classList.remove("inventory-dragging");touchRow=null;persist();},{passive:true});
-  }
- });
-}
-
-function orderedBeerProducts(rows){
-  const defaultRows=[...rows].sort((a,b)=>{
-    const ai=beerSequenceIndex(a),bi=beerSequenceIndex(b);
-    if(ai!==bi)return ai-bi;
-    if(ai===999)return String(a.brand_name||"").localeCompare(String(b.brand_name||""));
-    return String(a.size||"").localeCompare(String(b.size||""));
-  });
-  return applySavedInventoryOrder(defaultRows,"beer",p=>p.id);
-}
-
-function orderedBrandGroups(rows){
-  const byKey=new Map();
-  for(const p of rows){const k=brandKey(p.brand_name);if(!byKey.has(k))byKey.set(k,[]);byKey.get(k).push(p);}
-  const out=[],used=new Set();
-  for(const name of EXCEL_BRAND_ORDER){const k=brandKey(name),list=byKey.get(k);if(list){out.push({name,products:list});used.add(k);}}
-  const leftovers=[...byKey.entries()].filter(([k])=>!used.has(k)).sort((a,b)=>String(a[1][0].brand_name).localeCompare(String(b[1][0].brand_name)));
-  for(const [,list] of leftovers)out.push({name:list[0].brand_name,products:list});
-  return applySavedInventoryOrder(out,"liquor",g=>brandKey(g.name));
-}
-// Owner-defined brand order is shared by every brand list in the app.
-function orderedProductsByOwnerSequence(rows){
- const liquor=orderedBrandGroups(rows.filter(p=>String(p.category||"").toLowerCase()==="liquor"))
-   .flatMap(g=>[...g.products].sort((a,b)=>sizeIndex(a.size)-sizeIndex(b.size)));
- const beer=orderedBeerProducts(rows.filter(p=>String(p.category||"").toLowerCase()==="beer"));
- const other=rows.filter(p=>!["liquor","beer"].includes(String(p.category||"").toLowerCase()))
-   .sort((a,b)=>String(a.brand_name||"").localeCompare(String(b.brand_name||"")));
- return [...liquor,...beer,...other];
-}
-
-const HIDDEN_INVENTORY_KEY='abhishek_hidden_inventory_product_ids_v1';
-function getHiddenInventoryIds(){try{return new Set(JSON.parse(localStorage.getItem(HIDDEN_INVENTORY_KEY)||'[]').map(String))}catch(e){return new Set()}}
-function saveHiddenInventoryIds(ids){localStorage.setItem(HIDDEN_INVENTORY_KEY,JSON.stringify([...ids]));}
-function hideInventoryBrand(ids,label="Brand"){const hidden=getHiddenInventoryIds();ids.forEach(id=>hidden.add(String(id)));saveHiddenInventoryIds(hidden);drawProducts();setMsg('dcStatus',`${label} hidden from this screen. Database records are unchanged.`)}
-function restoreInventoryBrand(id){const hidden=getHiddenInventoryIds();hidden.delete(String(id));saveHiddenInventoryIds(hidden);drawProducts()}
-function restoreAllInventoryBrands(){saveHiddenInventoryIds(new Set());drawProducts()}
-function renderHiddenInventoryBrands(){const hidden=getHiddenInventoryIds(),items=products.filter(p=>hidden.has(String(p.id)));const el=$('hiddenBrandsList');if(!el)return;el.innerHTML=items.length?items.map(p=>`<span style="display:inline-flex;align-items:center;gap:7px;margin:4px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#173b63">${safe(cleanBeerBrandName(p.brand_name))}${p.size?' '+safe(p.size):''}<button class="btn secondary" style="padding:4px 7px" onclick="restoreInventoryBrand('${String(p.id)}')">Restore</button></span>`).join(''):'No hidden brands.'}
-
-// Display-only activity rule. Existing products, stock movements and saved entries remain untouched.
-function inventoryProductHasActivity(p){
- const id=String(p.id);
- const opening=num(inventoryOpeningForDate[id]??p.opening_stock);
- const purchase=num(inventoryPurchased[id]);
- const sale=num(inventorySold[id]);
- const balance=opening+purchase-sale;
- return opening>0||purchase>0||sale>0||balance>0;
-}
-function inventoryLiquorGroupHasActivity(group){
- return (group.products||[]).some(inventoryProductHasActivity);
-}
-function inventoryVisibilityStorageKey(){return "inventory_visibility_"+($("inventoryDate")?.value||STOCK_START_DATE);}
-function loadInventoryVisibilityChoice(){
- const saved=localStorage.getItem(inventoryVisibilityStorageKey());
- const mode=saved==="full"?"full":saved==="active"?"active":(inventoryDateHasBeenSaved?"active":"full");
- const el=$("inventoryVisibilityMode");if(el)el.value=mode;
-}
-function changeInventoryVisibilityMode(){
- const el=$("inventoryVisibilityMode");if(!el)return;
- localStorage.setItem(inventoryVisibilityStorageKey(),el.value==="full"?"full":"active");
- drawProducts();
-}
-function drawProducts(){
-  if(!$("inventoryVisibilityMode")?.value)loadInventoryVisibilityChoice();
-  const visibility=$("inventoryVisibilityMode")?.value|| (inventoryDateHasBeenSaved?"active":"full");
-  const cat=$("cat").value,q=$("search").value.toLowerCase();
-  const hiddenIds=getHiddenInventoryIds();
-  const rows=products.filter(p=>!hiddenIds.has(String(p.id))&&(cat==="all"||String(p.category).toLowerCase()===cat)&&(`${p.brand_name||""} ${p.size||""}`).toLowerCase().includes(q));
-  const allVisibleLiquor=orderedBrandGroups(rows.filter(p=>String(p.category).toLowerCase()==="liquor"));
-  const allVisibleBeer=orderedBeerProducts(rows.filter(p=>String(p.category).toLowerCase()==="beer"));
-  const allVisibleOther=rows.filter(p=>!["liquor","beer"].includes(String(p.category).toLowerCase()));
-  const hideZero=visibility==="active";
-  const liquor=hideZero?allVisibleLiquor.filter(inventoryLiquorGroupHasActivity):allVisibleLiquor;
-  const beer=hideZero?allVisibleBeer.filter(inventoryProductHasActivity):allVisibleBeer;
-  const other=hideZero?allVisibleOther.filter(inventoryProductHasActivity):allVisibleOther;
-  $("inventoryCount").textContent=hideZero
-   ?(liquor.length+beer.length+other.length)+" ACTIVE BRANDS SHOWN · ZERO-ACTIVITY BRANDS HIDDEN FOR "+($("inventoryDate").value||STOCK_START_DATE)
-   :(liquor.length+beer.length+other.length)+" BRANDS SHOWN · FULL BRAND LIST FOR "+($("inventoryDate").value||STOCK_START_DATE);
-  $("liquorInventoryWrap").style.display=cat==="beer"?"none":"block";
-  $("beerInventoryWrap").style.display=cat==="liquor"?"none":"block";
-  const grand={opening:0,purchase:0,total:0,sale:0,balance:0,value:0};
-  const L=[],sizes=["750","375","180","90"];
-  const fmt=a=>a.map(v=>`<td class="calc">${Number(v||0).toLocaleString("en-IN",{maximumFractionDigits:2})}</td>`).join("");
-  const fmtM=a=>a.map(v=>`<td class="value">${money(v)}</td>`).join("");
-  const liqTotals={o:[0,0,0,0],p:[0,0,0,0],t:[0,0,0,0],s:[0,0,0,0],b:[0,0,0,0],v:[0,0,0,0]};
-  // Subtotals are calculated from EVERY liquor brand, not only the currently visible search results.
-  const allLiquorGroups=orderedBrandGroups(products.filter(x=>String(x.category).toLowerCase()==="liquor"));
-  for(const g of allLiquorGroups){
-    const map=[null,null,null,null];g.products.forEach(x=>{const k=sizeIndex(x.size);if(k>=0)map[k]=x;});
-    const o=map.map(x=>x?num(inventoryOpeningForDate[String(x.id)]??x.opening_stock):0),p=map.map(x=>x?num(inventoryPurchased[String(x.id)]):0),sale=map.map(x=>x?num(inventorySold[String(x.id)]):0),t=o.map((v,k)=>v+p[k]),b=t.map((v,k)=>v-sale[k]),v=b.map((x,k)=>x*num(map[k]?inventoryRate(map[k]).wholesale_price:0));
-    [o,p,t,sale,b,v].forEach((a,ai)=>a.forEach((n,k)=>{[liqTotals.o,liqTotals.p,liqTotals.t,liqTotals.s,liqTotals.b,liqTotals.v][ai][k]+=n;}));
-  }
-  liquor.forEach((g,idx)=>{
-    const map=[null,null,null,null];g.products.forEach(p=>{const k=sizeIndex(p.size);if(k>=0)map[k]=p;});
-    const o=map.map(p=>p?num(inventoryOpeningForDate[String(p.id)]??p.opening_stock):0),p=map.map(x=>x?num(inventoryPurchased[String(x.id)]):0),s=map.map(x=>x?num(inventorySold[String(x.id)]):0),t=o.map((v,k)=>v+p[k]),b=t.map((v,k)=>v-s[k]),v=b.map((x,k)=>x*num(map[k]?inventoryRate(map[k]).wholesale_price:0));
-    for(let k=0;k<4;k++){grand.opening+=o[k];grand.purchase+=p[k];grand.total+=t[k];grand.sale+=s[k];grand.balance+=b[k];grand.value+=v[k];}
-    const inputs=(arr,prefix,label)=>map.map((x,k)=>`<td>${x?`<input aria-label="${safe(g.name)} ${sizes[k]} ${label}" id="${prefix}_${safe(x.id)}" type="number" min="0" step=".01" value="${arr[k]}" ${prefix==="opening"&&($("inventoryDate").value||STOCK_START_DATE)!==STOCK_START_DATE?"readonly title='Auto carried forward from previous day'":"oninput='recalculateInventoryLive()' onkeydown='inventoryEnterNext(event)'"}>`:"—"}</td>`).join("");
-    L.push(`<tr data-order-key="${safe(brandKey(g.name))}"><td><span class="inventory-drag-handle" title="Drag to reorder">⠿</span> ${idx+1}. ${safe(g.name)} <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='editInventoryBrand(${JSON.stringify(g.products.map(x=>String(x.id)))})'>Edit name/rates</button> <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='hideInventoryBrand(${JSON.stringify(g.products.map(x=>String(x.id)))})'>Hide</button></td>${inputs(o,"opening","opening stock")}${inputs(map.map(x=>x?(inventoryManualCurrent[String(x.id)]?.purchase||0):0),"reg_purchase","purchase")}${fmt(t)}${inputs(map.map(x=>x?(inventoryManualCurrent[String(x.id)]?.sale||0):0),"reg_sale","sale")}${fmt(b)}${fmtM(v)}</tr>`);
-  });
-  if(allLiquorGroups.length)L.push(`<tr class="inventory-subtotal-row liquor-total-row"><td>TOTAL ALL LIQUOR BRANDS</td>${fmt(liqTotals.o)}${fmt(liqTotals.p)}${fmt(liqTotals.t)}${fmt(liqTotals.s)}${fmt(liqTotals.b)}${fmtM(liqTotals.v)}</tr>`);
-  $("liquorInventoryRows").innerHTML=L.join("")||'<tr><td colspan="25" class="empty">No liquor brands found.</td></tr>';
-  const B=[];let bt={o:0,ov:0,p:0,s:0,sv:0,c:0,cv:0,profit:0};
-  beer.forEach((x,idx)=>{
-    const opening=num(inventoryOpeningForDate[String(x.id)]??x.opening_stock),purchase=num(inventoryPurchased[String(x.id)]),sale=num(inventorySold[String(x.id)]);
-    const openingValue=opening*inventoryRate(x).mrp,available=opening+purchase,saleValue=sale*inventoryRate(x).mrp,closing=available-sale,stockValue=closing*inventoryRate(x).wholesale_price,profit=sale*(inventoryRate(x).mrp-inventoryRate(x).wholesale_price);
-    bt.o+=opening;bt.ov+=openingValue;bt.p+=purchase;bt.s+=sale;bt.sv+=saleValue;bt.c+=closing;bt.cv+=stockValue;bt.profit+=profit;
-    for(const [k,n] of Object.entries({opening,purchase,sale,available,closing,openingValue,saleValue,stockValue,profit}))grand[k]=(grand[k]||0)+n;
-    const entry=inventoryManualCurrent[String(x.id)]||{};
-    B.push(`<tr data-order-key="${safe(String(x.id))}"><td><span class="inventory-drag-handle" title="Drag to reorder">⠿</span> ${idx+1}</td><td class="beer-brand">${safe(cleanBeerBrandName(x.brand_name))}${x.size?" - "+safe(x.size):""} <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='editInventoryBrand([${JSON.stringify(String(x.id))}])'>Edit name/rates</button> <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='hideInventoryBrand([${JSON.stringify(String(x.id))}])'>Hide</button></td><td><input id="opening_${safe(x.id)}" type="number" min="0" step=".01" value="${opening}" ${($("inventoryDate").value||STOCK_START_DATE)!==STOCK_START_DATE?"readonly title='Auto carried forward from previous day'":"oninput='recalculateInventoryLive()' onkeydown='inventoryEnterNext(event)'"}></td><td class="calc">${money(openingValue)}</td><td><input id="reg_purchase_${safe(x.id)}" type="number" min="0" step=".01" value="${num(entry.purchase)}" oninput="recalculateInventoryLive()" onchange="autoSaveInventoryCell('${safe(x.id)}')" onkeydown="inventoryEnterNext(event)"></td><td><input id="reg_sale_${safe(x.id)}" type="number" min="0" step=".01" value="${num(entry.sale)}" oninput="recalculateInventoryLive()" onchange="autoSaveInventoryCell('${safe(x.id)}')" onkeydown="inventoryEnterNext(event)"></td><td class="calc">${money(saleValue)}</td><td class="calc">${closing}</td><td class="value">${money(stockValue)}</td><td class="value">${money(profit)}</td></tr>`);
-  });
-  if(beer.length)B.push(`<tr class="inventory-subtotal-row"><td colspan="2">TOTAL BEER</td><td>${bt.o}</td><td>${money(bt.ov)}</td><td>${bt.p}</td><td>${bt.s}</td><td>${money(bt.sv)}</td><td>${bt.c}</td><td>${money(bt.cv)}</td><td>${money(bt.profit)}</td></tr>`);
-  $("beerInventoryRows").innerHTML=B.join("")||'<tr><td colspan="10" class="empty">No beer brands found.</td></tr>';
-  attachInventoryDrag("liquorInventoryRows","liquor");
-  attachInventoryDrag("beerInventoryRows","beer");
-  recalculateInventoryLive();renderHiddenInventoryBrands();
-  $("stockSummary").textContent=`As on ${$("inventoryDate").value||STOCK_START_DATE} · Liquor opening ${grand.opening} · Liquor purchase ${grand.purchase} · Liquor sale ${grand.sale} · Beer closing ${bt.c} · Beer stock value ${money(bt.cv)}`;
-}
-function applyOfficePdfStyle(doc,title){
-  doc.setProperties({title:title||"Abhishek Composite POS Report",subject:"Business report",author:"Abhishek Composite POS",creator:"Abhishek Composite POS"});
-  doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(35,45,58);doc.setDrawColor(190,198,208);doc.setLineWidth(0.2);
-}
-function officePdfNumber(value){
-  return "Rs. "+(Number(value)||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
-}
-
-function downloadActiveInventoryReport(){
- if(!window.jspdf?.jsPDF){alert("PDF library load nahi hui. Internet connection check karein.");return;}
- const date=$("inventoryDate")?.value||STOCK_START_DATE;
- const category=$("cat")?.value||"all";
- const search=($("search")?.value||"").trim().toLowerCase();
- const visibility=$("inventoryVisibilityMode")?.value||"active";
- const hidden=getHiddenInventoryIds();
- const active=products.filter(p=>{
-  if(hidden.has(String(p.id)))return false;
-  const cat=String(p.category||"").toLowerCase();
-  if(category!=="all"&&cat!==category)return false;
-  if(!(`${p.brand_name||""} ${p.size||""}`).toLowerCase().includes(search))return false;
-  return visibility==="full"||inventoryProductHasActivity(p);
- });
- if(!active.length){alert("Selected date par stock, purchase, sale ya balance wala product nahi hai.");return;}
- const {jsPDF}=window.jspdf;
- const doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4",compress:true});
- applyOfficePdfStyle(doc,"Inventory Stock Report");
- const margin=9,pageW=297;
- doc.setFillColor(13,39,65);doc.rect(0,0,pageW,23,"F");
- doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(14);
- doc.text("ABHISHEK COMPOSITE - ACTIVE INVENTORY REPORT",margin,10);
- doc.setFont("helvetica","normal");doc.setFontSize(8);
- doc.text("Inventory date: "+date+" | "+(inventoryDateHasBeenSaved?"Only active products shown for this saved date":"New / unsaved date: full brand catalogue shown"),margin,17);
- let y=30;
- const drawHeader=()=>{
-  doc.setFillColor(225,236,247);doc.rect(margin,y,279,8,"F");
-  doc.setTextColor(20,45,70);doc.setFont("helvetica","bold");doc.setFontSize(7);
-  const xs=[margin+1,margin+68,margin+105,margin+139,margin+173,margin+207,margin+241];
-  ["BRAND / SIZE","OPENING","PURCHASE","TOTAL","SALE","BALANCE","MRP / BOTTLE"].forEach((t,i)=>doc.text(t,xs[i],y+5.2));
-  y+=8;doc.setFont("helvetica","normal");
- };
- const row=(vals)=>{
-  if(y>193){doc.addPage();y=14;drawHeader();}
-  const xs=[margin+1,margin+68,margin+105,margin+139,margin+173,margin+207,margin+241];
-  doc.setFontSize(7);doc.setTextColor(25,45,65);
-  vals.forEach((v,i)=>doc.text(String(v),xs[i],y+5));
-  doc.setDrawColor(220,226,232);doc.line(margin,y+7,margin+279,y+7);y+=7;
- };
- drawHeader();
- const liquorGroups=orderedBrandGroups(active.filter(p=>String(p.category).toLowerCase()==="liquor"));
- for(const g of liquorGroups){
-  const map=[null,null,null,null];g.products.forEach(p=>{const k=sizeIndex(p.size);if(k>=0)map[k]=p;});
-  for(let k=0;k<4;k++){
-   const p=map[k];if(!p||!inventoryProductHasActivity(p))continue;
-   const id=String(p.id),opening=num(inventoryOpeningForDate[id]??p.opening_stock),purchase=num(inventoryPurchased[id]),sale=num(inventorySold[id]),total=opening+purchase,balance=total-sale;
-   row([`${g.name} ${p.size||""}`,opening,purchase,total,sale,balance,money(inventoryRate(p).mrp)]);
-  }
- }
- const beerRows=orderedBeerProducts(active.filter(p=>String(p.category).toLowerCase()==="beer"));
- for(const p of beerRows){
-  const id=String(p.id),opening=num(inventoryOpeningForDate[id]??p.opening_stock),purchase=num(inventoryPurchased[id]),sale=num(inventorySold[id]),total=opening+purchase,balance=total-sale;
-  row([`${cleanBeerBrandName(p.brand_name)} ${p.size||""}`.trim(),opening,purchase,total,sale,balance,money(inventoryRate(p).mrp)]);
- }
- const other=active.filter(p=>!["liquor","beer"].includes(String(p.category).toLowerCase()));
- for(const p of other){
-  const id=String(p.id),opening=num(inventoryOpeningForDate[id]??p.opening_stock),purchase=num(inventoryPurchased[id]),sale=num(inventorySold[id]),total=opening+purchase,balance=total-sale;
-  row([`${p.brand_name||"Product"} ${p.size||""}`.trim(),opening,purchase,total,sale,balance,money(inventoryRate(p).mrp)]);
- }
- doc.setFontSize(7);doc.setTextColor(100,110,120);
- if(y>195){doc.addPage();y=15;}
- doc.text((inventoryDateHasBeenSaved?"Zero-activity products hidden for this saved date only. ":"Full catalogue shown because this date has not been finalized. ")+"No stock or sales records were deleted or modified.",margin,202);
- doc.save("Abhishek-Composite-Active-Inventory-"+date+".pdf");
-}
-
 function recalculateInventoryLive(){
   const current={};
   for(const p of products){
@@ -1503,7 +1230,7 @@ function inventoryEnterNext(event){
   }
   if(target){target.focus();target.select();}
 }
-const inventoryCellSaveLocks=new Set();
+const inventoryCellSaveLocks=new Map();
 async function autoSaveInventoryCell(productId){
   const id=String(productId),p=products.find(x=>String(x.id)===id);
   if(!p||!db||!user)return;
@@ -1515,8 +1242,11 @@ async function autoSaveInventoryCell(productId){
     alert("Purchase/Sale quantity valid zero ya positive number honi chahiye: "+p.brand_name+" "+(p.size||""));
     return;
   }
-  if(inventoryCellSaveLocks.has(id))return;
-  inventoryCellSaveLocks.add(id);
+  const previousSave=inventoryCellSaveLocks.get(id)||Promise.resolve();
+  let releaseSave;
+  const queuedSave=new Promise(resolve=>{releaseSave=resolve;});
+  inventoryCellSaveLocks.set(id,previousSave.then(()=>queuedSave));
+  await previousSave;
   const status=$("inventoryDateStatus");
   try{
     if(status)status.textContent="Saving "+p.brand_name+" "+(p.size||"")+"…";
@@ -1547,7 +1277,8 @@ async function autoSaveInventoryCell(productId){
     alert("Entry auto-save nahi hui: "+msg);
     console.error("Inventory cell auto-save failed",e);
   }finally{
-    inventoryCellSaveLocks.delete(id);
+    releaseSave();
+    if(inventoryCellSaveLocks.get(id)===queuedSave)inventoryCellSaveLocks.delete(id);
   }
 }
 
