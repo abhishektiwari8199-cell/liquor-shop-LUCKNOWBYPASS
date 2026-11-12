@@ -2335,6 +2335,9 @@ async function loadInventoryDayCounter(){
   $("dcPresentRokad").value=Number(nightRow?.rokad_received||0).toFixed(2);
   $("dcCashReceived").value=Number(summary?.cash_received ?? nightRow?.cash_received ?? 0).toFixed(2);
   $("dcOnlineReceived").value=Number(summary?.online_received ?? nightRow?.online_received ?? 0).toFixed(2);
+  // Keep the top KPI cards in sync with the actual cash/online amounts entered below.
+  $("dcCashSale").textContent=money(num($("dcCashReceived").value));
+  $("dcOnlineSale").textContent=money(num($("dcOnlineReceived").value));
   $("dcExpenseAmount").value=summary?.expense_amount??0;
   $("dcExpenseNote").value=summary?.expense_note??"";
   $("dcExpenseTotal").textContent=money(summary?.expense_amount||0);
@@ -2356,6 +2359,7 @@ async function saveInventoryDayCounter(){
  cash_received:cash,online_received:online,expense_amount:expense,expense_note:note};
  const {error}=await db.from("inventory_day_summary").upsert(row,{onConflict:"user_id,record_date,category"});
  if(error){setMsg("dcStatus","Save error: "+error.message);return}
+ $("dcCashSale").textContent=money(cash);$("dcOnlineSale").textContent=money(online);
  // Keep department-wise Rokad and cash in the existing department cash table too,
  // so Daybook and older Night Cash reports read the same saved Inventory entry.
  const {error:nightSaveError}=await db.from("night_cash_received").upsert({user_id:user.id,record_date:date,category,cash_received:cash,online_received:online,rokad_received:rokad,received_by:"Inventory",received_by_name:"Inventory Entry"},{onConflict:"user_id,record_date,category"});
