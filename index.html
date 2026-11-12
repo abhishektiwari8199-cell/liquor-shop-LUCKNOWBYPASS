@@ -1722,7 +1722,13 @@ function recalculateInventoryLive(){
     vals.v.forEach((n,k)=>{const cell=cells[25+k];if(cell)cell.textContent=money(n);});
   });
   const subtotal=$("liquorInventoryRows")?.querySelector(".liquor-total-row");
-  if(subtotal){let c=1;["o","p","t","s"].forEach(key=>totals[key].forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=fmtQty(n);}));totals.sc.forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=money(n);});totals.b.forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=fmtQty(n);});totals.v.forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=money(n);});}
+  if(subtotal){
+    let c=1;
+    ["o","p","t","s"].forEach(key=>totals[key].forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=fmtQty(n);}));
+    totals.sc.forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=money(n);});
+    totals.b.forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=fmtQty(n);});
+    totals.v.forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=money(n);});
+  }
   let beerTotals={o:0,ov:0,p:0,s:0,sv:0,c:0,cv:0,profit:0};
   const visibleBeer=orderedBeerProducts(products.filter(x=>String(x.category).toLowerCase()==="beer"&&(($("cat")?.value||"all")==="all"||$("cat").value==="beer")&&(`${x.brand_name||""} ${x.size||""}`).toLowerCase().includes(($("search")?.value||"").toLowerCase())));
   visibleBeer.forEach((x,idx)=>{
@@ -1733,7 +1739,8 @@ function recalculateInventoryLive(){
   const beerSubtotal=$("beerInventoryRows")?.querySelector(".inventory-subtotal-row");
   if(beerSubtotal){const a=[fmtQty(beerTotals.o),money(beerTotals.ov),fmtQty(beerTotals.p),fmtQty(beerTotals.s),money(beerTotals.sv),fmtQty(beerTotals.c),money(beerTotals.cv),money(beerTotals.profit)];a.forEach((v,i)=>{if(beerSubtotal.cells[i+1])beerSubtotal.cells[i+1].textContent=v;});}
   const liquorSum=Object.fromEntries(["opening","purchase","sale","balance"].map(k=>[k,products.filter(x=>String(x.category).toLowerCase()==="liquor").reduce((a,x)=>a+(current[String(x.id)]?.[k]||0),0)]));
-  $("stockSummary").textContent=`As on ${$("inventoryDate").value||STOCK_START_DATE} · Liquor opening ${fmtQty(liquorSum.opening)} · Liquor purchase ${fmtQty(liquorSum.purchase)} · Liquor sale ${fmtQty(liquorSum.sale)} · Beer closing ${fmtQty(beerTotals.c)} · Beer stock value ${money(beerTotals.cv)}`;
+  const liquorSaleValue=products.filter(x=>String(x.category).toLowerCase()==="liquor").reduce((a,x)=>a+(current[String(x.id)]?.saleValue||0),0);
+  $("stockSummary").textContent=`As on ${$("inventoryDate").value||STOCK_START_DATE} · Liquor opening ${fmtQty(liquorSum.opening)} · Liquor purchase ${fmtQty(liquorSum.purchase)} · Liquor sale ${fmtQty(liquorSum.sale)} · Liquor Sale Calculation ${money(liquorSaleValue)} · Beer closing ${fmtQty(beerTotals.c)} · Beer stock value ${money(beerTotals.cv)}`;
 }
 function fmtQty(v){return Number(v||0).toLocaleString("en-IN",{maximumFractionDigits:2});}
 
@@ -1800,7 +1807,27 @@ async function saveFinalInventory(button){
       })).then(results=>{results.forEach(({item,data})=>{item.product.opening_stock=data.opening_stock;});}));
     }
     if(movementRows.length){
-      tasks.push(db.from("inventory_register_entries").upsert(movementRows,{onConflict:"user_id,product_id,entry_date"}).then(({error})=>{if(error)throw error;}));
+      tasks.push((async()=>{
+        const {data,error}=await db.from("inventory_register_entries")
+          .upsert(movementRows,{onConflict:"user_id,product_id,entry_date"})
+          .select("user_id,product_id,entry_date,purchase_qty,sale_qty");
+        if(error)throw error;
+        const savedRows=data||[];
+        const savedIds=new Set(savedRows.map(x=>String(x.product_id)));
+        const missing=movementRows.filter(x=>!savedIds.has(String(x.product_id)));
+        if(missing.length)throw new Error(`Supabase ne ${missing.length} inventory rows return nahi ki. Save verification incomplete.`);
+        const {data:verifyRows,error:verifyError}=await db.from("inventory_register_entries")
+          .select("product_id,entry_date,purchase_qty,sale_qty")
+          .eq("user_id",user.id).eq("entry_date",date)
+          .in("product_id",movementRows.map(x=>x.product_id));
+        if(verifyError)throw verifyError;
+        const verifyMap=new Map((verifyRows||[]).map(x=>[String(x.product_id),x]));
+        const notVerified=movementRows.filter(x=>{
+          const row=verifyMap.get(String(x.product_id));
+          return !row || num(row.purchase_qty)!==num(x.purchase_qty) || num(row.sale_qty)!==num(x.sale_qty);
+        });
+        if(notVerified.length)throw new Error(`Supabase verification mein ${notVerified.length} rows match nahi hui. Data ko dobara check karein.`);
+      })());
     }
     await Promise.all(tasks);
     inventoryWriteCompleted=true;
@@ -1813,9 +1840,15 @@ async function saveFinalInventory(button){
     }
     await loadInventoryForDate();
     recalculateInventoryLive();
-    setMsg("inventoryDateStatus",saveOpening?"Opening stock, purchase aur sale quantities Supabase mein save ho gayi hain. Is saved date par zero-activity brands hide rahenge.":"Purchase aur sale quantities Supabase mein save ho gayi hain. Is saved date par zero-activity brands hide rahenge; nayi date par poori brand list dikhegi.");
-    await refresh(); if($("autoReportDate")){ $("autoReportDate").value=date; await loadDashboardAutoReport(date); } if($("dayCounterDate")){ $("dayCounterDate").value=date; await loadInventoryDayCounter(); } if($("cd")){ $("cd").value=date; await loadDailyClosing(); } if($("daybookDate")){ $("daybookDate").value=date; await loadDaybook(); }
-    alert(saveOpening?"Final Save successful: Opening Stock + Purchase + Sale Supabase mein save ho gaye.":"Final Save successful: Purchase + Sale Supabase mein save ho gaye. Opening Stock 02 Nov date par hi edit/save hota hai.");
+    setMsg("inventoryDateStatus",saveOpening?"Opening stock, purchase aur sale quantities Supabase mein save aur verify ho gayi hain.":"Purchase aur sale quantities Supabase mein save aur verify ho gayi hain.");
+    alert(saveOpening?"Final Save successful: Opening Stock + Purchase + Sale Supabase mein save aur verify ho gaye.":"Final Save successful: Purchase + Sale Supabase mein save aur verify ho gaye. Opening Stock 02 Nov date par hi edit/save hota hai.");
+    // These are secondary summaries. A failure here must not undo or misreport the verified Inventory save.
+    Promise.resolve().then(async()=>{
+      try{if($("autoReportDate")){$("autoReportDate").value=date;await loadDashboardAutoReport(date);}}catch(e){console.warn("Auto report refresh skipped:",e);}
+      try{if($("dayCounterDate")){$("dayCounterDate").value=date;await loadInventoryDayCounter();}}catch(e){console.warn("Day counter refresh skipped:",e);}
+      try{if($("cd")){$("cd").value=date;await loadDailyClosing();}}catch(e){console.warn("Daily closing refresh skipped:",e);}
+      try{if($("daybookDate")){$("daybookDate").value=date;await loadDaybook();}}catch(e){console.warn("Daybook refresh skipped:",e);}
+    });
   }catch(e){
     if(inventoryWriteCompleted){
       setMsg("inventoryDateStatus","Inventory data Supabase mein save ho gaya, lekin refresh/report load nahi ho paya: "+(e.message||String(e))+". Date reload karke saved values verify karein.");
