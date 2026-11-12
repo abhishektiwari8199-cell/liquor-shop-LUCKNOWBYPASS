@@ -1118,7 +1118,7 @@ async function loadInventoryForDate(){
     const [ph,sh,mh]=await Promise.all([
       db.from("purchase_invoices").select("id,invoice_date").gte("invoice_date",STOCK_START_DATE).lte("invoice_date",date),
       db.from("sales").select("id,sale_date").gte("sale_date",STOCK_START_DATE).lte("sale_date",date),
-      db.from("inventory_register_entries").select("product_id,entry_date,purchase_qty,sale_qty").gte("entry_date",STOCK_START_DATE).lte("entry_date",date)
+      db.from("inventory_register_entries").select("product_id,entry_date,purchase_qty,sale_qty").eq("user_id",user.id).gte("entry_date",STOCK_START_DATE).lte("entry_date",date)
     ]);
     if(ph.error||sh.error||mh.error)throw (ph.error||sh.error||mh.error);
     // A date is considered finalized only when its own inventory register rows exist.
@@ -1343,7 +1343,7 @@ function drawProducts(){
     bt.o+=opening;bt.ov+=openingValue;bt.p+=purchase;bt.s+=sale;bt.sv+=saleValue;bt.c+=closing;bt.cv+=stockValue;bt.profit+=profit;
     for(const [k,n] of Object.entries({opening,purchase,sale,available,closing,openingValue,saleValue,stockValue,profit}))grand[k]=(grand[k]||0)+n;
     const entry=inventoryManualCurrent[String(x.id)]||{};
-    B.push(`<tr data-order-key="${safe(String(x.id))}"><td><span class="inventory-drag-handle" title="Drag to reorder">⠿</span> ${idx+1}</td><td class="beer-brand">${safe(cleanBeerBrandName(x.brand_name))}${x.size?" - "+safe(x.size):""} <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='editInventoryBrand([${JSON.stringify(String(x.id))}])'>Edit name/rates</button> <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='hideInventoryBrand([${JSON.stringify(String(x.id))}])'>Hide</button></td><td><input id="opening_${safe(x.id)}" type="number" min="0" step=".01" value="${opening}" ${($("inventoryDate").value||STOCK_START_DATE)!==STOCK_START_DATE?"readonly title='Auto carried forward from previous day'":"oninput='recalculateInventoryLive()' onkeydown='inventoryEnterNext(event)'"}></td><td class="calc">${money(openingValue)}</td><td><input id="reg_purchase_${safe(x.id)}" type="number" min="0" step=".01" value="${num(entry.purchase)}" oninput="recalculateInventoryLive()" onkeydown="inventoryEnterNext(event)"></td><td><input id="reg_sale_${safe(x.id)}" type="number" min="0" step=".01" value="${num(entry.sale)}" oninput="recalculateInventoryLive()" onkeydown="inventoryEnterNext(event)"></td><td class="calc">${money(saleValue)}</td><td class="calc">${closing}</td><td class="value">${money(stockValue)}</td><td class="value">${money(profit)}</td></tr>`);
+    B.push(`<tr data-order-key="${safe(String(x.id))}"><td><span class="inventory-drag-handle" title="Drag to reorder">⠿</span> ${idx+1}</td><td class="beer-brand">${safe(cleanBeerBrandName(x.brand_name))}${x.size?" - "+safe(x.size):""} <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='editInventoryBrand([${JSON.stringify(String(x.id))}])'>Edit name/rates</button> <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='hideInventoryBrand([${JSON.stringify(String(x.id))}])'>Hide</button></td><td><input id="opening_${safe(x.id)}" type="number" min="0" step=".01" value="${opening}" ${($("inventoryDate").value||STOCK_START_DATE)!==STOCK_START_DATE?"readonly title='Auto carried forward from previous day'":"oninput='recalculateInventoryLive()' onkeydown='inventoryEnterNext(event)'"}></td><td class="calc">${money(openingValue)}</td><td><input id="reg_purchase_${safe(x.id)}" type="number" min="0" step=".01" value="${num(entry.purchase)}" oninput="recalculateInventoryLive()" onchange="autoSaveInventoryCell('${safe(x.id)}')" onkeydown="inventoryEnterNext(event)"></td><td><input id="reg_sale_${safe(x.id)}" type="number" min="0" step=".01" value="${num(entry.sale)}" oninput="recalculateInventoryLive()" onchange="autoSaveInventoryCell('${safe(x.id)}')" onkeydown="inventoryEnterNext(event)"></td><td class="calc">${money(saleValue)}</td><td class="calc">${closing}</td><td class="value">${money(stockValue)}</td><td class="value">${money(profit)}</td></tr>`);
   });
   if(beer.length)B.push(`<tr class="inventory-subtotal-row"><td colspan="2">TOTAL BEER</td><td>${bt.o}</td><td>${money(bt.ov)}</td><td>${bt.p}</td><td>${bt.s}</td><td>${money(bt.sv)}</td><td>${bt.c}</td><td>${money(bt.cv)}</td><td>${money(bt.profit)}</td></tr>`);
   $("beerInventoryRows").innerHTML=B.join("")||'<tr><td colspan="10" class="empty">No beer brands found.</td></tr>';
@@ -1503,6 +1503,54 @@ function inventoryEnterNext(event){
   }
   if(target){target.focus();target.select();}
 }
+const inventoryCellSaveLocks=new Set();
+async function autoSaveInventoryCell(productId){
+  const id=String(productId),p=products.find(x=>String(x.id)===id);
+  if(!p||!db||!user)return;
+  const date=$("inventoryDate").value||STOCK_START_DATE;
+  const purchaseEl=$("reg_purchase_"+id),saleEl=$("reg_sale_"+id);
+  if(!purchaseEl&&!saleEl)return;
+  const purchase_qty=Number(purchaseEl?.value||0),sale_qty=Number(saleEl?.value||0);
+  if(!Number.isFinite(purchase_qty)||purchase_qty<0||!Number.isFinite(sale_qty)||sale_qty<0){
+    alert("Purchase/Sale quantity valid zero ya positive number honi chahiye: "+p.brand_name+" "+(p.size||""));
+    return;
+  }
+  if(inventoryCellSaveLocks.has(id))return;
+  inventoryCellSaveLocks.add(id);
+  const status=$("inventoryDateStatus");
+  try{
+    if(status)status.textContent="Saving "+p.brand_name+" "+(p.size||"")+"…";
+    const {data:found,error:readError}=await db.from("inventory_register_entries")
+      .select("id").eq("user_id",user.id).eq("product_id",p.id).eq("entry_date",date).maybeSingle();
+    if(readError)throw readError;
+    if(found?.id){
+      const {error}=await db.from("inventory_register_entries").update({purchase_qty,sale_qty})
+        .eq("id",found.id).eq("user_id",user.id);
+      if(error)throw error;
+    }else if(purchase_qty!==0||sale_qty!==0){
+      const {error}=await db.from("inventory_register_entries").insert({
+        user_id:user.id,product_id:p.id,entry_date:date,purchase_qty,sale_qty
+      });
+      if(error)throw error;
+    }
+    const {data:check,error:checkError}=await db.from("inventory_register_entries")
+      .select("purchase_qty,sale_qty").eq("user_id",user.id).eq("product_id",p.id).eq("entry_date",date).maybeSingle();
+    if(checkError)throw checkError;
+    if((check?.purchase_qty??0)!==purchase_qty||(check?.sale_qty??0)!==sale_qty)
+      throw new Error("Saved value verification failed. Please retry Final Save.");
+    inventoryManualCurrent[id]={purchase:purchase_qty,sale:sale_qty};
+    inventoryManualTotals[id]={purchase:purchase_qty,sale:sale_qty};
+    if(status)status.textContent="Auto-saved and verified: "+p.brand_name+" "+(p.size||"")+" · "+date;
+  }catch(e){
+    const msg=e?.message||String(e);
+    if(status)status.textContent="AUTO-SAVE FAILED: "+msg+" — input screen par hi rakha hai; Final Save dobara try karein.";
+    alert("Entry auto-save nahi hui: "+msg);
+    console.error("Inventory cell auto-save failed",e);
+  }finally{
+    inventoryCellSaveLocks.delete(id);
+  }
+}
+
 async function saveFinalInventory(button){
   if(!db||!user){alert("Pehle login karein.");return;}
   const date=$("inventoryDate").value||STOCK_START_DATE;
@@ -1518,53 +1566,83 @@ async function saveFinalInventory(button){
     }
     if(purchaseEl||saleEl){
       const purchase_qty=Number(purchaseEl?.value||0),sale_qty=Number(saleEl?.value||0);
-      if(!Number.isFinite(purchase_qty)||purchase_qty<0||!Number.isFinite(sale_qty)||sale_qty<0){alert("Purchase aur sale quantity zero ya positive number honi chahiye: "+p.brand_name+" "+(p.size||""));return;}
+      if(!Number.isFinite(purchase_qty)||purchase_qty<0||!Number.isFinite(sale_qty)||sale_qty<0){
+        alert("Purchase aur sale quantity zero ya positive number honi chahiye: "+p.brand_name+" "+(p.size||""));return;
+      }
       movementRows.push({user_id:user.id,product_id:p.id,entry_date:date,purchase_qty,sale_qty});
     }
   }
   if(!openingUpdates.length&&!movementRows.length){alert("Save karne ke liye koi visible inventory input nahi mila.");return;}
   if(button){button.disabled=true;button.textContent="Saving to Supabase…";}
-  let inventoryWriteCompleted=false;
+  const status=$("inventoryDateStatus");
+  if(status)status.textContent="Saving inventory entries… please wait.";
   try{
-    const tasks=[];
-    if(openingUpdates.length){
-      tasks.push(Promise.all(openingUpdates.map(async item=>{
-        const {data,error}=await db.from("inventory_products").update({opening_stock:item.value}).eq("id",item.product.id).select("id,opening_stock").single();
-        if(error)throw error;
-        return {item,data};
-      })).then(results=>{results.forEach(({item,data})=>{item.product.opening_stock=data.opening_stock;});}));
+    // Save opening stock and date-wise movements separately so a conflict-target
+    // mismatch on the table cannot silently leave the edited brand unsaved.
+    for(const item of openingUpdates){
+      const {data,error}=await db.from("inventory_products")
+        .update({opening_stock:item.value}).eq("id",item.product.id).eq("user_id",user.id)
+        .select("id,opening_stock").single();
+      if(error)throw new Error(item.product.brand_name+": "+error.message);
+      if(!data)throw new Error(item.product.brand_name+": opening stock update returned no row.");
+      item.product.opening_stock=data.opening_stock;
     }
+
     if(movementRows.length){
-      tasks.push(db.from("inventory_register_entries").upsert(movementRows,{onConflict:"user_id,product_id,entry_date"}).then(({error})=>{if(error)throw error;}));
+      const {data:existing,error:readError}=await db.from("inventory_register_entries")
+        .select("id,product_id,purchase_qty,sale_qty")
+        .eq("user_id",user.id).eq("entry_date",date);
+      if(readError)throw readError;
+      const byProduct=new Map((existing||[]).map(row=>[String(row.product_id),row]));
+      const updates=[],inserts=[];
+      for(const row of movementRows){
+        const old=byProduct.get(String(row.product_id));
+        if(old)updates.push({id:old.id,row});
+        else if(num(row.purchase_qty)!==0||num(row.sale_qty)!==0)inserts.push(row);
+      }
+      for(const item of updates){
+        const {error}=await db.from("inventory_register_entries").update({
+          purchase_qty:item.row.purchase_qty,sale_qty:item.row.sale_qty
+        }).eq("id",item.id).eq("user_id",user.id);
+        if(error)throw error;
+      }
+      if(inserts.length){
+        const {error}=await db.from("inventory_register_entries").insert(inserts);
+        if(error)throw error;
+      }
+      // Verify the exact date/product rows before refreshing the screen.
+      const {data:verified,error:verifyError}=await db.from("inventory_register_entries")
+        .select("product_id,purchase_qty,sale_qty")
+        .eq("user_id",user.id).eq("entry_date",date);
+      if(verifyError)throw verifyError;
+      const savedMap=new Map((verified||[]).map(row=>[String(row.product_id),row]));
+      for(const row of movementRows){
+        const saved=savedMap.get(String(row.product_id));
+        if(!saved && (num(row.purchase_qty)!==0||num(row.sale_qty)!==0))
+          throw new Error("Save verification failed for product ID "+row.product_id+".");
+        if(saved && (num(saved.purchase_qty)!==num(row.purchase_qty)||num(saved.sale_qty)!==num(row.sale_qty)))
+          throw new Error("Saved quantity mismatch for product ID "+row.product_id+".");
+      }
     }
-    await Promise.all(tasks);
-    inventoryWriteCompleted=true;
-    for(const row of movementRows){
-      const id=String(row.product_id),old=inventoryManualCurrent[id]||{purchase:0,sale:0},tot=inventoryManualTotals[id]||{purchase:0,sale:0};
-      inventoryPurchased[id]=(inventoryPurchased[id]||0)-num(old.purchase)+row.purchase_qty;
-      inventorySold[id]=(inventorySold[id]||0)-num(old.sale)+row.sale_qty;
-      inventoryManualTotals[id]={purchase:num(tot.purchase)-num(old.purchase)+row.purchase_qty,sale:num(tot.sale)-num(old.sale)+row.sale_qty};
-      inventoryManualCurrent[id]={purchase:row.purchase_qty,sale:row.sale_qty};
-    }
+
     await loadInventoryForDate();
     recalculateInventoryLive();
-    setMsg("inventoryDateStatus",saveOpening?"Opening stock, purchase aur sale quantities Supabase mein save ho gayi hain. Is saved date par zero-activity brands hide rahenge.":"Purchase aur sale quantities Supabase mein save ho gayi hain. Is saved date par zero-activity brands hide rahenge; nayi date par poori brand list dikhegi.");
-    await refresh(); if($("autoReportDate")){ $("autoReportDate").value=date; await loadDashboardAutoReport(date); } if($("dayCounterDate")){ $("dayCounterDate").value=date; await loadInventoryDayCounter(); } if($("cd")){ $("cd").value=date; await loadDailyClosing(); } if($("daybookDate")){ $("daybookDate").value=date; await loadDaybook(); }
-    alert(saveOpening?"Final Save successful: Opening Stock + Purchase + Sale Supabase mein save ho gaye.":"Final Save successful: Purchase + Sale Supabase mein save ho gaye. Opening Stock 02 Nov date par hi edit/save hota hai.");
+    if(status)status.textContent="Verified: Inventory entries successfully saved for "+date+".";
+    await refresh();
+    if($("autoReportDate")){$("autoReportDate").value=date;await loadDashboardAutoReport(date);}
+    if($("dayCounterDate")){$("dayCounterDate").value=date;await loadInventoryDayCounter();}
+    if($("cd")){$("cd").value=date;await loadDailyClosing();}
+    if($("daybookDate")){$("daybookDate").value=date;await loadDaybook();}
+    alert("Save successful: Inventory entries Supabase mein save aur verify ho gayi hain.");
   }catch(e){
-    if(inventoryWriteCompleted){
-      setMsg("inventoryDateStatus","Inventory data Supabase mein save ho gaya, lekin refresh/report load nahi ho paya: "+(e.message||String(e))+". Date reload karke saved values verify karein.");
-      alert("Data Supabase mein save ho chuka hai. Sirf dashboard refresh mein issue aaya: "+(e.message||String(e))+". Date reload karke verify karein.");
-      console.error("Post-save refresh failed",e);
-    }else{
-      alert("Save error: "+(e.message||String(e))+". Supabase save request fail hui; date reload karke values verify karein.");
-      console.error("Final inventory save failed",e);
-    }
+    const message=e?.message||String(e);
+    if(status)status.textContent="SAVE FAILED — "+message+" — entries ko verify kiye bina screen reload nahi ki gayi.";
+    alert("Inventory save nahi hui: "+message);
+    console.error("Final inventory save failed",e);
   }finally{
     if(button){button.disabled=false;button.textContent="Final Save — Save All Inventory";}
   }
 }
-
 async function saveOpeningStock(button){
   const date=$("inventoryDate").value||STOCK_START_DATE;
   if(date!==STOCK_START_DATE){alert("Opening stock sirf 02 November 2026 ke opening balance ke liye enter karein. Date selector ko 02 Nov par set karke save karein.");return;}
