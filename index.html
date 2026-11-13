@@ -798,7 +798,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
    </div>
    <div class="status">Brand name, Wholesale rate aur MRP edit karke neeche **Save Changes** dabayein. Save hone par changes Supabase mein permanently update honge aur har date ki Inventory mein dikhेंगे.</div>
    <div class="section-head" style="margin:12px 0"><div><b>Brand & Rate Editor</b><p>Visible rows ke saare changes ek saath save honge.</p></div><button class="btn" id="fl2SaveAllRatesBtn" type="button" aria-disabled="false" onclick="fl2SaveAllRates(this)">Save to Supabase</button></div>
-   <div class="table-wrap"><table><thead><tr><th>Brand Name (Editable)</th><th>Size</th><th>Qty</th><th>Wholesale / Bottle</th><th>Petty Wholesale</th><th>MRP / Bottle</th><th>Petty MRP</th></tr></thead><tbody id="fl2RateRows"><tr><td colspan="7" class="empty">Loading brands…</td></tr></tbody></table></div>
+   <div class="table-wrap"><table><thead><tr><th>Brand Name (Editable)</th><th>Size</th><th>Qty</th><th>Wholesale / Bottle</th><th>Petty Wholesale</th><th>MRP / Bottle (Editable)</th><th>Petty MRP</th></tr></thead><tbody id="fl2RateRows"><tr><td colspan="7" class="empty">Loading brands…</td></tr></tbody></table></div>
    <div class="status" id="fl2RateMsg">Changes abhi save nahi hue hain. Edit karne ke baad Save Changes dabayein.</div>
   </div>
   <div id="fl2ReportPanel" class="panel glass" style="display:none">
@@ -1396,7 +1396,12 @@ function drawProducts(){
    :(liquor.length+beer.length+other.length)+" BRANDS SHOWN · FULL BRAND LIST FOR "+($("inventoryDate").value||STOCK_START_DATE);
   $("liquorInventoryWrap").style.display=cat==="beer"?"none":"block";
   $("beerInventoryWrap").style.display=cat==="liquor"?"none":"block";
+  // Summary totals always use the complete catalogue, independent of Active / Full visibility.
   const grand={opening:0,purchase:0,total:0,sale:0,balance:0,value:0};
+  for(const product of products){
+    const id=String(product.id),opening=num(inventoryOpeningForDate[id]??product.opening_stock),purchase=num(inventoryPurchased[id]),sale=num(inventorySold[id]);
+    grand.opening+=opening;grand.purchase+=purchase;grand.total+=opening+purchase;grand.sale+=sale;grand.balance+=opening+purchase-sale;grand.value+=(opening+purchase-sale)*inventoryRate(product).wholesale_price;
+  }
   const L=[],sizes=["750","375","180","90"];
   const fmt=a=>a.map(v=>`<td class="calc">${Number(v||0).toLocaleString("en-IN",{maximumFractionDigits:2})}</td>`).join("");
   const fmtM=a=>a.map(v=>`<td class="value">${money(v)}</td>`).join("");
@@ -1528,7 +1533,8 @@ function recalculateInventoryLive(){
     map.forEach((x,k)=>{const z=x?current[String(x.id)]:null;vals.o[k]=z?.opening||0;vals.p[k]=z?.purchase||0;vals.t[k]=z?.total||0;vals.s[k]=z?.sale||0;vals.sc[k]=z?.saleValue||0;vals.b[k]=z?.balance||0;vals.v[k]=z?.stockValue||0;});
     ["o","p","t","s","sc","b","v"].forEach(key=>vals[key].forEach((n,k)=>totals[key][k]+=n));
   });
-  const visibleGroups=orderedBrandGroups(products.filter(x=>String(x.category).toLowerCase()==="liquor"&&(`${x.brand_name||""} ${x.size||""}`).toLowerCase().includes(($("search")?.value||"").toLowerCase())));
+  const activeOnly=($("inventoryVisibilityMode")?.value||"full")==="active";
+  const visibleGroups=orderedBrandGroups(products.filter(x=>String(x.category).toLowerCase()==="liquor"&&(`${x.brand_name||""} ${x.size||""}`).toLowerCase().includes(($("search")?.value||"").toLowerCase()))).filter(g=>!activeOnly||inventoryLiquorGroupHasActivity(g));
   visibleGroups.forEach((g,idx)=>{
     const tr=$("liquorInventoryRows")?.rows[idx];if(!tr)return;const cells=tr.cells;
     const map=[null,null,null,null];g.products.forEach(x=>{const k=sizeIndex(x.size);if(k>=0)map[k]=x;});
@@ -1541,7 +1547,7 @@ function recalculateInventoryLive(){
   const subtotal=$("liquorInventoryRows")?.querySelector(".liquor-total-row");
   if(subtotal){let c=1;["o","p","t","s"].forEach(key=>totals[key].forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=fmtQty(n);}));totals.sc.forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=money(n);});totals.b.forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=fmtQty(n);});totals.v.forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=money(n);});}
   let beerTotals={o:0,ov:0,p:0,s:0,sv:0,c:0,cv:0,profit:0};
-  const visibleBeer=orderedBeerProducts(products.filter(x=>String(x.category).toLowerCase()==="beer"&&(($("cat")?.value||"all")==="all"||$("cat").value==="beer")&&(`${x.brand_name||""} ${x.size||""}`).toLowerCase().includes(($("search")?.value||"").toLowerCase())));
+  const visibleBeer=orderedBeerProducts(products.filter(x=>String(x.category).toLowerCase()==="beer"&&(($("cat")?.value||"all")==="all"||$("cat").value==="beer")&&(`${x.brand_name||""} ${x.size||""}`).toLowerCase().includes(($("search")?.value||"").toLowerCase()))).filter(x=>!activeOnly||inventoryProductHasActivity(x));
   visibleBeer.forEach((x,idx)=>{
     const z=current[String(x.id)];if(!z)return;const tr=$("beerInventoryRows")?.rows[idx];
     if(tr){if(tr.cells[3])tr.cells[3].textContent=money(z.openingValue);if(tr.cells[6])tr.cells[6].textContent=money(z.saleValue);if(tr.cells[7])tr.cells[7].textContent=fmtQty(z.balance);if(tr.cells[8])tr.cells[8].textContent=money(z.stockValue);if(tr.cells[9])tr.cells[9].textContent=money(z.profit);}
@@ -2230,8 +2236,13 @@ async function loadInventoryExpenses(){
   if(error)throw error;
   const rows=data||[];
   $("invExpenseRows").innerHTML=rows.map(x=>`<tr><td>${safe(x.expense_name)}</td><td>${String(x.category||"").toLowerCase()==="beer"?"Beer":"Liquor"}</td><td style="text-align:right">${money(x.amount)}</td><td><button class="btn danger" type="button" onclick="deleteInventoryExpense('${x.id}')">Delete</button></td></tr>`).join("")||'<tr><td colspan="4" class="empty">No expenses for this department on this date.</td></tr>';
-  $("invExpenseTotal").textContent=money(rows.reduce((sum,x)=>sum+num(x.amount),0));
-  setMsg("invExpenseStatus",`${rows.length} expense line(s) · ${date} · Description Daybook mein bhi visible.`);
+  const expenseTotal=rows.reduce((sum,x)=>sum+num(x.amount),0);
+  $("invExpenseTotal").textContent=money(expenseTotal);
+  if($("dcExpenseAmount"))$("dcExpenseAmount").value=expenseTotal.toFixed(2);
+  if($("dcExpenseTotal"))$("dcExpenseTotal").textContent=money(expenseTotal);
+  if(typeof dayCounterDiff==="function")dayCounterDiff();
+  if(typeof dayCounterCashPreview==="function")dayCounterCashPreview();
+  setMsg("invExpenseStatus",`${rows.length} expense line(s) · ${date} · Total automatically added to Daily Counter expenses.`);
  }catch(e){setMsg("invExpenseStatus","Expense load error: "+(e.message||String(e)));}
 }
 async function addInventoryExpense(button){
@@ -2444,13 +2455,18 @@ async function loadInventoryDayCounter(){
   const {data:nightRow,error:nightError}=await db.from("night_cash_received").select("cash_received,online_received,rokad_received").eq("user_id",user.id).eq("record_date",date).eq("category",category).maybeSingle();
   if(nightError)throw nightError;
   // Night Cash Received is the source of truth for Inventory cash/online/rokad.
-  $("dcPresentRokad").value=Number(nightRow?.rokad_received||0).toFixed(2);
-  $("dcCashReceived").value=Number(nightRow?.cash_received||0).toFixed(2);
-  $("dcOnlineReceived").value=Number(nightRow?.online_received||0).toFixed(2);
-  ["dcPresentRokad","dcCashReceived","dcOnlineReceived"].forEach(id=>{if($(id))$(id).readOnly=true;});
-  $("dcExpenseAmount").value=summary?.expense_amount??0;
+  $("dcPresentRokad").value=Number(summary?.rokad_received??nightRow?.rokad_received??0).toFixed(2);
+  $("dcCashReceived").value=Number(summary?.cash_received??nightRow?.cash_received??0).toFixed(2);
+  $("dcOnlineReceived").value=Number(summary?.online_received??nightRow?.online_received??0).toFixed(2);
+  // These are manual reconciliation inputs; never lock them after loading Night Cash data.
+  ["dcPresentRokad","dcCashReceived","dcOnlineReceived"].forEach(id=>{if($(id))$(id).readOnly=false;});
+  const {data:expenseRows,error:expenseError}=await db.from("daily_expenses").select("amount").eq("user_id",user.id).eq("expense_date",date).eq("category",category);
+  if(expenseError)throw expenseError;
+  const itemizedExpenseTotal=(expenseRows||[]).reduce((sum,row)=>sum+num(row.amount),0);
+  const counterExpenseTotal=(expenseRows||[]).length?itemizedExpenseTotal:num(summary?.expense_amount||0);
+  $("dcExpenseAmount").value=counterExpenseTotal.toFixed(2);
   $("dcExpenseNote").value=summary?.expense_note??"";
-  $("dcExpenseTotal").textContent=money(summary?.expense_amount||0);
+  $("dcExpenseTotal").textContent=money(counterExpenseTotal);
   dayCounterDiff();dayCounterCashPreview();
   setMsg("dcStatus",`Loaded ${category} counter for ${date}. Night Cash Received se Cash, Online aur Rokad automatic fetch hue hain; yahan sirf Sale/Expense reconciliation update karein. Inventory sales ₹${money(manualTotal)} are included.`);
  }catch(e){setMsg("dcStatus","Counter load error: "+(e.message||String(e)))}
@@ -2932,7 +2948,7 @@ async function fl2SaveAllRates(button){
   if(failures.length){
    notify(`${saved} saved; ${failures.length} failed. ${failures.join(" | ")}`,false);
   }else{
-   notify(`✓ SAVE TO SUPABASE CONFIRMED — ${saved} product(s) updated successfully.`,true);
+   notify(`✓ SAVE TO SUPABASE CONFIRMED — ${saved} product(s) updated successfully. MRP and Wholesale rates will appear in Inventory for every selected date.`,true);
    drawProducts();fillBrandFilters();fl2DrawWholesale();
   }
  }catch(e){
