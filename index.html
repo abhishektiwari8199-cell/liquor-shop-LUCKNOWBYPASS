@@ -1350,10 +1350,36 @@ function orderedProductsByOwnerSequence(rows){
 const HIDDEN_INVENTORY_KEY='abhishek_hidden_inventory_product_ids_v1';
 function getHiddenInventoryIds(){try{return new Set(JSON.parse(localStorage.getItem(HIDDEN_INVENTORY_KEY)||'[]').map(String))}catch(e){return new Set()}}
 function saveHiddenInventoryIds(ids){localStorage.setItem(HIDDEN_INVENTORY_KEY,JSON.stringify([...ids]));}
-function hideInventoryBrand(ids,label="Brand"){const hidden=getHiddenInventoryIds();ids.forEach(id=>hidden.add(String(id)));saveHiddenInventoryIds(hidden);drawProducts();setMsg('dcStatus',`${label} hidden from this screen. Database records are unchanged.`)}
-function restoreInventoryBrand(id){const hidden=getHiddenInventoryIds();hidden.delete(String(id));saveHiddenInventoryIds(hidden);drawProducts()}
+function getInventoryBrandProductIds(category,brandName){
+ const key=brandKey(brandName),cat=String(category||"").toLowerCase();
+ return products.filter(p=>String(p.category||"").toLowerCase()===cat&&brandKey(p.brand_name)===key).map(p=>String(p.id));
+}
+function hideInventoryBrand(ids,label="Brand"){
+ const hidden=getHiddenInventoryIds();
+ (Array.isArray(ids)?ids:[ids]).filter(id=>id!==null&&id!==undefined).forEach(id=>hidden.add(String(id)));
+ saveHiddenInventoryIds(hidden);drawProducts();
+ setMsg('dcStatus',`${label} hidden from this screen. Database records are unchanged.`);
+}
+function restoreInventoryBrand(ids){
+ const hidden=getHiddenInventoryIds();
+ (Array.isArray(ids)?ids:[ids]).forEach(id=>hidden.delete(String(id)));
+ saveHiddenInventoryIds(hidden);drawProducts();
+}
 function restoreAllInventoryBrands(){saveHiddenInventoryIds(new Set());drawProducts()}
-function renderHiddenInventoryBrands(){const hidden=getHiddenInventoryIds(),items=products.filter(p=>hidden.has(String(p.id)));const el=$('hiddenBrandsList');if(!el)return;el.innerHTML=items.length?items.map(p=>`<span style="display:inline-flex;align-items:center;gap:7px;margin:4px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#173b63">${safe(cleanBeerBrandName(p.brand_name))}${p.size?' '+safe(p.size):''}<button class="btn secondary" style="padding:4px 7px" onclick="restoreInventoryBrand('${String(p.id)}')">Restore</button></span>`).join(''):'No hidden brands.'}
+function renderHiddenInventoryBrands(){
+ const hidden=getHiddenInventoryIds(),el=$('hiddenBrandsList');if(!el)return;
+ const hiddenProducts=products.filter(p=>hidden.has(String(p.id))),groups=new Map();
+ hiddenProducts.forEach(p=>{
+  const category=String(p.category||"").toLowerCase(),key=category+"|"+brandKey(p.brand_name);
+  if(!groups.has(key))groups.set(key,{category,name:p.brand_name||"Unnamed brand"});
+ });
+ const items=[...groups.values()];
+ el.innerHTML=items.length?items.map(g=>{
+  const ids=getInventoryBrandProductIds(g.category,g.name);
+  const label=(g.category==="liquor"?"LIQUOR · ":"BEER · ")+safe(cleanBeerBrandName(g.name));
+  return `<span style="display:inline-flex;align-items:center;gap:7px;flex-wrap:wrap;margin:4px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#173b63">${label}<button class="btn secondary" style="padding:4px 7px" onclick='restoreInventoryBrand(${JSON.stringify(ids)})'>Restore full brand</button></span>`;
+ }).join(""):"No hidden brands.";
+}
 
 // Display-only activity rule. Existing products, stock movements and saved entries remain untouched.
 function inventoryProductHasActivity(p){
@@ -1401,8 +1427,9 @@ function drawProducts(){
   const fmt=a=>a.map(v=>`<td class="calc">${Number(v||0).toLocaleString("en-IN",{maximumFractionDigits:2})}</td>`).join("");
   const fmtM=a=>a.map(v=>`<td class="value">${money(v)}</td>`).join("");
   const liqTotals={o:[0,0,0,0],p:[0,0,0,0],t:[0,0,0,0],s:[0,0,0,0],sc:[0,0,0,0],b:[0,0,0,0],v:[0,0,0,0]};
-  // Subtotals are calculated from EVERY liquor brand, not only the currently visible search results.
-  const allLiquorGroups=orderedBrandGroups(products.filter(x=>String(x.category).toLowerCase()==="liquor"));
+  // Subtotal columns are synchronized with the exact visible liquor rows.
+  // Hidden, filtered and inactive brands contribute nothing to the visible subtotal.
+  const allLiquorGroups=liquor;
   for(const g of allLiquorGroups){
     const map=[null,null,null,null];g.products.forEach(x=>{const k=sizeIndex(x.size);if(k>=0)map[k]=x;});
     const o=map.map(x=>x?num(inventoryOpeningForDate[String(x.id)]??x.opening_stock):0),p=map.map(x=>x?num(inventoryPurchased[String(x.id)]):0),sale=map.map(x=>x?num(inventorySold[String(x.id)]):0),t=o.map((v,k)=>v+p[k]),saleCalc=sale.map((qty,k)=>qty*num(map[k]?inventoryRate(map[k]).mrp:0)),b=t.map((v,k)=>v-sale[k]),v=b.map((x,k)=>x*num(map[k]?inventoryRate(map[k]).wholesale_price:0));
@@ -1413,9 +1440,9 @@ function drawProducts(){
     const o=map.map(p=>p?num(inventoryOpeningForDate[String(p.id)]??p.opening_stock):0),p=map.map(x=>x?num(inventoryPurchased[String(x.id)]):0),s=map.map(x=>x?num(inventorySold[String(x.id)]):0),t=o.map((v,k)=>v+p[k]),saleCalc=s.map((qty,k)=>qty*num(map[k]?inventoryRate(map[k]).mrp:0)),b=t.map((v,k)=>v-s[k]),v=b.map((x,k)=>x*num(map[k]?inventoryRate(map[k]).wholesale_price:0));
     for(let k=0;k<4;k++){grand.opening+=o[k];grand.purchase+=p[k];grand.total+=t[k];grand.sale+=s[k];grand.balance+=b[k];grand.value+=v[k];}
     const inputs=(arr,prefix,label)=>map.map((x,k)=>`<td>${x?`<input aria-label="${safe(g.name)} ${sizes[k]} ${label}" id="${prefix}_${safe(x.id)}" type="number" min="0" step=".01" value="${arr[k]}" ${prefix==="opening"&&($("inventoryDate").value||STOCK_START_DATE)!==STOCK_START_DATE?"readonly title='Auto carried forward from previous day'":"oninput='recalculateInventoryLive()' onkeydown='inventoryEnterNext(event)'"}>`:"—"}</td>`).join("");
-    L.push(`<tr data-order-key="${safe(brandKey(g.name))}"><td><span class="inventory-drag-handle" title="Drag to reorder">⠿</span> ${idx+1}. ${safe(g.name)} <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='editInventoryBrand(${JSON.stringify(g.products.map(x=>String(x.id)))})'>Edit name/rates</button> <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='hideInventoryBrand(${JSON.stringify(g.products.map(x=>String(x.id)))})'>Hide</button></td>${inputs(o,"opening","opening stock")}${inputs(map.map(x=>x?(inventoryManualCurrent[String(x.id)]?.purchase||0):0),"reg_purchase","purchase")}${fmt(t)}${inputs(map.map(x=>x?(inventoryManualCurrent[String(x.id)]?.sale||0):0),"reg_sale","sale")}${fmtM(saleCalc)}${fmt(b)}${fmtM(v)}</tr>`);
+    L.push(`<tr data-order-key="${safe(brandKey(g.name))}"><td><span class="inventory-drag-handle" title="Drag to reorder">⠿</span> ${idx+1}. ${safe(g.name)} <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='editInventoryBrand(${JSON.stringify(g.products.map(x=>String(x.id)))})'>Edit name/rates</button> <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='hideInventoryBrand(getInventoryBrandProductIds("liquor",${JSON.stringify(g.name)}),${JSON.stringify(g.name)})'>Hide</button></td>${inputs(o,"opening","opening stock")}${inputs(map.map(x=>x?(inventoryManualCurrent[String(x.id)]?.purchase||0):0),"reg_purchase","purchase")}${fmt(t)}${inputs(map.map(x=>x?(inventoryManualCurrent[String(x.id)]?.sale||0):0),"reg_sale","sale")}${fmtM(saleCalc)}${fmt(b)}${fmtM(v)}</tr>`);
   });
-  if(allLiquorGroups.length)L.push(`<tr class="inventory-subtotal-row liquor-total-row"><td>TOTAL ALL LIQUOR BRANDS</td>${fmt(liqTotals.o)}${fmt(liqTotals.p)}${fmt(liqTotals.t)}${fmt(liqTotals.s)}${fmtM(liqTotals.sc)}${fmt(liqTotals.b)}${fmtM(liqTotals.v)}</tr>`);
+  if(allLiquorGroups.length)L.push(`<tr class="inventory-subtotal-row liquor-total-row"><td>TOTAL VISIBLE LIQUOR BRANDS</td>${fmt(liqTotals.o)}${fmt(liqTotals.p)}${fmt(liqTotals.t)}${fmt(liqTotals.s)}${fmtM(liqTotals.sc)}${fmt(liqTotals.b)}${fmtM(liqTotals.v)}</tr>`);
   $("liquorInventoryRows").innerHTML=L.join("")||'<tr><td colspan="29" class="empty">No liquor brands found.</td></tr>';
   const B=[];let bt={o:0,ov:0,p:0,s:0,sv:0,c:0,cv:0,profit:0};
   beer.forEach((x,idx)=>{
@@ -1424,7 +1451,7 @@ function drawProducts(){
     bt.o+=opening;bt.ov+=openingValue;bt.p+=purchase;bt.s+=sale;bt.sv+=saleValue;bt.c+=closing;bt.cv+=stockValue;bt.profit+=profit;
     for(const [k,n] of Object.entries({opening,purchase,sale,available,closing,openingValue,saleValue,stockValue,profit}))grand[k]=(grand[k]||0)+n;
     const entry=inventoryManualCurrent[String(x.id)]||{};
-    B.push(`<tr data-order-key="${safe(String(x.id))}"><td><span class="inventory-drag-handle" title="Drag to reorder">⠿</span> ${idx+1}</td><td class="beer-brand">${safe(cleanBeerBrandName(x.brand_name))}${x.size?" - "+safe(x.size):""} <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='editInventoryBrand([${JSON.stringify(String(x.id))}])'>Edit name/rates</button> <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='hideInventoryBrand([${JSON.stringify(String(x.id))}])'>Hide</button></td><td><input id="opening_${safe(x.id)}" type="number" min="0" step=".01" value="${opening}" ${($("inventoryDate").value||STOCK_START_DATE)!==STOCK_START_DATE?"readonly title='Auto carried forward from previous day'":"oninput='recalculateInventoryLive()' onkeydown='inventoryEnterNext(event)'"}></td><td class="calc">${money(openingValue)}</td><td><input id="reg_purchase_${safe(x.id)}" type="number" min="0" step=".01" value="${num(entry.purchase)}" oninput="recalculateInventoryLive()" onkeydown="inventoryEnterNext(event)"></td><td><input id="reg_sale_${safe(x.id)}" type="number" min="0" step=".01" value="${num(entry.sale)}" oninput="recalculateInventoryLive()" onkeydown="inventoryEnterNext(event)"></td><td class="calc">${money(saleValue)}</td><td class="calc">${closing}</td><td class="value">${money(stockValue)}</td><td class="value">${money(profit)}</td></tr>`);
+    B.push(`<tr data-order-key="${safe(String(x.id))}"><td><span class="inventory-drag-handle" title="Drag to reorder">⠿</span> ${idx+1}</td><td class="beer-brand">${safe(cleanBeerBrandName(x.brand_name))}${x.size?" - "+safe(x.size):""} <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='editInventoryBrand([${JSON.stringify(String(x.id))}])'>Edit name/rates</button> <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='hideInventoryBrand(getInventoryBrandProductIds("beer",${JSON.stringify(x.brand_name)}),${JSON.stringify(x.brand_name)})'>Hide</button></td><td><input id="opening_${safe(x.id)}" type="number" min="0" step=".01" value="${opening}" ${($("inventoryDate").value||STOCK_START_DATE)!==STOCK_START_DATE?"readonly title='Auto carried forward from previous day'":"oninput='recalculateInventoryLive()' onkeydown='inventoryEnterNext(event)'"}></td><td class="calc">${money(openingValue)}</td><td><input id="reg_purchase_${safe(x.id)}" type="number" min="0" step=".01" value="${num(entry.purchase)}" oninput="recalculateInventoryLive()" onkeydown="inventoryEnterNext(event)"></td><td><input id="reg_sale_${safe(x.id)}" type="number" min="0" step=".01" value="${num(entry.sale)}" oninput="recalculateInventoryLive()" onkeydown="inventoryEnterNext(event)"></td><td class="calc">${money(saleValue)}</td><td class="calc">${closing}</td><td class="value">${money(stockValue)}</td><td class="value">${money(profit)}</td></tr>`);
   });
   if(beer.length)B.push(`<tr class="inventory-subtotal-row"><td colspan="2">TOTAL BEER</td><td>${bt.o}</td><td>${money(bt.ov)}</td><td>${bt.p}</td><td>${bt.s}</td><td>${money(bt.sv)}</td><td>${bt.c}</td><td>${money(bt.cv)}</td><td>${money(bt.profit)}</td></tr>`);
   $("beerInventoryRows").innerHTML=B.join("")||'<tr><td colspan="10" class="empty">No beer brands found.</td></tr>';
@@ -1521,14 +1548,15 @@ function recalculateInventoryLive(){
     current[id]={opening,purchase,sale,total,balance,openingValue:opening*inventoryRate(p).mrp,saleValue:sale*inventoryRate(p).mrp,stockValue:balance*inventoryRate(p).wholesale_price,profit:sale*(inventoryRate(p).mrp-inventoryRate(p).wholesale_price)};
   }
   const allGroups=orderedBrandGroups(products.filter(x=>String(x.category).toLowerCase()==="liquor"));
+  const renderedLiquorKeys=new Set([...document.querySelectorAll("#liquorInventoryRows tr[data-order-key]")].map(tr=>tr.dataset.orderKey));
+  const visibleGroups=allGroups.filter(g=>renderedLiquorKeys.has(brandKey(g.name)));
   const totals={o:[0,0,0,0],p:[0,0,0,0],t:[0,0,0,0],s:[0,0,0,0],sc:[0,0,0,0],b:[0,0,0,0],v:[0,0,0,0]};
-  allGroups.forEach(g=>{
+  visibleGroups.forEach(g=>{
     const map=[null,null,null,null];g.products.forEach(x=>{const k=sizeIndex(x.size);if(k>=0)map[k]=x;});
     const vals={o:[],p:[],t:[],s:[],sc:[],b:[],v:[]};
     map.forEach((x,k)=>{const z=x?current[String(x.id)]:null;vals.o[k]=z?.opening||0;vals.p[k]=z?.purchase||0;vals.t[k]=z?.total||0;vals.s[k]=z?.sale||0;vals.sc[k]=z?.saleValue||0;vals.b[k]=z?.balance||0;vals.v[k]=z?.stockValue||0;});
     ["o","p","t","s","sc","b","v"].forEach(key=>vals[key].forEach((n,k)=>totals[key][k]+=n));
   });
-  const visibleGroups=orderedBrandGroups(products.filter(x=>String(x.category).toLowerCase()==="liquor"&&(`${x.brand_name||""} ${x.size||""}`).toLowerCase().includes(($("search")?.value||"").toLowerCase())));
   visibleGroups.forEach((g,idx)=>{
     const tr=$("liquorInventoryRows")?.rows[idx];if(!tr)return;const cells=tr.cells;
     const map=[null,null,null,null];g.products.forEach(x=>{const k=sizeIndex(x.size);if(k>=0)map[k]=x;});
@@ -1541,7 +1569,8 @@ function recalculateInventoryLive(){
   const subtotal=$("liquorInventoryRows")?.querySelector(".liquor-total-row");
   if(subtotal){let c=1;["o","p","t","s"].forEach(key=>totals[key].forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=fmtQty(n);}));totals.sc.forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=money(n);});totals.b.forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=fmtQty(n);});totals.v.forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=money(n);});}
   let beerTotals={o:0,ov:0,p:0,s:0,sv:0,c:0,cv:0,profit:0};
-  const visibleBeer=orderedBeerProducts(products.filter(x=>String(x.category).toLowerCase()==="beer"&&(($("cat")?.value||"all")==="all"||$("cat").value==="beer")&&(`${x.brand_name||""} ${x.size||""}`).toLowerCase().includes(($("search")?.value||"").toLowerCase())));
+  const renderedBeerIds=new Set([...document.querySelectorAll("#beerInventoryRows tr[data-order-key]")].map(tr=>tr.dataset.orderKey));
+  const visibleBeer=orderedBeerProducts(products.filter(x=>String(x.category).toLowerCase()==="beer"&&renderedBeerIds.has(String(x.id))));
   visibleBeer.forEach((x,idx)=>{
     const z=current[String(x.id)];if(!z)return;const tr=$("beerInventoryRows")?.rows[idx];
     if(tr){if(tr.cells[3])tr.cells[3].textContent=money(z.openingValue);if(tr.cells[6])tr.cells[6].textContent=money(z.saleValue);if(tr.cells[7])tr.cells[7].textContent=fmtQty(z.balance);if(tr.cells[8])tr.cells[8].textContent=money(z.stockValue);if(tr.cells[9])tr.cells[9].textContent=money(z.profit);}
@@ -1549,7 +1578,8 @@ function recalculateInventoryLive(){
   });
   const beerSubtotal=$("beerInventoryRows")?.querySelector(".inventory-subtotal-row");
   if(beerSubtotal){const a=[fmtQty(beerTotals.o),money(beerTotals.ov),fmtQty(beerTotals.p),fmtQty(beerTotals.s),money(beerTotals.sv),fmtQty(beerTotals.c),money(beerTotals.cv),money(beerTotals.profit)];a.forEach((v,i)=>{if(beerSubtotal.cells[i+1])beerSubtotal.cells[i+1].textContent=v;});}
-  const liquorSum=Object.fromEntries(["opening","purchase","sale","balance"].map(k=>[k,products.filter(x=>String(x.category).toLowerCase()==="liquor").reduce((a,x)=>a+(current[String(x.id)]?.[k]||0),0)]));
+  const visibleLiquorIds=new Set(visibleGroups.flatMap(g=>g.products.map(x=>String(x.id))));
+  const liquorSum=Object.fromEntries(["opening","purchase","sale","balance"].map(k=>[k,products.filter(x=>visibleLiquorIds.has(String(x.id))).reduce((a,x)=>a+(current[String(x.id)]?.[k]||0),0)]));
   $("stockSummary").textContent=`As on ${$("inventoryDate").value||STOCK_START_DATE} · Liquor opening ${fmtQty(liquorSum.opening)} · Liquor purchase ${fmtQty(liquorSum.purchase)} · Liquor sale ${fmtQty(liquorSum.sale)} · Beer closing ${fmtQty(beerTotals.c)} · Beer stock value ${money(beerTotals.cv)}`;
 }
 function fmtQty(v){return Number(v||0).toLocaleString("en-IN",{maximumFractionDigits:2});}
