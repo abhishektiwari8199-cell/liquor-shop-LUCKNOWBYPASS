@@ -798,7 +798,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
    </div>
    <div class="status">Brand name, Wholesale rate aur MRP edit karke neeche **Save Changes** dabayein. Save hone par changes Supabase mein permanently update honge aur har date ki Inventory mein dikhेंगे.</div>
    <div class="section-head" style="margin:12px 0"><div><b>Brand & Rate Editor</b><p>Visible rows ke saare changes ek saath save honge.</p></div><button class="btn" id="fl2SaveAllRatesBtn" type="button" aria-disabled="false" onclick="fl2SaveAllRates(this)">Save to Supabase</button></div>
-   <div class="table-wrap"><table><thead><tr><th>Brand Name (Editable)</th><th>Size</th><th>Qty</th><th>Wholesale / Bottle</th><th>Petty Wholesale</th><th>MRP / Bottle (Editable)</th><th>Petty MRP</th></tr></thead><tbody id="fl2RateRows"><tr><td colspan="7" class="empty">Loading brands…</td></tr></tbody></table></div>
+   <div class="table-wrap"><table><thead><tr><th>Brand Name (Editable)</th><th>Size</th><th>Qty</th><th>Wholesale / Bottle</th><th>Petty Wholesale</th><th>MRP / Bottle (Editable)</th><th>Petty MRP</th><th>Action</th></tr></thead><tbody id="fl2RateRows"><tr><td colspan="8" class="empty">Loading brands…</td></tr></tbody></table></div>
    <div class="status" id="fl2RateMsg">Changes abhi save nahi hue hain. Edit karne ke baad Save Changes dabayein.</div>
   </div>
   <div id="fl2ReportPanel" class="panel glass" style="display:none">
@@ -1396,12 +1396,7 @@ function drawProducts(){
    :(liquor.length+beer.length+other.length)+" BRANDS SHOWN · FULL BRAND LIST FOR "+($("inventoryDate").value||STOCK_START_DATE);
   $("liquorInventoryWrap").style.display=cat==="beer"?"none":"block";
   $("beerInventoryWrap").style.display=cat==="liquor"?"none":"block";
-  // Summary totals always use the complete catalogue, independent of Active / Full visibility.
   const grand={opening:0,purchase:0,total:0,sale:0,balance:0,value:0};
-  for(const product of products){
-    const id=String(product.id),opening=num(inventoryOpeningForDate[id]??product.opening_stock),purchase=num(inventoryPurchased[id]),sale=num(inventorySold[id]);
-    grand.opening+=opening;grand.purchase+=purchase;grand.total+=opening+purchase;grand.sale+=sale;grand.balance+=opening+purchase-sale;grand.value+=(opening+purchase-sale)*inventoryRate(product).wholesale_price;
-  }
   const L=[],sizes=["750","375","180","90"];
   const fmt=a=>a.map(v=>`<td class="calc">${Number(v||0).toLocaleString("en-IN",{maximumFractionDigits:2})}</td>`).join("");
   const fmtM=a=>a.map(v=>`<td class="value">${money(v)}</td>`).join("");
@@ -1533,8 +1528,7 @@ function recalculateInventoryLive(){
     map.forEach((x,k)=>{const z=x?current[String(x.id)]:null;vals.o[k]=z?.opening||0;vals.p[k]=z?.purchase||0;vals.t[k]=z?.total||0;vals.s[k]=z?.sale||0;vals.sc[k]=z?.saleValue||0;vals.b[k]=z?.balance||0;vals.v[k]=z?.stockValue||0;});
     ["o","p","t","s","sc","b","v"].forEach(key=>vals[key].forEach((n,k)=>totals[key][k]+=n));
   });
-  const activeOnly=($("inventoryVisibilityMode")?.value||"full")==="active";
-  const visibleGroups=orderedBrandGroups(products.filter(x=>String(x.category).toLowerCase()==="liquor"&&(`${x.brand_name||""} ${x.size||""}`).toLowerCase().includes(($("search")?.value||"").toLowerCase()))).filter(g=>!activeOnly||inventoryLiquorGroupHasActivity(g));
+  const visibleGroups=orderedBrandGroups(products.filter(x=>String(x.category).toLowerCase()==="liquor"&&(`${x.brand_name||""} ${x.size||""}`).toLowerCase().includes(($("search")?.value||"").toLowerCase())));
   visibleGroups.forEach((g,idx)=>{
     const tr=$("liquorInventoryRows")?.rows[idx];if(!tr)return;const cells=tr.cells;
     const map=[null,null,null,null];g.products.forEach(x=>{const k=sizeIndex(x.size);if(k>=0)map[k]=x;});
@@ -1547,7 +1541,7 @@ function recalculateInventoryLive(){
   const subtotal=$("liquorInventoryRows")?.querySelector(".liquor-total-row");
   if(subtotal){let c=1;["o","p","t","s"].forEach(key=>totals[key].forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=fmtQty(n);}));totals.sc.forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=money(n);});totals.b.forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=fmtQty(n);});totals.v.forEach(n=>{if(subtotal.cells[c])subtotal.cells[c++].textContent=money(n);});}
   let beerTotals={o:0,ov:0,p:0,s:0,sv:0,c:0,cv:0,profit:0};
-  const visibleBeer=orderedBeerProducts(products.filter(x=>String(x.category).toLowerCase()==="beer"&&(($("cat")?.value||"all")==="all"||$("cat").value==="beer")&&(`${x.brand_name||""} ${x.size||""}`).toLowerCase().includes(($("search")?.value||"").toLowerCase()))).filter(x=>!activeOnly||inventoryProductHasActivity(x));
+  const visibleBeer=orderedBeerProducts(products.filter(x=>String(x.category).toLowerCase()==="beer"&&(($("cat")?.value||"all")==="all"||$("cat").value==="beer")&&(`${x.brand_name||""} ${x.size||""}`).toLowerCase().includes(($("search")?.value||"").toLowerCase())));
   visibleBeer.forEach((x,idx)=>{
     const z=current[String(x.id)];if(!z)return;const tr=$("beerInventoryRows")?.rows[idx];
     if(tr){if(tr.cells[3])tr.cells[3].textContent=money(z.openingValue);if(tr.cells[6])tr.cells[6].textContent=money(z.saleValue);if(tr.cells[7])tr.cells[7].textContent=fmtQty(z.balance);if(tr.cells[8])tr.cells[8].textContent=money(z.stockValue);if(tr.cells[9])tr.cells[9].textContent=money(z.profit);}
@@ -2236,13 +2230,8 @@ async function loadInventoryExpenses(){
   if(error)throw error;
   const rows=data||[];
   $("invExpenseRows").innerHTML=rows.map(x=>`<tr><td>${safe(x.expense_name)}</td><td>${String(x.category||"").toLowerCase()==="beer"?"Beer":"Liquor"}</td><td style="text-align:right">${money(x.amount)}</td><td><button class="btn danger" type="button" onclick="deleteInventoryExpense('${x.id}')">Delete</button></td></tr>`).join("")||'<tr><td colspan="4" class="empty">No expenses for this department on this date.</td></tr>';
-  const expenseTotal=rows.reduce((sum,x)=>sum+num(x.amount),0);
-  $("invExpenseTotal").textContent=money(expenseTotal);
-  if($("dcExpenseAmount"))$("dcExpenseAmount").value=expenseTotal.toFixed(2);
-  if($("dcExpenseTotal"))$("dcExpenseTotal").textContent=money(expenseTotal);
-  if(typeof dayCounterDiff==="function")dayCounterDiff();
-  if(typeof dayCounterCashPreview==="function")dayCounterCashPreview();
-  setMsg("invExpenseStatus",`${rows.length} expense line(s) · ${date} · Total automatically added to Daily Counter expenses.`);
+  $("invExpenseTotal").textContent=money(rows.reduce((sum,x)=>sum+num(x.amount),0));
+  setMsg("invExpenseStatus",`${rows.length} expense line(s) · ${date} · Description Daybook mein bhi visible.`);
  }catch(e){setMsg("invExpenseStatus","Expense load error: "+(e.message||String(e)));}
 }
 async function addInventoryExpense(button){
@@ -2455,18 +2444,13 @@ async function loadInventoryDayCounter(){
   const {data:nightRow,error:nightError}=await db.from("night_cash_received").select("cash_received,online_received,rokad_received").eq("user_id",user.id).eq("record_date",date).eq("category",category).maybeSingle();
   if(nightError)throw nightError;
   // Night Cash Received is the source of truth for Inventory cash/online/rokad.
-  $("dcPresentRokad").value=Number(summary?.rokad_received??nightRow?.rokad_received??0).toFixed(2);
-  $("dcCashReceived").value=Number(summary?.cash_received??nightRow?.cash_received??0).toFixed(2);
-  $("dcOnlineReceived").value=Number(summary?.online_received??nightRow?.online_received??0).toFixed(2);
-  // These are manual reconciliation inputs; never lock them after loading Night Cash data.
-  ["dcPresentRokad","dcCashReceived","dcOnlineReceived"].forEach(id=>{if($(id))$(id).readOnly=false;});
-  const {data:expenseRows,error:expenseError}=await db.from("daily_expenses").select("amount").eq("user_id",user.id).eq("expense_date",date).eq("category",category);
-  if(expenseError)throw expenseError;
-  const itemizedExpenseTotal=(expenseRows||[]).reduce((sum,row)=>sum+num(row.amount),0);
-  const counterExpenseTotal=(expenseRows||[]).length?itemizedExpenseTotal:num(summary?.expense_amount||0);
-  $("dcExpenseAmount").value=counterExpenseTotal.toFixed(2);
+  $("dcPresentRokad").value=Number(nightRow?.rokad_received||0).toFixed(2);
+  $("dcCashReceived").value=Number(nightRow?.cash_received||0).toFixed(2);
+  $("dcOnlineReceived").value=Number(nightRow?.online_received||0).toFixed(2);
+  ["dcPresentRokad","dcCashReceived","dcOnlineReceived"].forEach(id=>{if($(id))$(id).readOnly=true;});
+  $("dcExpenseAmount").value=summary?.expense_amount??0;
   $("dcExpenseNote").value=summary?.expense_note??"";
-  $("dcExpenseTotal").textContent=money(counterExpenseTotal);
+  $("dcExpenseTotal").textContent=money(summary?.expense_amount||0);
   dayCounterDiff();dayCounterCashPreview();
   setMsg("dcStatus",`Loaded ${category} counter for ${date}. Night Cash Received se Cash, Online aur Rokad automatic fetch hue hain; yahan sirf Sale/Expense reconciliation update karein. Inventory sales ₹${money(manualTotal)} are included.`);
  }catch(e){setMsg("dcStatus","Counter load error: "+(e.message||String(e)))}
@@ -2877,8 +2861,8 @@ function fl2DrawWholesale(){
  const rows=orderedProductsByOwnerSequence(products.filter(p=>String(p.category||"").toLowerCase()===cat&&(`${p.brand_name} ${p.size}`).toLowerCase().includes(q)));
  $("fl2RateRows").innerHTML=rows.map(p=>{
   const r=inventoryRate(p);
-  return `<tr data-rate-product-id="${safe(p.id)}"><td><input id="fl2brand_${safe(p.id)}" type="text" maxlength="120" value="${safe(p.brand_name)}" style="min-width:190px" aria-label="Brand name"></td><td><input id="fl2size_${safe(p.id)}" type="text" maxlength="40" value="${safe(p.size)}" style="min-width:110px" aria-label="Product size"></td><td><input id="fl2qty_${safe(p.id)}" type="number" min="0" step=".01" value="1" oninput="fl2CalcRateRow('${safe(p.id)}')"></td><td><input id="fl2wh_${safe(p.id)}" type="number" min="0" step=".01" value="${r.wholesale_price}" oninput="fl2CalcRateRow('${safe(p.id)}')"></td><td id="fl2petty_${safe(p.id)}">${money(r.wholesale_price)}</td><td><input id="fl2mrp_${safe(p.id)}" type="number" min="0" step=".01" value="${r.mrp}" oninput="fl2CalcRateRow('${safe(p.id)}')"></td><td id="fl2pettymrp_${safe(p.id)}">${money(r.mrp)}</td></tr>`;
- }).join("")||'<tr><td colspan="7" class="empty">No brands found.</td></tr>';
+  return `<tr data-rate-product-id="${safe(p.id)}"><td><input id="fl2brand_${safe(p.id)}" type="text" maxlength="120" value="${safe(p.brand_name)}" style="min-width:190px" aria-label="Brand name"></td><td><input id="fl2size_${safe(p.id)}" type="text" maxlength="40" value="${safe(p.size)}" style="min-width:110px" aria-label="Product size"></td><td><input id="fl2qty_${safe(p.id)}" type="number" min="0" step=".01" value="1" oninput="fl2CalcRateRow('${safe(p.id)}')"></td><td><input id="fl2wh_${safe(p.id)}" type="number" min="0.01" step=".01" value="${r.wholesale_price||''}" placeholder="Wholesale ₹" oninput="fl2CalcRateRow('${safe(p.id)}')"></td><td id="fl2petty_${safe(p.id)}">${money(r.wholesale_price)}</td><td><input id="fl2mrp_${safe(p.id)}" type="number" min="0.01" step=".01" value="${r.mrp||''}" placeholder="Actual MRP ₹" oninput="fl2CalcRateRow('${safe(p.id)}')"></td><td id="fl2pettymrp_${safe(p.id)}">${money(r.mrp)}</td><td><button class="btn" type="button" onclick="fl2SaveRate('${safe(p.id)}',this)">Save this brand</button></td></tr>`;
+ }).join("")||'<tr><td colspan="8" class="empty">No brands found.</td></tr>';
 }
 function fl2CalcRateRow(id){const qty=num($("fl2qty_"+id).value),wh=num($("fl2wh_"+id).value),mrp=num($("fl2mrp_"+id).value);$("fl2petty_"+id).textContent=money(qty*wh);$("fl2pettymrp_"+id).textContent=money(qty*mrp)}
 function fl2ShowSaveToast(message,success=true){
@@ -2948,7 +2932,7 @@ async function fl2SaveAllRates(button){
   if(failures.length){
    notify(`${saved} saved; ${failures.length} failed. ${failures.join(" | ")}`,false);
   }else{
-   notify(`✓ SAVE TO SUPABASE CONFIRMED — ${saved} product(s) updated successfully. MRP and Wholesale rates will appear in Inventory for every selected date.`,true);
+   notify(`✓ SAVE TO SUPABASE CONFIRMED — ${saved} product(s) updated successfully.`,true);
    drawProducts();fillBrandFilters();fl2DrawWholesale();
   }
  }catch(e){
@@ -2960,21 +2944,25 @@ async function fl2SaveAllRates(button){
 }
 async function fl2SaveRate(id,button){
  const p=products.find(x=>String(x.id)===String(id));
- const brand_name=$("fl2brand_"+id).value.trim(),wh=num($("fl2wh_"+id).value),mrp=num($("fl2mrp_"+id).value);
- if(!brand_name){setMsg("fl2RateMsg","Brand name blank nahi ho sakta.");return}
- if(wh<=0||mrp<=0||!Number.isFinite(wh)||!Number.isFinite(mrp)){setMsg("fl2RateMsg","Wholesale aur MRP zero se zyada enter karein.");return}
- if(products.some(x=>String(x.id)!==String(id)&&String(x.category).toLowerCase()===String(p?.category).toLowerCase()&&String(x.size).toLowerCase()===String(p?.size).toLowerCase()&&String(x.brand_name).trim().toLowerCase()===brand_name.toLowerCase())){setMsg("fl2RateMsg","Same category, size aur brand ka product pehle se hai.");return}
- button.disabled=true;
+ if(!p||!db||!user){setMsg("fl2RateMsg","Product ya admin session nahi mila; save nahi hua.");return;}
+ const brand_name=$("fl2brand_"+id).value.trim(),size=$("fl2size_"+id).value.trim();
+ const wh=Number($("fl2wh_"+id).value),mrp=Number($("fl2mrp_"+id).value);
+ if(!brand_name||!size){setMsg("fl2RateMsg","Brand name aur size required hain.");return;}
+ if(!Number.isFinite(wh)||!Number.isFinite(mrp)||wh<=0||mrp<=0){setMsg("fl2RateMsg","Actual MRP aur Wholesale dono zero se zyada enter karein.");return;}
+ if(wh>mrp){setMsg("fl2RateMsg","Wholesale MRP se zyada nahi ho sakta.");return;}
+ if(products.some(x=>String(x.id)!==String(id)&&String(x.category).toLowerCase()===String(p.category).toLowerCase()&&String(x.size).toLowerCase()===size.toLowerCase()&&String(x.brand_name).trim().toLowerCase()===brand_name.toLowerCase())){setMsg("fl2RateMsg","Same category, size aur brand ka product pehle se hai.");return;}
+ const original=button?.textContent;if(button){button.disabled=true;button.textContent="Saving…";}
  try{
-  const {data,error}=await db.from("inventory_products").update({brand_name,wholesale_price:wh,mrp}).eq("id",id).eq("user_id",user.id).select("id,brand_name,wholesale_price,mrp").single();
-  if(error)throw error;
-  if(p){p.brand_name=data.brand_name;p.wholesale_price=data.wholesale_price;p.mrp=data.mrp;}
-  inventoryRateByProduct[String(id)]={mrp,wholesale_price:wh};
-  setMsg("fl2RateMsg",`Saved ${brand_name}: MRP ${money(mrp)}, Wholesale ${money(wh)}. Ye rates har date ki Inventory mein apply honge.`);
+  const {data,error}=await db.from("inventory_products").update({brand_name,size,wholesale_price:wh,mrp}).eq("id",id).eq("user_id",user.id).select("id,brand_name,size,mrp,wholesale_price").single();
+  if(error)throw error;if(!data)throw new Error("Supabase ne saved product return nahi kiya.");
+  if(Number(data.mrp)!==mrp||Number(data.wholesale_price)!==wh)throw new Error("Saved rates database response se match nahi hue.");
+  Object.assign(p,{brand_name:data.brand_name,size:data.size,mrp:Number(data.mrp),wholesale_price:Number(data.wholesale_price)});
+  inventoryRateByProduct[String(id)]={mrp:Number(data.mrp),wholesale_price:Number(data.wholesale_price)};
+  drawProducts();fillBrandFilters();
+  setMsg("fl2RateMsg",`✓ ${data.brand_name} · ${data.size}: MRP ${money(data.mrp)} aur Wholesale ${money(data.wholesale_price)} Supabase mein save + verify ho gaye. Inventory totals refresh kar diye gaye hain.`);
   fl2DrawWholesale();
-  drawProducts();
- }catch(e){setMsg("fl2RateMsg","Save failed: "+(e.message||String(e))+". Check Stage 4 SQL is run.");}
- finally{button.disabled=false}
+ }catch(e){setMsg("fl2RateMsg","Save failed: "+(e.message||String(e))+". Inventory data ko change nahi kiya gaya.");console.error("Single product rate save failed",e);}
+ finally{if(button){button.disabled=false;button.textContent=original||"Save this brand";}}
 }
 
 
