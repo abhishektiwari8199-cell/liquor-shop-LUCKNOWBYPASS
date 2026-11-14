@@ -905,7 +905,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
    </div>
    <div class="panel glass" style="margin:14px 0"><h4 style="margin-top:0">Cash / Online / Rokad Register</h4><p id="sdsCashRegister">No separate cash register entry for this date.</p></div>
    <h4>Brand-wise Sale Details</h4>
-   <div class="table-wrap"><table><thead><tr><th>Category</th><th>Brand / Size</th><th>Qty Sold</th><th>Sale Price</th><th>Profit</th></tr></thead><tbody id="sdsProductRows"><tr><td colspan="5" class="empty">No sale details.</td></tr></tbody></table></div>
+   <div class="table-wrap"><table><thead><tr><th>Category / Size</th><th>Sale Qty</th><th>MRP Value</th></tr></thead><tbody id="sdsProductRows"><tr><td colspan="3" class="empty">No sale details.</td></tr></tbody></table></div>
    <h4 style="margin-top:18px">Daily Expenses</h4>
    <div class="table-wrap"><table><thead><tr><th>Expense</th><th>Payment Type</th><th>Amount</th></tr></thead><tbody id="sdsExpenseRows"><tr><td colspan="3" class="empty">No expenses.</td></tr></tbody></table></div>
    <h4 style="margin-top:18px">Bill Details</h4>
@@ -2573,43 +2573,62 @@ async function loadSalesHistoryFast(){
  if(from>to){setMsg("saleHistoryStatus","Start date cannot be later than end date.");return}
  setMsg("saleHistoryStatus",`Loading ${from} to ${to}…`);
  try{
-  const [salesResult,manualRows,expenseResult,counterResult,purchaseResult,dailyCashResult]=await Promise.all([
+  const priorFrom=new Date(from+"T00:00:00");priorFrom.setDate(priorFrom.getDate()-1);
+  const priorDate=priorFrom.getFullYear()+"-"+String(priorFrom.getMonth()+1).padStart(2,"0")+"-"+String(priorFrom.getDate()).padStart(2,"0");
+  const [salesResult,manualRows,expenseResult,counterResult,movementRows,nightCashResult]=await Promise.all([
    db.from("sales").select("id,sale_date,bill_number,category,payment_mode").eq("user_id",user.id).gte("sale_date",from).lte("sale_date",to).order("sale_date",{ascending:false}),
    getInventorySaleRows(from,to,"all"),
-   db.from("daily_expenses").select("expense_date,expense_name,amount,payment_type").eq("user_id",user.id).gte("expense_date",from).lte("expense_date",to),
+   db.from("daily_expenses").select("expense_date,expense_name,amount,payment_type,category").eq("user_id",user.id).gte("expense_date",from).lte("expense_date",to),
    db.from("inventory_day_summary").select("record_date,category,expense_amount,cash_received,online_received").eq("user_id",user.id).gte("record_date",from).lte("record_date",to),
-   db.from("daily_cash").select("record_date,cash_received,online_received,credit_rokad,other_cash_in,expenses,notes").eq("user_id",user.id).gte("record_date",from).lte("record_date",to),
-   db.from("purchase_invoices").select("id,invoice_date,category").eq("user_id",user.id).gte("invoice_date",from).lte("invoice_date",to)
+   fetchAllInventoryRows(()=>db.from("inventory_register_entries").select("product_id,entry_date,purchase_qty,sale_qty").eq("user_id",user.id).gte("entry_date",from).lte("entry_date",to).order("entry_date").order("product_id")),
+   db.from("night_cash_received").select("record_date,category,cash_received,online_received,rokad_received").eq("user_id",user.id).gte("record_date",priorDate).lte("record_date",to)
   ]);
-  for(const r of [salesResult,expenseResult,counterResult,dailyCashResult,purchaseResult])if(r.error)throw r.error;
-  const bills=salesResult.data||[],billIds=bills.map(x=>x.id),purchaseHeaders=purchaseResult.data||[],purchaseIds=purchaseHeaders.map(x=>x.id);
-  const [billItemsResult,purchaseItemsResult]=await Promise.all([
-   billIds.length?db.from("sale_items").select("sale_id,product_id,quantity,sale_rate").eq("user_id",user.id).in("sale_id",billIds):Promise.resolve({data:[],error:null}),
-   purchaseIds.length?db.from("purchase_items").select("invoice_id,product_id,quantity,purchase_rate").eq("user_id",user.id).in("invoice_id",purchaseIds):Promise.resolve({data:[],error:null})
+  for(const r of [salesResult,expenseResult,counterResult,nightCashResult])if(r.error)throw r.error;
+  const bills=salesResult.data||[],billIds=bills.map(x=>x.id);
+  const [billItemsResult]=await Promise.all([
+   billIds.length?db.from("sale_items").select("sale_id,product_id,quantity,sale_rate").eq("user_id",user.id).in("sale_id",billIds):Promise.resolve({data:[],error:null})
   ]);
-  if(billItemsResult.error||purchaseItemsResult.error)throw(billItemsResult.error||purchaseItemsResult.error);
-  const items=billItemsResult.data||[],purchaseItems=purchaseItemsResult.data||[],productMap=new Map(products.map(p=>[String(p.id),p]));
-  const daily=new Map(),getDay=date=>{if(!daily.has(date))daily.set(date,{date,beerQty:0,liquorQty:0,totalQty:0,saleAmount:0,profit:0,expenses:0,purchaseBeer:0,purchaseLiquor:0,purchaseBeerQty:0,purchaseLiquorQty:0,cashReceived:0,onlineReceived:0,previousRokad:0,closingRokad:0,registerCash:0,registerOnline:0,registerRokad:0,registerOther:0,registerExpenses:0,registerNotes:"",products:new Map(),bills:[],expenseRows:[]});return daily.get(date)};
-  const addSale=(date,pid,qty,amount,catHint)=>{
-   const p=productMap.get(String(pid)),cat=String(p?.category||catHint||"").toLowerCase(),d=getDay(date),profit=num(qty)*(num(p?.mrp)-num(p?.wholesale_price));
-   d.totalQty+=num(qty);d.saleAmount+=num(amount);d.profit+=profit;
-   if(cat==="beer")d.beerQty+=num(qty);else if(cat==="liquor")d.liquorQty+=num(qty);
-   const key=String(pid),x=d.products.get(key)||{category:cat,brand:p?.brand_name||"Product",size:p?.size||"",qty:0,amount:0,profit:0};
-   x.qty+=num(qty);x.amount+=num(amount);x.profit+=profit;d.products.set(key,x);
+  if(billItemsResult.error)throw billItemsResult.error;
+  const items=billItemsResult.data||[],movements=movementRows||[],productMap=new Map(products.map(p=>[String(p.id),p]));
+  const daily=new Map(),getDay=date=>{if(!daily.has(date))daily.set(date,{date,beerQty:0,liquorQty:0,totalQty:0,saleAmount:0,profit:0,expenses:0,purchaseBeer:0,purchaseLiquor:0,purchaseBeerQty:0,purchaseLiquorQty:0,cashReceived:0,onlineReceived:0,previousRokad:0,closingRokad:0,registerCash:0,registerOnline:0,registerRokad:0,registerOther:0,registerExpenses:0,registerNotes:"",products:new Map(),bills:[],expenseRows:[],saleBySize:{liquor:{"750 ML":{qty:0,amount:0},"375 ML":{qty:0,amount:0},"180 ML":{qty:0,amount:0},"90 ML":{qty:0,amount:0}},beer:{bottle:{qty:0,amount:0},can:{qty:0,amount:0}}},cashByCategory:{liquor:{cash:0,online:0,rokad:0,previousRokad:0},beer:{cash:0,online:0,rokad:0,previousRokad:0}}});return daily.get(date)};
+  const getSizeLabel=size=>{const z=String(size||"").toUpperCase().replace(/\s/g,"");if(z.includes("750"))return "750 ML";if(z.includes("375"))return "375 ML";if(z.includes("180"))return "180 ML";if(z.includes("90"))return "90 ML";return "OTHER"};
+  const addSale=(date,pid,qty,amount,catHint,sizeHint)=>{
+   const p=productMap.get(String(pid)),cat=String(p?.category||catHint||"").toLowerCase(),d=getDay(date),q=num(qty),saleAmount=num(amount),wholesale=num(p?.wholesale_price),profit=saleAmount-q*wholesale;
+   d.totalQty+=q;d.saleAmount+=saleAmount;d.profit+=profit;
+   if(cat==="beer")d.beerQty+=q;else if(cat==="liquor")d.liquorQty+=q;
+   const key=String(pid),x=d.products.get(key)||{category:cat,brand:p?.brand_name||"Product",size:p?.size||sizeHint||"",qty:0,amount:0,profit:0};
+   x.qty+=q;x.amount+=saleAmount;x.profit+=profit;d.products.set(key,x);
+   const size=String(p?.size||sizeHint||"").toUpperCase();
+   if(cat==="liquor"){const label=getSizeLabel(size);if(d.saleBySize.liquor[label]){d.saleBySize.liquor[label].qty+=q;d.saleBySize.liquor[label].amount+=saleAmount}}
+   if(cat==="beer"){const kind=/CAN/i.test(size)?"can":"bottle";d.saleBySize.beer[kind].qty+=q;d.saleBySize.beer[kind].amount+=saleAmount}
   };
   const itemsBySale=new Map();
   for(const row of items){const key=String(row.sale_id);if(!itemsBySale.has(key))itemsBySale.set(key,[]);itemsBySale.get(key).push(row);const h=bills.find(x=>String(x.id)===key);if(h)addSale(h.sale_date,row.product_id,row.quantity,num(row.quantity)*num(row.sale_rate),h.category)}
   for(const b of bills){const rows=itemsBySale.get(String(b.id))||[];getDay(b.sale_date).bills.push({id:b.id,bill_number:b.bill_number||"—",category:b.category||"—",payment_mode:b.payment_mode||"—",qty:rows.reduce((a,x)=>a+num(x.quantity),0),amount:rows.reduce((a,x)=>a+num(x.quantity)*num(x.sale_rate),0)})}
   for(const r of manualRows||[]){const d=getDay(r.sale_date);addSale(r.sale_date,r.product_id,r.quantity,r.amount,r.category);d.bills.push({id:null,bill_number:"Inventory entry",category:r.category||"—",payment_mode:"Not specified",qty:num(r.quantity),amount:num(r.amount),manual:true})}
-  for(const x of expenseResult.data||[]){const d=getDay(x.expense_date);d.expenses+=num(x.amount);d.expenseRows.push({name:x.expense_name||"Expense",mode:x.payment_type||"—",amount:num(x.amount)})}
-  for(const x of counterResult.data||[]){const d=getDay(x.record_date);d.expenses+=num(x.expense_amount);d.cashReceived+=num(x.cash_received);d.onlineReceived+=num(x.online_received);if(num(x.expense_amount)>0)d.expenseRows.push({name:"Inventory counter expense ("+x.category+")",mode:"Counter",amount:num(x.expense_amount)})}
-  for(const x of dailyCashResult.data||[]){const d=getDay(x.record_date);d.registerCash+=num(x.cash_received);d.registerOnline+=num(x.online_received);d.registerRokad+=num(x.credit_rokad);d.previousRokad=Math.max(d.previousRokad,num(x.credit_rokad));d.closingRokad+=num(x.credit_rokad);d.registerOther+=num(x.other_cash_in);d.registerExpenses+=num(x.expenses);if(x.notes)d.registerNotes=x.notes}
-  const purchaseById=new Map(purchaseHeaders.map(x=>[String(x.id),String(x.category||"").toLowerCase()]));
-  for(const x of purchaseItems){const h=purchaseHeaders.find(y=>String(y.id)===String(x.invoice_id));if(!h)continue;const d=getDay(h.invoice_date),cat=purchaseById.get(String(x.invoice_id)),cost=num(x.quantity)*num(x.purchase_rate);if(cat==="beer"){d.purchaseBeer+=cost;d.purchaseBeerQty+=num(x.quantity)}else if(cat==="liquor"){d.purchaseLiquor+=cost;d.purchaseLiquorQty+=num(x.quantity)}}
+  for(const x of expenseResult.data||[]){const d=getDay(x.expense_date),amount=num(x.amount);d.expenses+=amount;d.expenseRows.push({name:x.expense_name||"Expense",mode:x.payment_type||"—",amount,category:String(x.category||"").toLowerCase()})}
+  for(const x of counterResult.data||[]){const d=getDay(x.record_date),cat=String(x.category||"").toLowerCase(),amount=num(x.expense_amount);d.registerExpenses+=amount;if(amount>0)d.expenseRows.push({name:"Inventory counter expense ("+(cat||"unassigned")+")",mode:"Counter",amount,category:cat})}
+  const nightByDateCategory=new Map();
+  for(const x of nightCashResult.data||[]){const cat=String(x.category||"").toLowerCase();if(!["liquor","beer"].includes(cat))continue;nightByDateCategory.set(x.record_date+"|"+cat,x);if(x.record_date>=from&&x.record_date<=to)getDay(x.record_date)}
+  for(const date of daily.keys()){
+   const d=daily.get(date),prevObj=new Date(date+"T00:00:00");prevObj.setDate(prevObj.getDate()-1);
+   const prev=prevObj.getFullYear()+"-"+String(prevObj.getMonth()+1).padStart(2,"0")+"-"+String(prevObj.getDate()).padStart(2,"0");
+   for(const cat of ["liquor","beer"]){
+    const current=nightByDateCategory.get(date+"|"+cat)||{},previous=nightByDateCategory.get(prev+"|"+cat)||{},bucket=d.cashByCategory[cat];
+    bucket.cash=num(current.cash_received);bucket.online=num(current.online_received);bucket.rokad=num(current.rokad_received);bucket.previousRokad=num(previous.rokad_received);
+    d.cashReceived+=bucket.cash;d.onlineReceived+=bucket.online;d.closingRokad+=bucket.rokad;d.previousRokad+=bucket.previousRokad;
+   }
+   // Keep the older Daily Counter totals as a fallback only when no Night Cash row exists.
+   const counterRows=(counterResult.data||[]).filter(x=>x.record_date===date);
+   for(const cat of ["liquor","beer"]){const hasNight=nightByDateCategory.has(date+"|"+cat);if(!hasNight){const row=counterRows.find(x=>String(x.category||"").toLowerCase()===cat);if(row){const b=d.cashByCategory[cat];b.cash=num(row.cash_received);b.online=num(row.online_received);d.cashReceived+=b.cash;d.onlineReceived+=b.online;}}}
+  }
+  // Inventory Final Save is the source of truth for purchases (purchase_qty), not purchase invoices.
+  for(const row of movements){const p=productMap.get(String(row.product_id));if(!p)continue;const cat=String(p.category||"").toLowerCase();if(!["liquor","beer"].includes(cat))continue;const d=getDay(row.entry_date),qty=num(row.purchase_qty),cost=qty*num(p.wholesale_price);if(cat==="liquor"){d.purchaseLiquorQty+=qty;d.purchaseLiquor+=cost}else{d.purchaseBeerQty+=qty;d.purchaseBeer+=cost}}
+  for(const d of daily.values()){d.expenses+=d.registerExpenses;}
   saleHistoryDailyData=Object.fromEntries([...daily.entries()]);
   const dates=[...daily.keys()].sort((a,b)=>b.localeCompare(a));
   $("hist").innerHTML=dates.map(date=>{const x=daily.get(date);return `<tr><td><b>${safe(date)}</b></td><td>${x.beerQty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${x.liquorQty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${money(x.saleAmount)}</td><td><button class="btn" type="button" onclick="showSaleDaySummary('${safe(date)}')">View Summary Report</button></td><td><button class="btn secondary" type="button" onclick="downloadCompleteSaleSummary('${safe(date)}')">↓ Download PDF</button></td></tr>`}).join("")||'<tr><td colspan="6" class="empty">No sales or cash entries recorded for this date range.</td></tr>';
-  $("saleHistoryStatus").textContent=`Loaded ${dates.length} date-wise records for ${from} to ${to}. Cash register and Daily Counter details are included in each summary.`;
+  $("saleHistoryStatus").textContent=`Loaded ${dates.length} date-wise records for ${from} to ${to}. Sales records were read only; no sale rows were changed.`;
   if($("saleDaySummaryPanel"))$("saleDaySummaryPanel").style.display="none";
  }catch(e){setMsg("saleHistoryStatus","Sales history error: "+(e.message||String(e)));console.error("Sales history:",e)}
 }
@@ -3217,46 +3236,42 @@ function downloadCompleteSaleSummary(date){
  if(!window.jspdf||!window.jspdf.jsPDF){alert("PDF library load nahi hui. Internet connection check karein.");return}
  const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4",compress:true});
  applyOfficePdfStyle(doc,"Complete Daily Business Summary");
- const W=297,L=10,R=10,fmt=v=>"Rs. "+num(v).toLocaleString("en-IN",{maximumFractionDigits:0});
+ const W=297,L=10,R=10,fmt=v=>"Rs. "+num(v).toLocaleString("en-IN",{maximumFractionDigits:2}),moneyCell=v=>fmt(v);
+ const liquorRows=Object.entries(day.saleBySize?.liquor||{}).filter(([k])=>k!=="OTHER").map(([size,x])=>({label:"Liquor "+size,qty:x.qty,amount:x.amount}));
+ const beerRows=[{label:"Beer Bottle",qty:day.saleBySize?.beer?.bottle?.qty||0,amount:day.saleBySize?.beer?.bottle?.amount||0},{label:"Beer Can",qty:day.saleBySize?.beer?.can?.qty||0,amount:day.saleBySize?.beer?.can?.amount||0}];
+ const salesRows=[...liquorRows,...beerRows];
+ const totalExpenses=num(day.expenses),netProfit=num(day.profit)-totalExpenses;
  doc.setFillColor(8,31,55);doc.rect(0,0,W,27,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(16);doc.text("COMPLETE DAILY BUSINESS SUMMARY",L,11);
  doc.setFont("helvetica","normal");doc.setFontSize(9);doc.text("Sale Date: "+date,L,19);doc.text("Liquor Shop | Purchase, Sales, Collections & Expenses",W-R,19,{align:"right"});
- const cards=[
-  ["LIQUOR PURCHASE",fmt(day.purchaseLiquor)],["BEER PURCHASE",fmt(day.purchaseBeer)],
-  ["LIQUOR SALE",fmt([...day.products.values()].filter(x=>x.category==="liquor").reduce((a,x)=>a+x.amount,0))],
-  ["BEER SALE",fmt([...day.products.values()].filter(x=>x.category==="beer").reduce((a,x)=>a+x.amount,0))],
-  ["CASH RECEIVED",fmt(day.cashReceived)],["ONLINE RECEIVED",fmt(day.onlineReceived)],
-  ["PREVIOUS DAY ROKAD",fmt(day.previousRokad)],["EXPENSES",fmt(day.expenses)]
- ];
+ const cards=[["LIQUOR PURCHASE",fmt(day.purchaseLiquor)],["BEER PURCHASE",fmt(day.purchaseBeer)],["LIQUOR SALE",fmt(liquorRows.reduce((a,x)=>a+x.amount,0))],["BEER SALE",fmt(beerRows.reduce((a,x)=>a+x.amount,0))],["CASH RECEIVED",fmt(day.cashReceived)],["ONLINE RECEIVED",fmt(day.onlineReceived)],["PREVIOUS DAY ROKAD",fmt(day.previousRokad)],["EXPENSES",fmt(totalExpenses)]];
  const cw=(W-L-R-14)/8;
- cards.forEach((c,i)=>{const x=L+i*(cw+2);doc.setFillColor(245,248,251);doc.setDrawColor(205,215,225);doc.roundedRect(x,31,cw,18,1.3,1.3,"FD");doc.setTextColor(80,95,110);doc.setFont("helvetica","bold");doc.setFontSize(5.4);doc.text(c[0],x+1.5,36);doc.setTextColor(20,43,66);doc.setFontSize(8);doc.text(c[1],x+1.5,43)});
- const totalSale=day.saleAmount,net=day.profit-day.expenses;
- doc.setFillColor(232,241,248);doc.roundedRect(L,53,W-L-R,13,1.5,1.5,"F");
- doc.setTextColor(20,43,66);doc.setFont("helvetica","bold");doc.setFontSize(8);
+ cards.forEach((c,i)=>{const x=L+i*(cw+2);doc.setFillColor(245,248,251);doc.setDrawColor(205,215,225);doc.roundedRect(x,31,cw,18,1.3,1.3,"FD");doc.setTextColor(80,95,110);doc.setFont("helvetica","bold");doc.setFontSize(5.4);doc.text(c[0],x+1.5,36);doc.setTextColor(20,43,66);doc.setFontSize(7.5);doc.text(c[1],x+1.5,43)});
+ doc.setFillColor(232,241,248);doc.roundedRect(L,53,W-L-R,13,1.5,1.5,"F");doc.setTextColor(20,43,66);doc.setFont("helvetica","bold");doc.setFontSize(8);
  doc.text("TOTAL PURCHASE: "+fmt(day.purchaseBeer+day.purchaseLiquor),L+4,58);
- doc.text("TOTAL SALE: "+fmt(totalSale),L+75,58);
+ doc.text("TOTAL SALE: "+fmt(day.saleAmount),L+75,58);
  doc.text("PROFIT ESTIMATE: "+fmt(day.profit),L+143,58);
- doc.text("NET PROFIT EST.: "+fmt(net),W-R-4,58,{align:"right"});
+ doc.text("NET PROFIT EST.: "+fmt(netProfit),W-R-4,58,{align:"right"});
  doc.setFont("helvetica","normal");doc.setFontSize(6);doc.setTextColor(80,95,110);
- doc.text("Present Day Rokad: "+fmt(day.closingRokad)+"  |  Cash and Online values are from saved Daily Counter records.",L+4,63);
- function section(title,rows,cols,x,y,width,maxRows,rowH=4.5){
+ doc.text("Profit = actual recorded sale value minus estimated wholesale cost of sold quantity. Expenses are deducted for Net Profit.",L+4,63);
+ function section(title,rows,cols,x,y,width,maxRows,rowH=5){
   doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(15,45,72);doc.text(title,x,y);
   const top=y+4;doc.setFillColor(231,238,245);doc.rect(x,top,width,5,"F");
   const tw=cols.reduce((a,c)=>a+c.w,0),ws=cols.map(c=>width*c.w/tw);let cx=x;
   doc.setFontSize(5.7);doc.setTextColor(40,57,75);cols.forEach((c,i)=>{doc.text(c.h,cx+1,top+3.4);cx+=ws[i]});
   let yy=top+5;const shown=rows.slice(0,maxRows);
-  shown.forEach((row,i)=>{if(i%2===0){doc.setFillColor(249,251,253);doc.rect(x,yy,width,rowH,"F")}cx=x;doc.setFont("helvetica","normal");doc.setFontSize(5.6);doc.setTextColor(35,48,62);cols.forEach((c,j)=>{const v=String(c.v(row)??"—").replace(/\s+/g," ");doc.text(v.length>c.max?v.slice(0,c.max-1)+"…":v,cx+1,yy+rowH*.7);cx+=ws[j]});yy+=rowH});
+  shown.forEach((row,i)=>{if(i%2===0){doc.setFillColor(249,251,253);doc.rect(x,yy,width,rowH,"F")}cx=x;doc.setFont("helvetica","normal");doc.setFontSize(5.8);doc.setTextColor(35,48,62);cols.forEach((c,j)=>{const v=String(c.v(row)??"—").replace(/\s+/g," ");doc.text(v.length>c.max?v.slice(0,c.max-1)+"…":v,cx+1,yy+rowH*.7);cx+=ws[j]});yy+=rowH});
   if(rows.length>shown.length){doc.setFontSize(5);doc.setTextColor(155,65,50);doc.text("First "+shown.length+" of "+rows.length+" rows shown.",x,Math.min(197,yy+2))}
   if(!rows.length){doc.setFontSize(5.7);doc.setTextColor(110,120,130);doc.text("No records",x+1,top+9)}
  }
  const leftW=133,rightX=148,rightW=139;
  const purchaseRows=[{category:"Liquor",qty:day.purchaseLiquorQty,amount:day.purchaseLiquor},{category:"Beer",qty:day.purchaseBeerQty,amount:day.purchaseBeer}];
- section("PURCHASE SUMMARY",purchaseRows,[{h:"CATEGORY",w:30,v:x=>x.category,max:15},{h:"QTY",w:18,v:x=>x.qty,max:10},{h:"PURCHASE COST",w:35,v:x=>fmt(x.amount),max:20}],L,72,leftW,12,5);
- const salesRows=[...day.products.values()].sort((a,b)=>a.category.localeCompare(b.category));
- section("SALE DETAILS (BEER & LIQUOR)",salesRows,[{h:"CATEGORY",w:20,v:x=>x.category,max:12},{h:"BRAND / SIZE",w:44,v:x=>x.brand+" "+x.size,max:30},{h:"QTY",w:13,v:x=>x.qty,max:8},{h:"SALE",w:23,v:x=>fmt(x.amount),max:16}],L,105,leftW,17,4.2);
- section("EXPENSE REGISTER",day.expenseRows,[{h:"EXPENSE",w:45,v:x=>x.name,max:32},{h:"MODE",w:25,v:x=>x.mode,max:16},{h:"AMOUNT",w:28,v:x=>fmt(x.amount),max:18}],rightX,72,rightW,10,5);
- const cashRows=[{label:"Cash Received",amount:day.cashReceived},{label:"Online Received",amount:day.onlineReceived},{label:"Previous Day Rokad",amount:day.previousRokad},{label:"Present Day Rokad",amount:day.closingRokad}];
- section("CASH & ROKAD RECONCILIATION",cashRows,[{h:"DESCRIPTION",w:55,v:x=>x.label,max:38},{h:"AMOUNT",w:35,v:x=>fmt(x.amount),max:20}],rightX,119,rightW,8,5);
- doc.setFont("helvetica","italic");doc.setFontSize(5.5);doc.setTextColor(100,110,120);doc.text("Profit is estimated using currently saved MRP and wholesale rates. Purchases are based on saved purchase invoices; counter values appear only when saved.",L,202);
+ section("PURCHASE SUMMARY",purchaseRows,[{h:"CATEGORY",w:30,v:x=>x.category,max:15},{h:"QTY",w:18,v:x=>num(x.qty).toLocaleString("en-IN",{maximumFractionDigits:2}),max:10},{h:"PURCHASE COST",w:35,v:x=>fmt(x.amount),max:20}],L,72,leftW,8,5);
+ section("SALE DETAILS — SIZE / TYPE TOTALS",salesRows,[{h:"CATEGORY / SIZE",w:42,v:x=>x.label,max:25},{h:"QTY SOLD",w:18,v:x=>num(x.qty).toLocaleString("en-IN",{maximumFractionDigits:2}),max:12},{h:"MRP VALUE",w:30,v:x=>fmt(x.amount),max:20}],L,105,leftW,8,5);
+ section("EXPENSE REGISTER",day.expenseRows||[],[{h:"EXPENSE",w:45,v:x=>x.name,max:32},{h:"MODE",w:25,v:x=>x.mode,max:16},{h:"AMOUNT",w:28,v:x=>fmt(x.amount),max:18}],rightX,72,rightW,8,5);
+ const cashRows=[];
+ for(const cat of ["liquor","beer"]){const c=day.cashByCategory?.[cat]||{};const name=cat==="liquor"?"Liquor":"Beer";cashRows.push({label:"Cash Received from "+name,amount:c.cash||0},{label:"Online Received from "+name,amount:c.online||0},{label:"Previous Day Rokad — "+name,amount:c.previousRokad||0},{label:"Present Day Rokad — "+name,amount:c.rokad||0});}
+ section("CASH & ROKAD RECONCILIATION",cashRows,[{h:"DESCRIPTION",w:65,v:x=>x.label,max:42},{h:"AMOUNT",w:35,v:x=>fmt(x.amount),max:20}],rightX,119,rightW,10,5);
+ doc.setFont("helvetica","italic");doc.setFontSize(5.5);doc.setTextColor(100,110,120);doc.text("Report is read-only: existing Sales records are fetched for display; no sale, inventory or cash records are updated or deleted.",L,202);
  doc.save("Complete-Sale-Summary-"+date+".pdf");
 }
 
@@ -3266,14 +3281,15 @@ function showSaleDaySummary(date){
  $("sdsQty").textContent=day.totalQty.toLocaleString("en-IN",{maximumFractionDigits:2});
  $("sdsSale").textContent=money(day.saleAmount);
  $("sdsProfit").textContent=money(day.profit);
- $("sdsExpenses").textContent=money(day.expenses+num(day.registerExpenses));
- $("sdsNetProfit").textContent=money(day.profit-day.expenses-num(day.registerExpenses));
- if($("sdsCashRegister"))$("sdsCashRegister").innerHTML=`Cash ₹${money(day.registerCash)} · Online ₹${money(day.registerOnline)} · Rokad ₹${money(day.registerRokad)} · Other ₹${money(day.registerOther)} · Expenses ₹${money(day.registerExpenses)}${day.registerNotes?`<br>Notes: ${safe(day.registerNotes)}`:""}`;
+ $("sdsExpenses").textContent=money(day.expenses);
+ $("sdsNetProfit").textContent=money(day.profit-day.expenses);
+ if($("sdsCashRegister")){const c=day.cashByCategory||{};$("sdsCashRegister").innerHTML=`Liquor — Cash ₹${money(c.liquor?.cash||0)} · Online ₹${money(c.liquor?.online||0)} · Previous Rokad ₹${money(c.liquor?.previousRokad||0)} · Present Rokad ₹${money(c.liquor?.rokad||0)}<br>Beer — Cash ₹${money(c.beer?.cash||0)} · Online ₹${money(c.beer?.online||0)} · Previous Rokad ₹${money(c.beer?.previousRokad||0)} · Present Rokad ₹${money(c.beer?.rokad||0)}`;}
  $("sdsLiquorQty").textContent=day.liquorQty.toLocaleString("en-IN",{maximumFractionDigits:2})+" units";
  $("sdsLiquorAmount").textContent=money([...day.products.values()].filter(x=>x.category==="liquor").reduce((a,x)=>a+x.amount,0));
  $("sdsBeerQty").textContent=day.beerQty.toLocaleString("en-IN",{maximumFractionDigits:2})+" units";
  $("sdsBeerAmount").textContent=money([...day.products.values()].filter(x=>x.category==="beer").reduce((a,x)=>a+x.amount,0));
- $("sdsProductRows").innerHTML=[...day.products.values()].sort((a,b)=>a.category.localeCompare(b.category)).map(x=>`<tr><td>${safe(x.category)}</td><td>${safe(x.brand)} ${safe(x.size)}</td><td>${x.qty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${money(x.amount)}</td><td>${money(x.profit)}</td></tr>`).join("")||'<tr><td colspan="5" class="empty">No item details recorded.</td></tr>';
+ const sizeRows=[...Object.entries(day.saleBySize?.liquor||{}).filter(([k])=>k!=="OTHER").map(([k,v])=>({label:"Liquor "+k,qty:v.qty,amount:v.amount})),{label:"Beer Bottle",qty:day.saleBySize?.beer?.bottle?.qty||0,amount:day.saleBySize?.beer?.bottle?.amount||0},{label:"Beer Can",qty:day.saleBySize?.beer?.can?.qty||0,amount:day.saleBySize?.beer?.can?.amount||0}];
+ $("sdsProductRows").innerHTML=sizeRows.map(x=>`<tr><td>${safe(x.label)}</td><td>${x.qty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${money(x.amount)}</td></tr>`).join("");
  $("sdsExpenseRows").innerHTML=day.expenseRows.map(x=>`<tr><td>${safe(x.name)}</td><td>${safe(x.mode)}</td><td>${money(x.amount)}</td></tr>`).join("")||'<tr><td colspan="3" class="empty">No expenses recorded for this date.</td></tr>';
  $("sdsBillRows").innerHTML=day.bills.map(x=>`<tr><td>${safe(x.bill_number)}</td><td>${safe(x.category)}</td><td>${safe(x.payment_mode)}</td><td>${num(x.qty).toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${money(x.amount)}</td><td>${x.manual?'<span class="muted">Edit in Inventory</span>':`<button class="btn secondary" type="button" onclick="editSale('${x.id}')">Edit</button> <button class="btn danger" type="button" onclick="deleteSale('${x.id}')">Delete</button>`}</td></tr>`).join("")||'<tr><td colspan="6" class="empty">No bill records.</td></tr>';
  $("saleDaySummaryPanel").style.display="block";
