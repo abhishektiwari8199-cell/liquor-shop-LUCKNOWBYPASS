@@ -603,7 +603,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
    <label class="span2">Search brand<input id="search" oninput="drawProducts()" placeholder="Search brand name…"></label>
    <div style="display:flex;align-items:end"><button class="btn" type="button" onclick="applyInventoryFilters()">Apply filters</button></div>
   </div></div>
-  <div class="toolbar" style="margin:12px 0"><span class="muted" id="stockSummary">Select a date to view stock.</span><button class="btn secondary" type="button" onclick="downloadActiveInventoryReport()">↓ Download Active Stock PDF</button><button class="btn secondary" type="button" onclick="sendCurrentInventoryReport(this)">✉ Send Report Email</button><button class="btn" type="button" onclick="saveFinalInventory(this)">Final Save — Save All Inventory</button></div>
+  <div class="toolbar" style="margin:12px 0"><span class="muted" id="stockSummary">Select a date to view stock.</span><button class="btn secondary" type="button" onclick="downloadActiveInventoryReport()">↓ Download Active Stock PDF</button><button class="btn secondary" type="button" onclick="sendCurrentInventoryReport(this)">✉ Send Report Email</button><button class="btn secondary" type="button" onclick="downloadDepartmentA4Report('liquor')">↓ Liquor A4 Daily Report</button><button class="btn secondary" type="button" onclick="downloadDepartmentA4Report('beer')">↓ Beer A4 Daily Report</button><button class="btn" type="button" onclick="saveFinalInventory(this)">Final Save — Save All Inventory</button></div>
   <div class="status">Important: Inventory ke Sale column ko ek baar Final Save karein. Ye entry Sales History, Overview aur Daybook mein automatically dikhegi.</div>
   <div class="status" id="inventoryDateStatus">02 Nov 2026 ka original opening stock base hai. Har agle din ka Opening Qty pichhle din ke closing balance se automatically carry forward hota hai; selected date ki purchase aur sale alag dikhte hain.</div>
   <div id="liquorInventoryWrap" class="table-wrap"><table class="inventory-register liquor-register"><colgroup><col style="width:230px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"></colgroup><thead>
@@ -3637,6 +3637,138 @@ async function stockInStopCamera(){
 }
 
 </script>
-<script src="./madhushala-tools.js?v=2"></script>
+<script src="./madhushala-tools.js?v=2">
+/* Separate department-wise A4 daily report.
+   Reads the same date-wise inventory state used by the Inventory Register,
+   and the same-date Night Cash Received + Daily Expenses records. */
+async function downloadDepartmentA4Report(category){
+ const cat=String(category||"").toLowerCase();
+ if(!["beer","liquor"].includes(cat)){alert("Select Beer or Liquor report.");return;}
+ if(!db||!user){alert("Pehle login karein.");return;}
+ const date=$("inventoryDate")?.value||today();
+ if(date<STOCK_START_DATE){alert("Report date 02 Nov 2026 ya uske baad select karein.");return;}
+ if(!window.jspdf?.jsPDF){alert("PDF library load nahi hui. Internet connection check karein.");return;}
+ const btns=[...document.querySelectorAll('button[onclick*="downloadDepartmentA4Report"]')];
+ btns.forEach(b=>{b.disabled=true;b.dataset.oldText=b.textContent;b.textContent="Preparing report…";});
+ try{
+  // Refresh inventory state for the exact selected report date before calculating opening / purchase / sale.
+  await loadInventoryForDate();
+  const categoryProducts=(products||[]).filter(p=>String(p.category||"").toLowerCase()===cat)
+    .sort((a,b)=>String(a.brand_name||"").localeCompare(String(b.brand_name||""))||String(a.size||"").localeCompare(String(b.size||"")));
+  const [cashResult,expenseResult,counterResult]=await Promise.all([
+   db.from("night_cash_received").select("cash_received,online_received,rokad_received,record_date,category")
+    .eq("user_id",user.id).eq("record_date",date).eq("category",cat),
+   db.from("daily_expenses").select("expense_name,amount,payment_type,category,expense_date")
+    .eq("user_id",user.id).eq("expense_date",date).eq("category",cat).order("created_at"),
+   db.from("inventory_day_summary").select("expense_amount,expense_note,category,record_date")
+    .eq("user_id",user.id).eq("record_date",date).eq("category",cat)
+  ]);
+  for(const r of [cashResult,expenseResult,counterResult])if(r.error)throw r.error;
+  const cash=cashResult.data?.[0]||{};
+  const expenseRows=(expenseResult.data||[]).map(x=>({name:x.expense_name||"Expense",mode:x.payment_type||"—",amount:num(x.amount)}));
+  const counterExpense=(counterResult.data||[]).reduce((a,x)=>a+num(x.expense_amount),0);
+  // Avoid counting the counter amount twice if an expense line was already added with the same total.
+  const expenseTotal=expenseRows.reduce((a,x)=>a+x.amount,0)+counterExpense;
+  const rows=categoryProducts.map(p=>{
+   const id=String(p.id),opening=num(inventoryOpeningForDate?.[id]),purchase=num(inventoryPurchased?.[id]),sale=num(inventorySold?.[id]);
+   const mrp=num(p.mrp),wholesale=num(p.wholesale_price),tcsRate=2;
+   const purchaseBase=purchase*wholesale,tcs=purchaseBase*tcsRate/100;
+   return {brand:String(p.brand_name||"Product"),size:String(p.size||""),opening,mrp,openingValue:opening*mrp,purchase,wholesale,purchaseBase,tcsRate,tcs,taxTotal:purchaseBase+tcs,sale,saleValue:sale*mrp,closing:opening+purchase-sale,closingValue:(opening+purchase-sale)*mrp};
+  }).filter(x=>x.opening||x.purchase||x.sale||x.mrp);
+  const total=rows.reduce((a,x)=>{for(const k of ["opening","openingValue","purchase","purchaseBase","tcs","taxTotal","sale","saleValue","closing","closingValue"])a[k]+=num(x[k]);return a;},
+   {opening:0,openingValue:0,purchase:0,purchaseBase:0,tcs:0,taxTotal:0,sale:0,saleValue:0,closing:0,closingValue:0});
+  const cashValue=num(cash.cash_received),onlineValue=num(cash.online_received),rokadValue=num(cash.rokad_received);
+  const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4",compress:true});
+  const W=210,left=12,right=12,usable=W-left-right;
+  const fmt=v=>"Rs. "+num(v).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
+  const short=(v,n=34)=>{const x=String(v??"—").replace(/\s+/g," ").trim();return x.length>n?x.slice(0,n-1)+"…":x;};
+  let y=0;
+  function pageHeader(){
+   doc.setFillColor(13,43,72);doc.rect(0,0,W,29,"F");
+   doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(15);
+   doc.text("ABHISHEK COMPOSITE",left,11);
+   doc.setFontSize(10);doc.text((cat==="beer"?"BEER":"LIQUOR")+" — DAILY SALES & STOCK REPORT",left,18);
+   doc.setFont("helvetica","normal");doc.setFontSize(8);doc.text("Report date: "+date,left,24);
+   doc.text("Generated from saved POS records",W-right,24,{align:"right"});
+   y=36;
+  }
+  function ensureSpace(h){if(y+h>282){doc.addPage();pageHeader();}}
+  function sectionTitle(t){ensureSpace(10);doc.setFont("helvetica","bold");doc.setFontSize(10);doc.setTextColor(18,48,77);doc.text(t,left,y);y+=4;doc.setDrawColor(210,220,230);doc.line(left,y,W-right,y);y+=4;}
+  function table(headers,data,widths,rowHeight=6,fontSize=7){
+   const x0=left,headerH=7;
+   ensureSpace(headerH+rowHeight);
+   doc.setFillColor(230,237,245);doc.rect(x0,y,usable,headerH,"F");
+   doc.setFont("helvetica","bold");doc.setFontSize(fontSize);doc.setTextColor(35,51,68);
+   let x=x0;headers.forEach((h,i)=>{doc.text(short(h,24),x+1,y+4.7);x+=widths[i];});
+   y+=headerH;
+   data.forEach((row,ri)=>{
+    ensureSpace(rowHeight);
+    if(ri%2===0){doc.setFillColor(248,250,252);doc.rect(x0,y,usable,rowHeight,"F");}
+    doc.setFont("helvetica","normal");doc.setFontSize(fontSize);doc.setTextColor(40,52,65);
+    let xx=x0;
+    row.forEach((v,i)=>{const max=Math.max(5,Math.floor(widths[i]/(fontSize*.36)));doc.text(short(v,max),xx+1,y+rowHeight*.68);xx+=widths[i];});
+    doc.setDrawColor(232,236,240);doc.line(x0,y+rowHeight,W-right,y+rowHeight);y+=rowHeight;
+   });
+   y+=4;
+  }
+  pageHeader();
+  // Summary cards: cash/online/rokad are strictly for this report date and department.
+  const cards=[["OPENING QTY",total.opening],["PURCHASE QTY",total.purchase],["SALE QTY",total.sale],["CLOSING QTY",total.closing],
+   ["CASH RECEIVED",fmt(cashValue)],["ONLINE RECEIVED",fmt(onlineValue)],["PRESENT DAY ROKAD",fmt(rokadValue)],["EXPENSES",fmt(expenseTotal)]];
+  const gap=2,cardW=(usable-gap*3)/4,cardH=15;
+  cards.forEach((c,i)=>{const col=i%4,row=Math.floor(i/4),x=left+col*(cardW+gap),yy=y+row*(cardH+2);
+   doc.setFillColor(245,248,251);doc.setDrawColor(215,224,232);doc.roundedRect(x,yy,cardW,cardH,1.5,1.5,"FD");
+   doc.setFont("helvetica","bold");doc.setFontSize(5.5);doc.setTextColor(90,105,120);doc.text(c[0],x+2,yy+5);
+   doc.setFontSize(8);doc.setTextColor(20,44,68);doc.text(typeof c[1]==="number"?num(c[1]).toLocaleString("en-IN",{maximumFractionDigits:2}):String(c[1]),x+2,yy+11);
+  });
+  y+=35;
+  sectionTitle("BRAND-WISE OPENING STOCK & MRP");
+  if(cat==="liquor"){
+   table(["Brand / Size","Opening Qty","MRP / Bottle","Opening Value"],
+    rows.map(x=>[x.brand+" "+x.size,x.opening.toLocaleString("en-IN",{maximumFractionDigits:2}),fmt(x.mrp),fmt(x.openingValue)]),
+    [88,30,34,34],6,6.6);
+  }else{
+   table(["Brand","Opening Qty","MRP / Unit","Opening Value"],
+    rows.map(x=>[x.brand,x.opening.toLocaleString("en-IN",{maximumFractionDigits:2}),fmt(x.mrp),fmt(x.openingValue)]),
+    [88,30,34,34],6,6.6);
+  }
+  sectionTitle("TODAY'S PURCHASE — WHOLESALE + TCS");
+  table(["Brand / Size","Purchase Qty","Wholesale Rate","Base Amount","TCS 2%","Total"],
+   rows.filter(x=>x.purchase>0).map(x=>[x.brand+" "+x.size,x.purchase.toLocaleString("en-IN",{maximumFractionDigits:2}),fmt(x.wholesale),fmt(x.purchaseBase),fmt(x.tcs),fmt(x.taxTotal)]),
+   [54,24,28,28,22,30],6,6.1);
+  sectionTitle("TODAY'S SALES — BRAND-WISE");
+  table(["Brand / Size","Sale Qty","MRP / Unit","Sale Amount"],
+   rows.filter(x=>x.sale>0).map(x=>[x.brand+" "+x.size,x.sale.toLocaleString("en-IN",{maximumFractionDigits:2}),fmt(x.mrp),fmt(x.saleValue)]),
+   [88,30,34,34],6,6.6);
+  sectionTitle("CASH / ONLINE / PRESENT-DAY ROKAD");
+  table(["Collection Type","Amount"],[
+   ["Offline / Cash received",fmt(cashValue)],["Online / UPI received",fmt(onlineValue)],["Rokad received on "+date,fmt(rokadValue)]
+  ],[95,91],7,8);
+  sectionTitle("EXPENSES — "+date);
+  const expenseDisplay=expenseRows.map(x=>[x.name,x.mode,fmt(x.amount)]);
+  if(counterExpense>0)expenseDisplay.push(["Daily Counter Expense","Counter",fmt(counterExpense)]);
+  table(["Expense Description","Payment Mode","Amount"],expenseDisplay,[92,48,70],6,7);
+  sectionTitle("DAILY TOTALS");
+  table(["Particular","Quantity / Amount"],[
+   ["Opening stock quantity",total.opening.toLocaleString("en-IN",{maximumFractionDigits:2})],
+   ["Purchase quantity",total.purchase.toLocaleString("en-IN",{maximumFractionDigits:2})],
+   ["Purchase wholesale value",fmt(total.purchaseBase)],["TCS (2%)",fmt(total.tcs)],["Purchase total incl. TCS",fmt(total.taxTotal)],
+   ["Sale quantity",total.sale.toLocaleString("en-IN",{maximumFractionDigits:2})],["Sale value at MRP",fmt(total.saleValue)],
+   ["Closing stock quantity",total.closing.toLocaleString("en-IN",{maximumFractionDigits:2})],["Closing stock value at MRP",fmt(total.closingValue)],
+   ["Total expenses",fmt(expenseTotal)]
+  ],[100,86],6,7);
+  doc.setFont("helvetica","italic");doc.setFontSize(6);doc.setTextColor(105,115,125);
+  ensureSpace(8);doc.text("Note: Purchase TCS is calculated at 2% of saved product wholesale rate. Historical purchase rates are not stored per movement in the current Inventory Register; this report uses the current saved wholesale rate.",left,y+2);
+  doc.save((cat==="beer"?"Beer":"Liquor")+"-Daily-A4-Report-"+date+".pdf");
+  setMsg("inventoryDateStatus",(cat==="beer"?"Beer":"Liquor")+" A4 report downloaded for "+date+".");
+ }catch(e){
+  console.error("Department A4 report error:",e);
+  alert("Report generate nahi hui: "+(e.message||String(e)));
+ }finally{
+  btns.forEach(b=>{b.disabled=false;b.textContent=b.dataset.oldText||b.textContent;delete b.dataset.oldText;});
+ }
+}
+
+</script>
 </body>
 </html>
