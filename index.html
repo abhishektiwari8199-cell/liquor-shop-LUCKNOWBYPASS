@@ -805,9 +805,9 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
     <label>Category<select id="fl2RateCategory" onchange="fl2DrawWholesale()"><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label>
     <label>Search brand<input id="fl2RateSearch" type="search" placeholder="Search brand..." oninput="fl2DrawWholesale()"></label>
    </div>
-   <div class="status">Har brand ka bottle count aur total Petty Wholesale bharein. Per-bottle cost aur MRP margin automatic niklega. Save karne par rate Supabase mein tab tak rahega jab tak aap use change nahi karte.</div>
+   <div class="status">Har brand ka bottle count, Petty Wholesale aur MRP Petty bharein. Dono per-bottle rates automatic niklenge. Save karne par rate Supabase mein tab tak rahega jab tak aap use change nahi karte.</div>
    <div class="section-head" style="margin:12px 0"><div><b>Brand & Rate Editor</b><p>Visible rows ke saare changes ek saath save honge.</p></div><button class="btn" id="fl2SaveAllRatesBtn" type="button" aria-disabled="false" onclick="fl2SaveAllRates(this)">Save to Supabase</button></div>
-   <div class="table-wrap"><table><thead><tr><th>Brand</th><th>Size</th><th>Bottle Qty</th><th>Petty Wholesale ₹ (Enter)</th><th>Wholesale / Bottle ₹ (Auto)</th><th>MRP / Bottle ₹</th><th>Profit / Bottle ₹ (Auto)</th><th>Action</th></tr></thead><tbody id="fl2RateRows"><tr><td colspan="8" class="empty">Loading brands…</td></tr></tbody></table></div>
+   <div class="table-wrap"><table><thead><tr><th>Brand</th><th>Size</th><th>Bottle Qty</th><th>Petty Wholesale ₹ (Enter)</th><th>Wholesale / Bottle ₹ (Auto)</th><th>MRP Petty ₹ (Enter)</th><th>MRP / Bottle ₹ (Auto)</th><th>Profit / Bottle ₹ (Auto)</th><th>Action</th></tr></thead><tbody id="fl2RateRows"><tr><td colspan="9" class="empty">Loading brands…</td></tr></tbody></table></div>
    <div class="status" id="fl2RateMsg">Changes abhi save nahi hue hain. Edit karne ke baad Save Changes dabayein.</div>
   </div>
   <div id="fl2ReportPanel" class="panel glass" style="display:none">
@@ -2970,11 +2970,11 @@ function fl2DrawWholesale(){
  const rows=orderedProductsByOwnerSequence(products.filter(p=>String(p.category||"").toLowerCase()===cat&&(`${p.brand_name} ${p.size}`).toLowerCase().includes(q)));
  $("fl2RateRows").innerHTML=rows.map(p=>{
   const r=inventoryRate(p),saved=wholesaleRateMaster[String(p.id)]||{};
-  const qty=Number(saved.petty_bottle_qty||1),petty=Number(saved.petty_total||r.wholesale_price||0),cost=Number(saved.cost_per_bottle||r.wholesale_price||0),mrp=Number(saved.mrp||r.mrp||0);
-  return `<tr data-rate-product-id="${safe(p.id)}"><td><b>${safe(p.brand_name)}</b></td><td>${safe(p.size)}</td><td><input id="fl2qty_${safe(p.id)}" type="number" min="0.001" step=".001" value="${qty}" oninput="fl2CalcRateRow('${safe(p.id)}')"></td><td><input id="fl2petty_${safe(p.id)}" type="number" min="0" step=".01" value="${petty||''}" placeholder="Petty total ₹" oninput="fl2CalcRateRow('${safe(p.id)}')"></td><td id="fl2cost_${safe(p.id)}">${money(cost)}</td><td><input id="fl2mrp_${safe(p.id)}" type="number" min="0.01" step=".01" value="${mrp||''}" oninput="fl2CalcRateRow('${safe(p.id)}')"></td><td id="fl2profit_${safe(p.id)}">${money(mrp-cost)}</td><td><button class="btn" type="button" onclick="fl2SaveRate('${safe(p.id)}',this)">Save rate</button></td></tr>`;
- }).join("")||'<tr><td colspan="8" class="empty">No brands found.</td></tr>';
+  const qty=Number(saved.petty_bottle_qty||1),petty=Number(saved.petty_total||r.wholesale_price||0),cost=Number(saved.cost_per_bottle||r.wholesale_price||0),mrp=Number(saved.mrp||r.mrp||0),mrpPetty=Number(saved.mrp_petty||((saved.mrp||r.mrp||0)*qty));
+  return `<tr data-rate-product-id="${safe(p.id)}"><td><b>${safe(p.brand_name)}</b></td><td>${safe(p.size)}</td><td><input id="fl2qty_${safe(p.id)}" type="number" min="0.001" step=".001" value="${qty}" oninput="fl2CalcRateRow('${safe(p.id)}')"></td><td><input id="fl2petty_${safe(p.id)}" type="number" min="0" step=".01" value="${petty||''}" placeholder="Petty wholesale ₹" oninput="fl2CalcRateRow('${safe(p.id)}')"></td><td id="fl2cost_${safe(p.id)}">${money(cost)}</td><td><input id="fl2mrppetty_${safe(p.id)}" type="number" min="0" step=".01" value="${mrpPetty||''}" placeholder="MRP petty ₹" oninput="fl2CalcRateRow('${safe(p.id)}')"></td><td id="fl2mrp_${safe(p.id)}">${money(mrp)}</td><td id="fl2profit_${safe(p.id)}">${money(mrp-cost)}</td><td><button class="btn" type="button" onclick="fl2SaveRate('${safe(p.id)}',this)">Save rate</button></td></tr>`;
+ }).join("")||'<tr><td colspan="9" class="empty">No brands found.</td></tr>';
 }
-function fl2CalcRateRow(id){const qty=num($("fl2qty_"+id).value),petty=num($("fl2petty_"+id).value),mrp=num($("fl2mrp_"+id).value),cost=qty>0?petty/qty:0;$("fl2cost_"+id).textContent=money(cost);$("fl2profit_"+id).textContent=money(mrp-cost);}
+function fl2CalcRateRow(id){const qty=num($("fl2qty_"+id).value),petty=num($("fl2petty_"+id).value),mrpPetty=num($("fl2mrppetty_"+id).value),cost=qty>0?petty/qty:0,mrp=qty>0?mrpPetty/qty:0;$("fl2cost_"+id).textContent=money(cost);$("fl2mrp_"+id).textContent=money(mrp);$("fl2profit_"+id).textContent=money(mrp-cost);}
 function fl2ShowSaveToast(message,success=true){
  const el=$("supabaseSaveToast");
  if(el){
@@ -2991,10 +2991,10 @@ async function fl2SaveAllRates(button){
  const btn=button||$("fl2SaveAllRatesBtn");if(!db||!user){setMsg("fl2RateMsg","Admin login required.");return;}
  const rows=[...document.querySelectorAll("#fl2RateRows tr[data-rate-product-id]")],payload=[];
  for(const row of rows){const id=row.dataset.rateProductId,p=products.find(x=>String(x.id)===String(id));if(!p)continue;
-  const qty=Number($("fl2qty_"+id).value),petty=Number($("fl2petty_"+id).value),mrp=Number($("fl2mrp_"+id).value);
-  if(!Number.isFinite(qty)||qty<=0||!Number.isFinite(petty)||petty<=0||!Number.isFinite(mrp)||mrp<=0){setMsg("fl2RateMsg",`${p.brand_name}: Bottle Qty, Petty Wholesale aur MRP valid hone chahiye.`);return;}
+  const qty=Number($("fl2qty_"+id).value),petty=Number($("fl2petty_"+id).value),mrpPetty=Number($("fl2mrppetty_"+id).value),mrp=qty>0?mrpPetty/qty:0;
+  if(!Number.isFinite(qty)||qty<=0||!Number.isFinite(petty)||petty<=0||!Number.isFinite(mrp)||mrp<=0){setMsg("fl2RateMsg",`${p.brand_name}: Bottle Qty, Petty Wholesale aur MRP Petty valid hone chahiye.`);return;}
   const cost=petty/qty;if(cost>mrp){setMsg("fl2RateMsg",`${p.brand_name}: cost MRP se zyada hai.`);return;}
-  payload.push({user_id:user.id,product_id:id,petty_bottle_qty:qty,petty_total:petty,cost_per_bottle:Number(cost.toFixed(4)),mrp});
+  payload.push({user_id:user.id,product_id:id,petty_bottle_qty:qty,petty_total:petty,cost_per_bottle:Number(cost.toFixed(4)),mrp_petty:mrpPetty,mrp:Number(mrp.toFixed(2))});
  }
  if(!payload.length){setMsg("fl2RateMsg","Koi brand row nahi mili.");return;}if(btn){btn.disabled=true;btn.textContent="Saving…";}
  try{const {data,error}=await db.from("wholesale_rate_master").upsert(payload,{onConflict:"user_id,product_id"}).select();if(error)throw error;if(!data||data.length!==payload.length)throw new Error("Saved row count mismatch.");
@@ -3005,14 +3005,14 @@ async function fl2SaveAllRates(button){
 }
 async function fl2SaveRate(id,button){
  const p=products.find(x=>String(x.id)===String(id));if(!p||!db||!user){setMsg("fl2RateMsg","Product/admin session nahi mila.");return;}
- const qty=Number($("fl2qty_"+id).value),petty=Number($("fl2petty_"+id).value),mrp=Number($("fl2mrp_"+id).value);
- if(!Number.isFinite(qty)||qty<=0||!Number.isFinite(petty)||petty<=0||!Number.isFinite(mrp)||mrp<=0){setMsg("fl2RateMsg","Bottle Qty, Petty Wholesale aur MRP zero se zyada bharein.");return;}
+ const qty=Number($("fl2qty_"+id).value),petty=Number($("fl2petty_"+id).value),mrpPetty=Number($("fl2mrppetty_"+id).value),mrp=qty>0?mrpPetty/qty:0;
+ if(!Number.isFinite(qty)||qty<=0||!Number.isFinite(petty)||petty<=0||!Number.isFinite(mrpPetty)||mrpPetty<=0){setMsg("fl2RateMsg","Bottle Qty, Petty Wholesale aur MRP Petty zero se zyada bharein.");return;}
  const cost=petty/qty;if(cost>mrp){setMsg("fl2RateMsg","Per-bottle cost MRP se zyada nahi ho sakti.");return;}
  if(button){button.disabled=true;button.textContent="Saving…";}
- try{const payload={user_id:user.id,product_id:id,petty_bottle_qty:qty,petty_total:petty,cost_per_bottle:Number(cost.toFixed(4)),mrp};
+ try{const payload={user_id:user.id,product_id:id,petty_bottle_qty:qty,petty_total:petty,cost_per_bottle:Number(cost.toFixed(4)),mrp_petty:mrpPetty,mrp:Number(mrp.toFixed(2))};
   const {data,error}=await db.from("wholesale_rate_master").upsert(payload,{onConflict:"user_id,product_id"}).select().single();if(error)throw error;
   wholesaleRateMaster[String(id)]=data;p.wholesale_price=Number(data.cost_per_bottle);p.mrp=Number(data.mrp);inventoryRateByProduct[String(id)]={wholesale_price:Number(data.cost_per_bottle),mrp:Number(data.mrp)};
-  setMsg("fl2RateMsg",`✓ ${p.brand_name}: ₹${petty.toFixed(2)} ÷ ${qty} = ₹${cost.toFixed(2)} per bottle. Supabase save confirmed.`);fl2DrawWholesale();drawProducts();
+  setMsg("fl2RateMsg",`✓ ${p.brand_name}: Wholesale ₹${petty.toFixed(2)} ÷ ${qty} = ₹${cost.toFixed(2)}; MRP petty ₹${mrpPetty.toFixed(2)} ÷ ${qty} = ₹${mrp.toFixed(2)} per bottle. Supabase save confirmed.`);fl2DrawWholesale();drawProducts();
  }catch(e){setMsg("fl2RateMsg","Save failed: "+(e.message||String(e)));}
  finally{if(button){button.disabled=false;button.textContent="Save rate";}}
 }
