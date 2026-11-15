@@ -1048,7 +1048,8 @@ function setCategory(cat){$("cat").value=cat;if($("addLiquorProductPanel"))$("ad
 async function loadProducts(){
   setMsg("dashMsg","Loading inventory from cloud…");
   const {data,error}=await db.from("inventory_products")
-    .select("id,category,brand_name,size,opening_stock,mrp,wholesale_price")
+    .select("id,category,brand_name,size,opening_stock,mrp,wholesale_price,is_active")
+    .eq("is_active",true)
     .order("brand_name");
   if(error){setMsg("dashMsg","Inventory read error: "+error.message);return}
   products=(data||[]).map(p=>applyBeerRateCard(String(p.category||"").toLowerCase()==="beer"?{...p,brand_name:cleanBeerBrandName(p.brand_name)}:p));
@@ -3030,39 +3031,32 @@ async function fl2SaveRate(id,button){
 }
 
 
-// Remove an unused product from Inventory only when it has no stock or historical references.
+// Archive only this bottle-size row when its opening and current balance are zero.
+// Historical sales/purchase rows remain untouched; the brand and its other sizes stay active.
 async function fl2DeleteInventoryProduct(id,button){
  const p=products.find(x=>String(x.id)===String(id));
- if(!p||!db||!user){setMsg("fl2RateMsg","Product/admin session nahi mila; delete nahi hua.");return;}
+ if(!p||!db||!user){setMsg("fl2RateMsg","Product/admin session nahi mila; row remove nahi hui.");return;}
  const label=`${p.brand_name} · ${p.size}`;
  const row=button?.closest("tr");
- // Remove from the visible Wholesale list immediately; restore it if database deletion is blocked.
+ const opening=num(inventoryOpeningForDate[String(id)]??p.opening_stock);
+ const balance=opening+num(inventoryPurchased[String(id)])-num(inventorySold[String(id)]);
+ if(inventoryMovementError){setMsg("fl2RateMsg","Stock balance verify nahi ho paya; safety ke liye row remove nahi hui.");return;}
+ if(opening>0||balance>0){setMsg("fl2RateMsg",`${label}: Opening stock ya balance stock zero nahi hai. Row active rakhi gayi.`);return;}
+ // Hide the selected size row immediately; archive in Supabase to preserve all historical transactions.
  if(row)row.remove();
- if(button){button.disabled=true;button.textContent="Deleting…";}
+ if(button){button.disabled=true;button.textContent="Removing…";}
  try{
-  const checks=await Promise.all([
-   db.from("inventory_register_entries").select("id",{count:"exact",head:true}).eq("product_id",id),
-   db.from("purchase_items").select("id",{count:"exact",head:true}).eq("product_id",id),
-   db.from("sale_items").select("id",{count:"exact",head:true}).eq("product_id",id),
-   db.from("stock_in_bottle_scan_events").select("id",{count:"exact",head:true}).eq("product_id",id)
-  ]);
-  const failed=checks.find(x=>x.error);if(failed)throw failed.error;
-  const refs=checks.reduce((n,x)=>n+(x.count||0),0);
-  if(num(p.opening_stock)>0||refs>0){
-   fl2DrawWholesale();
-   setMsg("fl2RateMsg",`${label} delete nahi hua: opening stock ya historical record maujood hai. Data safe rakhne ke liye restore kar diya.`);
-   fl2ShowSaveToast("Delete blocked: historical stock or transaction exists",false);return;
-  }
-  const {error}=await db.from("inventory_products").delete().eq("id",id).eq("user_id",user.id);
+  const {data,error}=await db.from("inventory_products").update({is_active:false}).eq("id",id).eq("user_id",user.id).eq("is_active",true).select("id,is_active").single();
   if(error)throw error;
+  if(!data||data.is_active!==false)throw new Error("Archive confirmation nahi mila.");
   products=products.filter(x=>String(x.id)!==String(id));
-  delete wholesaleRateMaster[String(id)];delete inventoryRateByProduct[String(id)];
-  setMsg("fl2RateMsg",`${label} Inventory aur Wholesale dono se delete ho gaya.`);
-  fl2ShowSaveToast("Row Deleted Successfully");drawProducts();fl2DrawWholesale();
+  delete wholesaleRateMaster[String(id)];
+  delete inventoryRateByProduct[String(id)];
+  setMsg("fl2RateMsg",`${label} active Wholesale aur Inventory list se hata diya. Purani history safe hai.`);
+  drawProducts();fl2DrawWholesale();
  }catch(e){
   fl2DrawWholesale();
-  setMsg("fl2RateMsg","Delete failed: "+(e.message||String(e))+". Row restore kar di gayi; database data nahi badla.");
-  fl2ShowSaveToast("Delete Failed — row restored",false);
+  setMsg("fl2RateMsg",`${label} remove nahi hui: ${e.message||String(e)}. Row list mein wapas aa gayi.`);
  }
 }
 
