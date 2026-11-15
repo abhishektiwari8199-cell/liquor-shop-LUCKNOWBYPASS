@@ -372,6 +372,13 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
 /* Product creation panels are intentionally placed after the inventory register and day counter. */
 #inventoryWork #addLiquorProductPanel,#inventoryWork #addBeerProductPanel{margin-top:12px}
 #inventoryWork #addLiquorProductPanel .section-head,#inventoryWork #addBeerProductPanel .section-head{align-items:center}
+
+/* Compact Wholesale Rate Editor rows and headers */
+#fl2WholesalePanel .table-wrap table{min-width:1180px;}
+#fl2WholesalePanel .table-wrap th{padding:8px 9px;font-size:9px;letter-spacing:.35px;white-space:nowrap;}
+#fl2WholesalePanel .table-wrap td{padding:7px 9px;line-height:1.15;}
+#fl2WholesalePanel .table-wrap input{min-width:82px;padding:6px 8px;height:34px;}
+#fl2WholesalePanel .table-wrap tbody tr{height:auto;}
 </style>
 <style id="dashboard-mrp-additions">.kpi-sub{margin-top:7px;color:#a9bfd4;font-size:12px;font-weight:700;letter-spacing:.2px}</style>
 <style id="fl2-workspace-additions">#fl2ReconciliationPanel .kpis{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}#fl2ReconciliationPanel .table-wrap{overflow-x:auto}#fl2ReconciliationPanel table{min-width:1050px}#fl2ReconciliationPanel .status{white-space:normal}</style>
@@ -807,7 +814,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
    </div>
    <div class="status">Har brand ka bottle count, Petty Wholesale aur MRP per bottle ya MRP Petty mein se koi ek bharein; doosra Qty ke hisaab se automatic calculate hoga. Save karne par rate Supabase mein tab tak rahega jab tak aap use change nahi karte.</div>
    <div class="section-head" style="margin:12px 0"><div><b>Brand & Rate Editor</b><p>Visible rows ke saare changes ek saath save honge.</p></div><button class="btn" id="fl2SaveAllRatesBtn" type="button" aria-disabled="false" onclick="fl2SaveAllRates(this)">Save to Supabase</button></div>
-   <div class="table-wrap"><table><thead><tr><th>Brand</th><th>Size</th><th>Bottle Qty</th><th>Petty Wholesale ₹ (Enter)</th><th>TCS 2% ₹ (Auto)</th><th>Wholesale / Petty ₹ (Final with TCS - Auto)</th><th>Wholesale / Bottle ₹ (Final with TCS - Auto)</th><th>MRP / Bottle ₹ (Enter)</th><th>MRP Petty ₹ (Auto)</th><th>Profit / Bottle ₹ (Auto)</th><th>Action</th></tr></thead><tbody id="fl2RateRows"><tr><td colspan="11" class="empty">Loading brands…</td></tr></tbody></table></div>
+   <div class="table-wrap"><table><thead><tr><th>Brand</th><th>Size</th><th>Bottle Qty</th><th>Petty Wholesale ₹ (Enter)</th><th>TCS 2% ₹ (Auto)</th><th>₹ Whol / Petty</th><th>₹ Whol / Bottle</th><th>MRP / Bottle ₹ (Enter)</th><th>MRP Petty ₹ (Auto)</th><th>Profit / Bottle ₹ (Auto)</th><th>Action</th></tr></thead><tbody id="fl2RateRows"><tr><td colspan="11" class="empty">Loading brands…</td></tr></tbody></table></div>
    <div class="status" id="fl2RateMsg">Changes abhi save nahi hue hain. Edit karne ke baad Save Changes dabayein.</div>
   </div>
   <div id="fl2ReportPanel" class="panel glass" style="display:none">
