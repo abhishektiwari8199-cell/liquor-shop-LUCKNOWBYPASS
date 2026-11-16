@@ -2335,7 +2335,7 @@ async function deleteInventoryExpense(id){
  if(!confirm("Is expense entry ko delete karna hai?"))return;
  const {error}=await db.from("daily_expenses").delete().eq("id",id).eq("user_id",user.id);
  if(error){setMsg("invExpenseStatus","Delete failed: "+error.message);return;}
- await loadInventoryExpenses();const expenseDate=$("inventoryDate")?.value||$("dayCounterDate")?.value;if($("daybookDate")?.value===expenseDate)await loadDaybook();
+ await loadInventoryExpenses();const expenseDate=$("inventoryDate")?.value||$("dayCounterDate")?.value;if($("inventoryDate")?.value===expenseDate)await loadInventoryDayCounter();if($("daybookDate")?.value===expenseDate)await loadDaybook();
 }
 let nightCashReceiver="",nightCashReceiverName="";
 function toggleNightReceiverOther(){const other=$("nightReceiverSelect")?.value==="Others";$("nightReceiverOtherWrap").style.display=other?"block":"none";}
@@ -2519,14 +2519,25 @@ async function loadInventoryDayCounter(){
   if(se)throw se;
   const {data:nightRow,error:nightError}=await db.from("night_cash_received").select("cash_received,online_received,rokad_received").eq("user_id",user.id).eq("record_date",date).eq("category",category).maybeSingle();
   if(nightError)throw nightError;
-  // Night Cash Received is the source of truth for Inventory cash/online/rokad.
+  // Night Cash Received remains the source of truth for the actual cash/online/rokad inputs.
+  // These KPI updates are display-only; they do not alter saved sales, reconciliation, or reports.
   $("dcPresentRokad").value=Number(nightRow?.rokad_received||0).toFixed(2);
   $("dcCashReceived").value=Number(nightRow?.cash_received||0).toFixed(2);
   $("dcOnlineReceived").value=Number(nightRow?.online_received||0).toFixed(2);
   ["dcPresentRokad","dcCashReceived","dcOnlineReceived"].forEach(id=>{if($(id))$(id).readOnly=true;});
   $("dcExpenseAmount").value=summary?.expense_amount??0;
   $("dcExpenseNote").value=summary?.expense_note??"";
-  $("dcExpenseTotal").textContent=money(summary?.expense_amount||0);
+  // Show actual received amounts in the top tiles (not the sales-header payment-mode totals).
+  $("dcCashSale").textContent=money(nightRow?.cash_received||0);
+  $("dcCashSale").dataset.value=num(nightRow?.cash_received||0);
+  $("dcOnlineSale").textContent=money(nightRow?.online_received||0);
+  $("dcOnlineSale").dataset.value=num(nightRow?.online_received||0);
+  // Expenses tile reflects only the saved, line-by-line Expenses Book entries for this department/date.
+  const {data:expenseLines,error:expenseLinesError}=await db.from("daily_expenses")
+   .select("amount").eq("user_id",user.id).eq("expense_date",date).eq("category",category);
+  if(expenseLinesError)throw expenseLinesError;
+  const expenseLinesTotal=(expenseLines||[]).reduce((sum,row)=>sum+num(row.amount),0);
+  $("dcExpenseTotal").textContent=money(expenseLinesTotal);
   dayCounterDiff();dayCounterCashPreview();
   setMsg("dcStatus",`Loaded ${category} counter for ${date}. Night Cash Received se Cash, Online aur Rokad automatic fetch hue hain; yahan sirf Sale/Expense reconciliation update karein. Inventory sales ₹${money(manualTotal)} are included.`);
  }catch(e){setMsg("dcStatus","Counter load error: "+(e.message||String(e)))}
