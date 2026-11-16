@@ -2611,6 +2611,9 @@ let salesChart=null;
 function dateBack(days){const d=new Date();d.setDate(d.getDate()-days);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)}
 async function loadSalesHistoryFast(){
  if(!db||!user)return;
+ const uuidPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+ const historyUserId=String(user.id||"");
+ if(!uuidPattern.test(historyUserId)){setMsg("saleHistoryStatus","Session error: valid user UUID nahi mila. Logout karke dobara login karein.");console.error("Sales history blocked: invalid auth user id",user);return;}
  const from=$("saleFrom").value||dateBack(29),to=$("saleTo").value||today();
  if(from>to){setMsg("saleHistoryStatus","Start date cannot be later than end date.");return}
  setMsg("saleHistoryStatus",`Loading ${from} to ${to}…`);
@@ -2626,7 +2629,7 @@ async function loadSalesHistoryFast(){
    db.from("inventory_register_entries").select("entry_date,product_id,purchase_qty,sale_qty").eq("user_id",user.id).gte("entry_date",STOCK_START_DATE).lt("entry_date",to)
   ]);
   for(const r of [salesResult,expenseResult,counterResult,dailyCashResult,purchaseResult,inventoryPurchaseResult,openingMovementResult])if(r.error)throw r.error;
-  const bills=salesResult.data||[],billIds=bills.map(x=>x.id),purchaseHeaders=purchaseResult.data||[],purchaseIds=purchaseHeaders.map(x=>x.id);
+  const bills=salesResult.data||[],billIds=bills.map(x=>x.id).filter(id=>uuidPattern.test(String(id||""))),purchaseHeaders=purchaseResult.data||[],purchaseIds=purchaseHeaders.map(x=>x.id).filter(id=>uuidPattern.test(String(id||"")));
   const [billItemsResult,purchaseItemsResult]=await Promise.all([
    billIds.length?db.from("sale_items").select("sale_id,product_id,quantity,sale_rate").eq("user_id",user.id).in("sale_id",billIds):Promise.resolve({data:[],error:null}),
    purchaseIds.length?db.from("purchase_items").select("invoice_id,product_id,quantity,purchase_rate").eq("user_id",user.id).in("invoice_id",purchaseIds):Promise.resolve({data:[],error:null})
@@ -2679,7 +2682,7 @@ async function loadSalesHistoryFast(){
   $("hist").innerHTML=dates.map(date=>{const x=daily.get(date);return `<tr><td><b>${safe(date)}</b></td><td>${x.beerQty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${x.liquorQty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${money(x.saleAmount)}</td><td><button class="btn" type="button" onclick="showSaleDaySummary('${safe(date)}')">View Summary Report</button></td><td><button class="btn secondary" type="button" onclick="downloadCompleteSaleSummary('${safe(date)}')">↓ Download PDF</button></td></tr>`}).join("")||'<tr><td colspan="6" class="empty">No sales or cash entries recorded for this date range.</td></tr>';
   $("saleHistoryStatus").textContent=`Loaded ${dates.length} date-wise records for ${from} to ${to}. Cash register and Daily Counter details are included in each summary.`;
   if($("saleDaySummaryPanel"))$("saleDaySummaryPanel").style.display="none";
- }catch(e){setMsg("saleHistoryStatus","Sales history error: "+(e.message||String(e)));console.error("Sales history:",e)}
+ }catch(e){const detail=e?.message||e?.details||e?.hint||String(e);setMsg("saleHistoryStatus","Sales history error: "+detail);console.error("Sales history query failed:",{message:e?.message,details:e?.details,hint:e?.hint,code:e?.code,error:e})}
 }
 function viewSalesHistory(){loadSalesHistoryFast();}
 function clearSalesHistoryFilters(){$("saleFrom").value=dateBack(29);$("saleTo").value=today();loadSalesHistoryFast();}
