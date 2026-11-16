@@ -2622,7 +2622,7 @@ async function loadSalesHistoryFast(){
  if(from>to){setMsg("saleHistoryStatus","Start date cannot be later than end date.");return}
  setMsg("saleHistoryStatus",`Loading ${from} to ${to}…`);
  try{
-  const [salesResult,manualRows,expenseResult,counterResult,purchaseResult,dailyCashResult,inventoryPurchaseResult,openingMovementResult]=await Promise.all([
+  const [salesResult,manualRows,expenseResult,counterResult,purchaseResult,dailyCashResult,inventoryPurchaseResult,openingMovementResult,nightCashResult]=await Promise.all([
    db.from("sales").select("id,sale_date,bill_number,category,payment_mode").eq("user_id",user.id).gte("sale_date",from).lte("sale_date",to).order("sale_date",{ascending:false}),
    getInventorySaleRows(from,to,"all"),
    db.from("daily_expenses").select("expense_date,expense_name,amount,payment_type,category").eq("user_id",user.id).gte("expense_date",from).lte("expense_date",to),
