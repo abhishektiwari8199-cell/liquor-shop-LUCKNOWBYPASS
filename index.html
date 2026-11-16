@@ -461,6 +461,16 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
 .sales-chart-wrap canvas{display:block;width:100%!important;height:100%!important;max-width:100%}
 @media(max-width:700px){.sales-chart-wrap{height:420px!important;min-height:360px!important}}
 </style>
+
+<style id="daily-counter-kpi-overflow-fix">
+/* Keep long rupee values inside each Daily Counter card. */
+#inventoryDayCounter .kpis{grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr))!important;align-items:stretch}
+#inventoryDayCounter .kpis>.kpi{min-width:0;max-width:100%;box-sizing:border-box;padding:clamp(14px,1.5vw,20px)}
+#inventoryDayCounter .kpis>.kpi small{display:block;line-height:1.55;min-height:2.8em;overflow-wrap:anywhere}
+#inventoryDayCounter .kpis>.kpi strong{display:block;max-width:100%;min-width:0;font-size:clamp(18px,2.05vw,30px)!important;line-height:1.2;letter-spacing:-.035em;white-space:normal;overflow-wrap:anywhere;word-break:normal;font-variant-numeric:tabular-nums}
+@media(max-width:600px){#inventoryDayCounter .kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px}#inventoryDayCounter .kpis>.kpi{padding:12px;min-height:104px}#inventoryDayCounter .kpis>.kpi strong{font-size:clamp(17px,4.2vw,23px)!important}}
+@media(max-width:360px){#inventoryDayCounter .kpis{grid-template-columns:minmax(0,1fr)!important}}
+</style>
 </head>
 <body>
 <section id="loginView">
@@ -2728,7 +2738,7 @@ async function loadSalesHistoryFast(){
   }
   saleHistoryDailyData=Object.fromEntries([...daily.entries()]);
   const dates=[...daily.keys()].sort((a,b)=>b.localeCompare(a));
-  $("hist").innerHTML=dates.map(date=>{const x=daily.get(date);return `<tr><td><b>${safe(date)}</b></td><td>${x.beerQty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${x.liquorQty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${money(x.saleAmount)}</td><td><button class="btn" type="button" onclick="showSaleDaySummary('${safe(date)}')">View Summary Report</button></td><td><button class="btn secondary" type="button" onclick="downloadCompleteSaleSummary('${safe(date)}')">↓ Download PDF</button></td></tr>`}).join("")||'<tr><td colspan="6" class="empty">No sales or cash entries recorded for this date range.</td></tr>';
+  $("hist").innerHTML=dates.map(date=>{const x=daily.get(date);return `<tr><td><b>${safe(date)}</b></td><td>${x.beerQty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${x.liquorQty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${money(x.saleAmount)}</td><td><button class="btn" type="button" onclick="showSaleDaySummary('${safe(date)}')">View Summary Report</button></td><td><button class="btn secondary" type="button" onclick="downloadCompleteSaleSummary('${safe(date)}')">↓ Download PDF</button> <button class="btn" type="button" onclick="emailCompleteSaleSummary('${safe(date)}',this)">✉ Send to Mail</button></td></tr>`}).join("")||'<tr><td colspan="6" class="empty">No sales or cash entries recorded for this date range.</td></tr>';
   $("saleHistoryStatus").textContent=`Loaded ${dates.length} date-wise records for ${from} to ${to}. Cash register and Daily Counter details are included in each summary.`;
   if($("saleDaySummaryPanel"))$("saleDaySummaryPanel").style.display="none";
  }catch(e){const detail=e?.message||e?.details||e?.hint||String(e);setMsg("saleHistoryStatus","Sales history error: "+detail);console.error("Sales history query failed:",{message:e?.message,details:e?.details,hint:e?.hint,code:e?.code,error:e})}
@@ -2870,7 +2880,7 @@ async function refresh(){
   }
   saleHistoryDailyData=Object.fromEntries([...dailyMap.entries()]);
   const dates=[...dailyMap.keys()].sort((a,b)=>b.localeCompare(a));
-  $("hist").innerHTML=dates.map(date=>{const x=dailyMap.get(date);return `<tr><td><b>${safe(date)}</b></td><td>${x.beerQty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${x.liquorQty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${money(x.saleAmount)}</td><td><button class="btn" type="button" onclick="showSaleDaySummary('${safe(date)}')">View Summary Report</button></td><td><button class="btn secondary" type="button" onclick="downloadCompleteSaleSummary('${safe(date)}')">↓ Download PDF</button></td></tr>`}).join("")||'<tr><td colspan="6" class="empty">No sales recorded for this date range.</td></tr>';
+  $("hist").innerHTML=dates.map(date=>{const x=dailyMap.get(date);return `<tr><td><b>${safe(date)}</b></td><td>${x.beerQty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${x.liquorQty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${money(x.saleAmount)}</td><td><button class="btn" type="button" onclick="showSaleDaySummary('${safe(date)}')">View Summary Report</button></td><td><button class="btn secondary" type="button" onclick="downloadCompleteSaleSummary('${safe(date)}')">↓ Download PDF</button> <button class="btn" type="button" onclick="emailCompleteSaleSummary('${safe(date)}',this)">✉ Send to Mail</button></td></tr>`}).join("")||'<tr><td colspan="6" class="empty">No sales recorded for this date range.</td></tr>';
   $("saleHistoryStatus").textContent=`Showing ${dates.length} date-wise sale summaries from ${filterFrom} to ${filterTo}.`;
   if($("saleDaySummaryPanel"))$("saleDaySummaryPanel").style.display="none";
 
@@ -3380,7 +3390,7 @@ function downloadDashboardAutoReport(){
 }
 
 
-function downloadCompleteSaleSummary(date){
+function downloadCompleteSaleSummary(date,returnDocument=false){
  const day=saleHistoryDailyData[date];if(!day){alert("Pehle Sale Report mein date load karein.");return}
  if(!window.jspdf||!window.jspdf.jsPDF){alert("PDF library load nahi hui. Internet connection check karein.");return}
  const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4",compress:true});
@@ -3483,7 +3493,34 @@ function downloadCompleteSaleSummary(date){
  doc.setFillColor(...NAVY);doc.roundedRect(L,202,W-L-R,8,1.1,1.1,"F");doc.setFillColor(...YELLOW);doc.rect(L,202,2,8,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(8);
  doc.text("TOTAL CASH : "+fmt(cash),L+8,207.3);doc.text("PREVIOUS ROKAD : "+fmt(previousRokad),L+100,207.3);doc.text("PRESENT ROKAD : "+fmt(presentRokad),L+175,207.3);doc.text("TOTAL ROKAD : "+fmt(totalRokad),W-R-5,207.3,{align:"right"});
  doc.setFont("helvetica","italic");doc.setFontSize(4.6);doc.setTextColor(...MUTED);doc.text("Profit = MRP sale value − wholesale cost of sold quantity (TCS excluded). Expenses are displayed separately and are not deducted from profit.",L,213);
+ if(returnDocument)return doc;
  doc.save("Complete-Sale-Summary-"+date+".pdf");
+}
+
+async function emailCompleteSaleSummary(date,button){
+ if(!db||!user){alert("Pehle POS mein login karein.");return;}
+ if(!saleHistoryDailyData[date]){alert("Pehle Sales History mein is date ka record load karein.");return;}
+ if(!window.jspdf?.jsPDF){alert("PDF library load nahi hui. Internet connection check karein.");return;}
+ const recipient="abhishektiwari8199@gmail.com";
+ if(button){button.disabled=true;button.textContent="Sending…";}
+ try{
+  const doc=downloadCompleteSaleSummary(date,true);
+  if(!doc)throw new Error("Sales Summary PDF generate nahi hui.");
+  const dataUri=doc.output("datauristring");
+  const pdfBase64=dataUri.substring(dataUri.indexOf(",")+1);
+  const {data:{session},error:sessionError}=await db.auth.getSession();
+  if(sessionError)throw sessionError;
+  if(!session?.access_token)throw new Error("Login session expire ho gaya. Dobara login karein.");
+  const {data,error}=await db.functions.invoke("send-sales-summary-report",{body:{to:recipient,reportDate:date,pdfBase64}});
+  if(error)throw error;
+  if(!data?.success)throw new Error(data?.error||"Email provider ne success confirm nahi kiya.");
+  alert("Daily Sales Summary email bhejne ke liye accept ho gayi. Recipient: "+(data.recipient||recipient)+" | Date: "+date);
+ }catch(e){
+  console.error("Sales summary email failed:",e);
+  alert("Email send nahi hui: "+(e.message||String(e))+". Supabase Function send-sales-summary-report aur RESEND_API_KEY verify karein.");
+ }finally{
+  if(button){button.disabled=false;button.textContent="✉ Send to Mail";}
+ }
 }
 
 function showSaleDaySummary(date){
