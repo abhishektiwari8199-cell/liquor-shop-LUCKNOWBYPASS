@@ -3353,64 +3353,79 @@ function downloadCompleteSaleSummary(date){
  applyOfficePdfStyle(doc,"Complete Daily Business Summary");
  const W=297,L=10,R=10,fmt=v=>"Rs. "+num(v).toLocaleString("en-IN",{maximumFractionDigits:0});
  const NAVY=[18,48,78],BLUE=[34,91,145],PALE=[235,243,250],YELLOW=[255,205,55],INK=[34,49,64],MUTED=[91,108,124];
- // Office-style header: navy band with a yellow accent rule.
- doc.setFillColor(...NAVY);doc.rect(0,0,W,27,"F");doc.setFillColor(...YELLOW);doc.rect(0,27,W,2.2,"F");
- doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(16);doc.text("COMPLETE DAILY BUSINESS SUMMARY",L,11);
- doc.setFont("helvetica","normal");doc.setFontSize(9);doc.text("Sale Date: "+date,L,19);doc.text("LIQUOR SHOP  |  PURCHASE · SALES · COLLECTIONS · EXPENSES",W-R,19,{align:"right"});
- const openingTotals=(cat)=>{const rows=[...day.openingProducts.values()].filter(x=>x.category===cat);return {qty:rows.reduce((a,x)=>a+x.qty,0),mrp:rows.reduce((a,x)=>a+x.mrp,0)}};
- const liquorOpen=openingTotals("liquor"),beerOpen=openingTotals("beer");
+ const liquorOpen=[...day.openingProducts.values()].filter(x=>x.category==="liquor"),beerOpen=[...day.openingProducts.values()].filter(x=>x.category==="beer");
+ const sumRows=(rows,key)=>rows.reduce((a,x)=>a+num(x[key]),0);
+ const liquorOpenQty=sumRows(liquorOpen,"qty"),beerOpenQty=sumRows(beerOpen,"qty"),liquorOpenMrp=sumRows(liquorOpen,"mrp"),beerOpenMrp=sumRows(beerOpen,"mrp"),openingMrp=liquorOpenMrp+beerOpenMrp,openingQty=liquorOpenQty+beerOpenQty;
+ const presentRokad=num(day.registerRokad??day.closingRokad),previousRokad=num(day.previousRokad),totalRokad=previousRokad+presentRokad;
+ const cash=num(day.registerCash)>0?num(day.registerCash):num(day.cashReceived),online=num(day.registerOnline)>0?num(day.registerOnline):num(day.onlineReceived);
+ // Header
+ doc.setFillColor(...NAVY);doc.rect(0,0,W,26,"F");doc.setFillColor(...YELLOW);doc.rect(0,26,W,2.2,"F");
+ doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(15);doc.text("COMPLETE DAILY BUSINESS SUMMARY",L,11);
+ doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.text("Sale Date: "+date,L,19);doc.text("LIQUOR SHOP  |  SALES · PROFIT · COLLECTIONS · STOCK",W-R,19,{align:"right"});
+ // Compact KPI cards. All three opening stock values are visible, including the grand total.
  const cards=[
-  ["LIQUOR OPENING STOCK",fmt(liquorOpen.mrp)], ["BEER OPENING STOCK",fmt(beerOpen.mrp)],
-  ["LIQUOR PURCHASE · MRP",fmt([...day.purchaseProducts.values()].filter(x=>x.category==="liquor").reduce((a,x)=>a+x.mrp,0))],
-  ["BEER PURCHASE · MRP",fmt([...day.purchaseProducts.values()].filter(x=>x.category==="beer").reduce((a,x)=>a+x.mrp,0))],
-  ["LIQUOR SALE",fmt([...day.products.values()].filter(x=>x.category==="liquor").reduce((a,x)=>a+x.amount,0))],
-  ["BEER SALE",fmt([...day.products.values()].filter(x=>x.category==="beer").reduce((a,x)=>a+x.amount,0))],
-  ["CASH RECEIVED",fmt(day.registerCash||day.cashReceived)], ["ONLINE RECEIVED",fmt(day.registerOnline||day.onlineReceived)],
-  ["PREVIOUS DAY ROKAD",fmt(day.previousRokad)], ["EXPENSES",fmt(day.expenses+num(day.registerExpenses))]
+  ["TOTAL OPENING STOCK · MRP",fmt(openingMrp),"Qty: "+openingQty.toLocaleString("en-IN")],
+  ["LIQUOR OPENING · MRP",fmt(liquorOpenMrp),"Qty: "+liquorOpenQty.toLocaleString("en-IN")],
+  ["BEER OPENING · MRP",fmt(beerOpenMrp),"Qty: "+beerOpenQty.toLocaleString("en-IN")],
+  ["LIQUOR SALE",fmt([...day.products.values()].filter(x=>x.category==="liquor").reduce((a,x)=>a+x.amount,0)),""],
+  ["BEER SALE",fmt([...day.products.values()].filter(x=>x.category==="beer").reduce((a,x)=>a+x.amount,0)),""],
+  ["CASH RECEIVED",fmt(cash),""],["ONLINE RECEIVED",fmt(online),""],
+  ["PREVIOUS DAY ROKAD",fmt(previousRokad),""],["PRESENT DAY ROKAD",fmt(presentRokad),""],
+  ["TOTAL ROKAD",fmt(totalRokad),""],["TOTAL EXPENSES",fmt(num(day.expenses)+num(day.registerExpenses)),""]
  ];
- const cw=(W-L-R-18)/10;
- cards.forEach((c,i)=>{const x=L+i*(cw+2);doc.setFillColor(...PALE);doc.setDrawColor(205,218,230);doc.roundedRect(x,32,cw,17,1.2,1.2,"FD");doc.setFillColor(...YELLOW);doc.rect(x,32,cw,1.5,"F");doc.setTextColor(...MUTED);doc.setFont("helvetica","bold");doc.setFontSize(4.1);doc.text(c[0],x+1,37);doc.setTextColor(...NAVY);doc.setFontSize(5.8);doc.text(c[1],x+1,43.5);if(i===0||i===1){doc.setFont("helvetica","normal");doc.setFontSize(4.2);doc.text("Qty: "+(i===0?liquorOpen.qty:beerOpen.qty).toLocaleString("en-IN"),x+1,47)}});
- const totalSale=day.saleAmount;
- doc.setFillColor(255,247,218);doc.setDrawColor(242,199,65);doc.roundedRect(L,52,W-L-R,13,1.4,1.4,"FD");
- doc.setTextColor(...NAVY);doc.setFont("helvetica","bold");doc.setFontSize(7.6);
- doc.text("TOTAL PURCHASE: "+fmt(day.purchaseBeer+day.purchaseLiquor),L+4,57.5);
- doc.text("TOTAL SALE: "+fmt(totalSale),L+75,57.5);
- doc.text("PROFIT ESTIMATE: "+fmt(day.profit),L+143,57.5);
- doc.text("PROFIT (BEFORE EXPENSES): "+fmt(day.profit),W-R-4,57.5,{align:"right"});
- doc.setFont("helvetica","normal");doc.setFontSize(5.8);doc.setTextColor(...MUTED);
- doc.text("Present Day Rokad: "+fmt(day.registerRokad??day.closingRokad)+"  |  Cash and Online values are from saved Daily Counter records.",L+4,62.5);
- function section(title,rows,cols,x,y,width,maxRows,rowH=4){
-  doc.setFont("helvetica","bold");doc.setFontSize(7.4);doc.setTextColor(...NAVY);doc.text(title,x,y);
-  const top=y+3.2;doc.setFillColor(...BLUE);doc.roundedRect(x,top,width,5,0.7,0.7,"F");
-  const tw=cols.reduce((a,c)=>a+c.w,0),ws=cols.map(c=>width*c.w/tw);let cx=x;
-  doc.setFont("helvetica","bold");doc.setFontSize(5.5);doc.setTextColor(255,255,255);cols.forEach((c,i)=>{doc.text(c.h,cx+1,top+3.4);cx+=ws[i]});
-  let yy=top+5;const shown=rows.slice(0,maxRows);
-  shown.forEach((row,i)=>{if(i%2===0){doc.setFillColor(242,247,251);doc.rect(x,yy,width,rowH,"F")}cx=x;doc.setFont("helvetica","normal");doc.setFontSize(5.25);doc.setTextColor(...INK);cols.forEach((c,j)=>{const v=String(c.v(row)??"—").replace(/\s+/g," ");doc.text(v.length>c.max?v.slice(0,c.max-1)+"…":v,cx+1,yy+rowH*.69);cx+=ws[j]});yy+=rowH});
-  if(rows.length>shown.length){doc.setFontSize(4.8);doc.setTextColor(160,80,45);doc.text("Showing "+shown.length+" of "+rows.length+" records",x,Math.min(193,yy+1.5))}
-  if(!rows.length){doc.setFontSize(5.5);doc.setTextColor(...MUTED);doc.text("No records",x+1,top+8.5)}
+ const gap=1.5,cw=(W-L-R-gap*(cards.length-1))/cards.length;
+ cards.forEach((c,i)=>{const x=L+i*(cw+gap);doc.setFillColor(...PALE);doc.setDrawColor(205,218,230);doc.roundedRect(x,31,cw,18,1,1,"FD");doc.setFillColor(...YELLOW);doc.rect(x,31,cw,1.4,"F");doc.setTextColor(...MUTED);doc.setFont("helvetica","bold");doc.setFontSize(3.8);doc.text(c[0],x+1,35.5);doc.setTextColor(...NAVY);doc.setFontSize(5.5);doc.text(c[1],x+1,41.5);if(c[2]){doc.setFont("helvetica","normal");doc.setFontSize(4.1);doc.text(c[2],x+1,46.5)}});
+ const totalSale=num(day.saleAmount),totalProfit=num(day.profit);
+ doc.setFillColor(255,247,218);doc.setDrawColor(242,199,65);doc.roundedRect(L,52,W-L-R,11,1.2,1.2,"FD");
+ doc.setTextColor(...NAVY);doc.setFont("helvetica","bold");doc.setFontSize(7);
+ doc.text("TOTAL OPENING STOCK VALUE: "+fmt(openingMrp),L+3,58.5);
+ doc.text("TOTAL SALE: "+fmt(totalSale),L+77,58.5);
+ doc.text("GROSS PROFIT: "+fmt(totalProfit),L+145,58.5);
+ doc.text("ROKAD TOTAL: "+fmt(totalRokad),W-R-3,58.5,{align:"right"});
+ function table(title,rows,cols,x,y,w,maxRows,rowH=3.7,fs=5.1){
+  doc.setFont("helvetica","bold");doc.setFontSize(7);doc.setTextColor(...NAVY);doc.text(title,x,y);
+  const top=y+3,headH=4.6;doc.setFillColor(...BLUE);doc.roundedRect(x,top,w,headH,.6,.6,"F");
+  const total=cols.reduce((a,c)=>a+c.w,0),ws=cols.map(c=>w*c.w/total);let cx=x;
+  doc.setFont("helvetica","bold");doc.setFontSize(4.8);doc.setTextColor(255,255,255);
+  cols.forEach((c,i)=>{doc.text(c.h,cx+1,top+3.1);cx+=ws[i]});
+  let yy=top+headH;const shown=rows.slice(0,maxRows);
+  shown.forEach((row,i)=>{if(i%2===0){doc.setFillColor(242,247,251);doc.rect(x,yy,w,rowH,"F")}cx=x;doc.setFont("helvetica","normal");doc.setFontSize(fs);doc.setTextColor(...INK);cols.forEach((c,j)=>{let v=String(c.v(row)??"—").replace(/\s+/g," ");const maxChars=c.max||24;if(v.length>maxChars)v=v.slice(0,maxChars-1)+"…";doc.text(v,cx+1,yy+rowH*.68);cx+=ws[j]});yy+=rowH});
+  if(!rows.length){doc.setFontSize(5);doc.setTextColor(...MUTED);doc.text("No records",x+1,yy+3)}
+  if(rows.length>shown.length){doc.setFontSize(4.4);doc.setTextColor(150,75,45);doc.text("Showing "+shown.length+" of "+rows.length+" rows",x,yy+2)}
  }
- const leftW=133,rightX=148,rightW=139;
- const openingMap=new Map();for(const x of day.openingProducts.values()){const key=x.category+"|"+x.size,v=openingMap.get(key)||{category:x.category,size:x.size,qty:0,mrp:0};v.qty+=num(x.qty);v.mrp+=num(x.mrp);openingMap.set(key,v)}
- const openingRows=[...openingMap.values()].sort((a,b)=>a.category.localeCompare(b.category)||a.size.localeCompare(b.size,undefined,{numeric:true}));
- section("TODAY OPENING STOCK · SIZE-WISE MRP VALUE",openingRows,[{h:"DEPT",w:18,v:x=>x.category,max:10},{h:"SIZE",w:22,v:x=>x.size,max:14},{h:"OPEN QTY",w:20,v:x=>x.qty,max:12},{h:"MRP VALUE",w:30,v:x=>fmt(x.mrp),max:18}],L,70,W-L-R,8,2.7);
- const deptProfitRows=["liquor","beer"].map(cat=>{const sold=[...day.products.values()].filter(x=>x.category===cat);const sale=sold.reduce((a,x)=>a+num(x.amount),0);const gross=sold.reduce((a,x)=>a+num(x.profit),0);const cost=sold.reduce((a,x)=>{const p=products.find(p=>String(p.brand_name)===String(x.brand)&&String(p.size)===String(x.size)&&String(p.category||"").toLowerCase()===cat);return a+num(x.qty)*inventoryRate(p).wholesale_base},0);return {dept:cat==="liquor"?"Liquor":"Beer",qty:sold.reduce((a,x)=>a+num(x.qty),0),sale,cost,gross}});
- section("DEPARTMENT PROFIT · LIQUOR & BEER",deptProfitRows,[{h:"DEPT",w:14,v:x=>x.dept,max:10},{h:"SOLD QTY",w:13,v:x=>x.qty,max:10},{h:"MRP SALE",w:22,v:x=>fmt(x.sale),max:14},{h:"WHOLESALE COST",w:25,v:x=>fmt(x.cost),max:16},{h:"PROFIT",w:22,v:x=>fmt(x.gross),max:14}],L,104,W-L-R,4,4.2);
- const bySize=(cat)=>{const m=new Map();for(const x of day.products.values()){if(x.category!==cat)continue;const k=x.size||"Other",v=m.get(k)||{size:k,qty:0,mrp:0};v.qty+=num(x.qty);const prod=products.find(p=>String(p.brand_name)===String(x.brand)&&String(p.size)===String(x.size)&&String(p.category).toLowerCase()===cat);v.mrp+=num(x.qty)*inventoryRate(prod).mrp;m.set(k,v)}return [...m.values()]};
- const liquorSizes=bySize("liquor"),beerSizes=bySize("beer");
- section("LIQUOR SALE · SIZE TOTAL",liquorSizes,[{h:"SIZE",w:25,v:x=>x.size,max:18},{h:"QTY",w:20,v:x=>x.qty,max:12},{h:"MRP SALE",w:35,v:x=>fmt(x.mrp),max:20}],L,157,65,5,3.2);
- section("BEER SALE · SIZE TOTAL",beerSizes,[{h:"SIZE",w:25,v:x=>x.size,max:18},{h:"QTY",w:20,v:x=>x.qty,max:12},{h:"MRP SALE",w:35,v:x=>fmt(x.mrp),max:20}],L+70,157,65,5,3.2);
+ // Opening stock by department and pack size, plus grand total.
+ const openingMap=new Map();for(const x of day.openingProducts.values()){const key=x.category+"|"+x.size,v=openingMap.get(key)||{dept:x.category,size:x.size,qty:0,mrp:0};v.qty+=num(x.qty);v.mrp+=num(x.mrp);openingMap.set(key,v)}
+ const openingRows=[...openingMap.values()].sort((a,b)=>a.dept.localeCompare(b.dept)||a.size.localeCompare(b.size,undefined,{numeric:true}));
+ table("TODAY OPENING STOCK · SIZE-WISE MRP VALUE",openingRows,[{h:"DEPARTMENT",w:22,v:x=>x.dept,max:12},{h:"SIZE",w:25,v:x=>x.size,max:16},{h:"OPEN QTY",w:18,v:x=>x.qty.toLocaleString("en-IN"),max:12},{h:"MRP VALUE",w:25,v:x=>fmt(x.mrp),max:18}],L,69,135,8,2.8,4.8);
+ const deptProfitRows=["liquor","beer"].map(cat=>{const sold=[...day.products.values()].filter(x=>x.category===cat),sale=sold.reduce((a,x)=>a+num(x.amount),0),profit=sold.reduce((a,x)=>a+num(x.profit),0);return {dept:cat==="liquor"?"Liquor":"Beer",qty:sold.reduce((a,x)=>a+num(x.qty),0),sale,cost:sale-profit,profit}});
+ table("DEPARTMENT PROFIT · EXPENSES NOT DEDUCTED",deptProfitRows,[{h:"DEPT",w:16,v:x=>x.dept,max:10},{h:"SOLD QTY",w:16,v:x=>x.qty,max:10},{h:"MRP SALE",w:23,v:x=>fmt(x.sale),max:15},{h:"WHOLESALE COST",w:25,v:x=>fmt(x.cost),max:16},{h:"GROSS PROFIT",w:24,v:x=>fmt(x.profit),max:16}],L,105,135,3,4,4.8);
+ // Top selling brands: aggregate quantities across pack sizes, then rank within each department.
+ const topByDept=(cat,limit)=>{const m=new Map();for(const x of day.products.values()){if(x.category!==cat)continue;const key=String(x.brand||"Unknown").trim(),v=m.get(key)||{brand:key,qty:0,sale:0};v.qty+=num(x.qty);v.sale+=num(x.amount);m.set(key,v)}return [...m.values()].sort((a,b)=>b.qty-a.qty||b.sale-a.sale).slice(0,limit)};
+ const topLiquor=topByDept("liquor",5),topBeer=topByDept("beer",3);
+ function barChart(title,rows,x,y,w,maxQty){
+  doc.setFont("helvetica","bold");doc.setFontSize(6.7);doc.setTextColor(...NAVY);doc.text(title,x,y);
+  const top=y+3.5,rowH=6.1,labelW=w*.43,barW=w*.34,qtyX=x+w*.80;
+  rows.forEach((r,i)=>{const yy=top+i*rowH;doc.setFont("helvetica","normal");doc.setFontSize(4.6);doc.setTextColor(...INK);let label=r.brand.length>22?r.brand.slice(0,21)+"…":r.brand;doc.text((i+1)+". "+label,x,yy+3.3);doc.setFillColor(235,240,245);doc.roundedRect(x+labelW,yy+.8,barW,2.8,.7,.7,"F");doc.setFillColor(...(title.startsWith("LIQUOR")?BLUE:YELLOW));const bw=maxQty>0?barW*Math.max(0,r.qty)/maxQty:0;if(bw>0)doc.roundedRect(x+labelW,yy+.8,Math.max(.8,bw),2.8,.7,.7,"F");doc.setTextColor(...MUTED);doc.text(num(r.qty).toLocaleString("en-IN")+" qty",qtyX,yy+3.3)});
+  if(!rows.length){doc.setFontSize(4.8);doc.setTextColor(...MUTED);doc.text("No sales",x,top+4)}
+ }
+ const maxL=Math.max(0,...topLiquor.map(x=>x.qty)),maxB=Math.max(0,...topBeer.map(x=>x.qty));
+ barChart("TOP 5 LIQUOR BRANDS · BY QTY SOLD",topLiquor,L,137,82,maxL);
+ barChart("TOP 3 BEER BRANDS · BY QTY SOLD",topBeer,L+87,137,48,maxB);
+ // Right column: collections and both Rokad entries explicitly, followed by their combined total.
+ const rightX=153,rightW=134;
  const deptRows=[{dept:"Liquor",cash:day.liquorCash,online:day.liquorOnline,expense:day.liquorExpense},{dept:"Beer",cash:day.beerCash,online:day.beerOnline,expense:day.beerExpense}];
- section("DEPARTMENT COLLECTION & EXPENSES",deptRows,[{h:"DEPT",w:25,v:x=>x.dept,max:12},{h:"CASH",w:25,v:x=>fmt(x.cash),max:14},{h:"ONLINE",w:25,v:x=>fmt(x.online),max:14},{h:"EXPENSE",w:25,v:x=>fmt(x.expense),max:14}],rightX,104,rightW,4,4.2);
- const cashRows=[{label:"Total Cash",amount:day.registerCash??day.cashReceived},{label:"Total Online",amount:day.registerOnline??day.onlineReceived},{label:"Present Day Rokad",amount:day.registerRokad??day.closingRokad},{label:"Other Cash In",amount:day.registerOther},{label:"Register Expenses",amount:day.registerExpenses}];
- section("DAYBOOK RECONCILIATION",cashRows,[{h:"DESCRIPTION",w:55,v:x=>x.label,max:38},{h:"AMOUNT",w:35,v:x=>fmt(x.amount),max:20}],rightX,132,rightW,5,3.8);
- section("EXPENSE REGISTER",day.expenseRows,[{h:"DEPARTMENT / EXPENSE",w:55,v:x=>(x.category||"—")+" / "+x.name,max:38},{h:"MODE",w:20,v:x=>x.mode,max:12},{h:"AMOUNT",w:25,v:x=>fmt(x.amount),max:18}],rightX,158,rightW,8,3.1);
- // Final totals are deliberately placed at the bottom of every generated sale report.
- const totalCash=num(day.registerCash??day.cashReceived),totalRokad=num(day.registerRokad??day.closingRokad);
- doc.setFillColor(...NAVY);doc.roundedRect(L,196,W-L-R,10,1.3,1.3,"F");doc.setFillColor(...YELLOW);doc.rect(L,196,2,10,"F");
- doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(9);
- doc.text("TOTAL CASH  :  "+fmt(totalCash),L+8,202.5);
- doc.text("TOTAL ROKAD  :  "+fmt(totalRokad),W-R-8,202.5,{align:"right"});
- doc.setFont("helvetica","italic");doc.setFontSize(5);doc.setTextColor(...MUTED);doc.text("Office-style report · Profit = MRP sale value − wholesale cost of sold quantity (TCS excluded). Expenses are shown separately and are not deducted from profit.",L,209);
+ table("DEPARTMENT COLLECTION & EXPENSES",deptRows,[{h:"DEPT",w:18,v:x=>x.dept,max:10},{h:"CASH",w:22,v:x=>fmt(x.cash),max:13},{h:"ONLINE",w:22,v:x=>fmt(x.online),max:13},{h:"EXPENSE",w:22,v:x=>fmt(x.expense),max:13}],rightX,69,rightW,3,4,4.5);
+ const recon=[{label:"Cash Received",amount:cash},{label:"Online Received",amount:online},{label:"Previous Day Rokad",amount:previousRokad},{label:"Present Day Rokad",amount:presentRokad},{label:"TOTAL ROKAD (Previous + Present)",amount:totalRokad},{label:"Other Cash In",amount:day.registerOther}];
+ table("DAYBOOK & ROKAD RECONCILIATION",recon,[{h:"DESCRIPTION",w:58,v:x=>x.label,max:32},{h:"AMOUNT",w:34,v:x=>fmt(x.amount),max:19}],rightX,101,rightW,6,4,4.7);
+ table("EXPENSE REGISTER · DEPARTMENT-WISE",day.expenseRows,[{h:"DEPARTMENT / EXPENSE",w:57,v:x=>(x.category||"—")+" / "+x.name,max:35},{h:"MODE",w:18,v:x=>x.mode,max:11},{h:"AMOUNT",w:25,v:x=>fmt(x.amount),max:16}],rightX,140,rightW,10,3.5,4.4);
+ // Size-wise sales totals remain available beneath the brand ranking.
+ const bySize=cat=>{const m=new Map();for(const x of day.products.values()){if(x.category!==cat)continue;const k=x.size||"Other",v=m.get(k)||{size:k,qty:0,sale:0};v.qty+=num(x.qty);v.sale+=num(x.amount);m.set(k,v)}return [...m.values()].sort((a,b)=>a.size.localeCompare(b.size,undefined,{numeric:true}))};
+ table("LIQUOR SALE · SIZE TOTAL",bySize("liquor"),[{h:"SIZE",w:28,v:x=>x.size,max:18},{h:"QTY",w:18,v:x=>x.qty,max:10},{h:"MRP SALE",w:32,v:x=>fmt(x.sale),max:19}],L,177,65,4,3,4.5);
+ table("BEER SALE · SIZE TOTAL",bySize("beer"),[{h:"SIZE",w:28,v:x=>x.size,max:18},{h:"QTY",w:18,v:x=>x.qty,max:10},{h:"MRP SALE",w:32,v:x=>fmt(x.sale),max:19}],L+70,177,65,4,3,4.5);
+ // Footer total cash and combined Rokad are repeated for quick closing reconciliation.
+ doc.setFillColor(...NAVY);doc.roundedRect(L,202,W-L-R,8,1.1,1.1,"F");doc.setFillColor(...YELLOW);doc.rect(L,202,2,8,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(8);
+ doc.text("TOTAL CASH : "+fmt(cash),L+8,207.3);doc.text("PREVIOUS ROKAD : "+fmt(previousRokad),L+100,207.3);doc.text("PRESENT ROKAD : "+fmt(presentRokad),L+175,207.3);doc.text("TOTAL ROKAD : "+fmt(totalRokad),W-R-5,207.3,{align:"right"});
+ doc.setFont("helvetica","italic");doc.setFontSize(4.6);doc.setTextColor(...MUTED);doc.text("Profit = MRP sale value − wholesale cost of sold quantity (TCS excluded). Expenses are displayed separately and are not deducted from profit.",L,213);
  doc.save("Complete-Sale-Summary-"+date+".pdf");
 }
 
@@ -3433,7 +3448,7 @@ function showSaleDaySummary(date){
  if($("sdsOpeningStockRows"))$("sdsOpeningStockRows").innerHTML=[...day.openingProducts.values()].sort((a,b)=>a.category.localeCompare(b.category)||a.size.localeCompare(b.size,undefined,{numeric:true})).map(x=>`<tr><td>${safe(x.category)}</td><td>${safe(x.brand)} ${safe(x.size)}</td><td>${x.qty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${money(x.mrp)}</td></tr>`).join("")||'<tr><td colspan="4" class="empty">No opening stock.</td></tr>';
  $("sdsPurchaseRows").innerHTML=[...day.purchaseProducts.values()].sort((a,b)=>a.category.localeCompare(b.category)||a.brand.localeCompare(b.brand)).map(x=>`<tr><td>${safe(x.category)}</td><td>${safe(x.brand)} ${safe(x.size)}</td><td>${x.qty}</td><td>${money(x.wholesale)}</td><td>${money(x.tcs)}</td><td>${money(x.mrp)}</td><td>${money(x.total)}</td></tr>`).join("")||'<tr><td colspan="7" class="empty">No purchase record found for this date.</td></tr>';
  $("sdsDepartmentRows").innerHTML=`<tr><td><b>Liquor</b></td><td>${money(day.liquorCash)}</td><td>${money(day.liquorOnline)}</td><td>${money(day.liquorExpense)}</td></tr><tr><td><b>Beer</b></td><td>${money(day.beerCash)}</td><td>${money(day.beerOnline)}</td><td>${money(day.beerExpense)}</td></tr>`;
- $("sdsDayTotals").textContent=`Cash ${money(day.registerCash||day.cashReceived)} · Online ${money(day.registerOnline||day.onlineReceived)} · Rokad ${money(day.registerRokad)} · Total Online ${money(day.registerOnline||day.onlineReceived)}`;
+ $("sdsDayTotals").textContent=`Cash ${money(day.registerCash||day.cashReceived)} · Online ${money(day.registerOnline||day.onlineReceived)} · Previous Rokad ${money(day.previousRokad)} · Present Rokad ${money(day.registerRokad??day.closingRokad)} · Total Rokad ${money(num(day.previousRokad)+num(day.registerRokad??day.closingRokad))}`;
  $("sdsExpenseRows").innerHTML=day.expenseRows.map(x=>`<tr><td>${safe(x.category||"—")} · ${safe(x.name)}</td><td>${safe(x.mode)}</td><td>${money(x.amount)}</td></tr>`).join("")||'<tr><td colspan="3" class="empty">No expenses recorded for this date.</td></tr>';
  $("sdsBillRows").innerHTML=day.bills.map(x=>`<tr><td>${safe(x.bill_number)}</td><td>${safe(x.category)}</td><td>${safe(x.payment_mode)}</td><td>${num(x.qty).toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${money(x.amount)}</td><td>${x.manual?'<span class="muted">Edit in Inventory</span>':`<button class="btn secondary" type="button" onclick="editSale('${x.id}')">Edit</button> <button class="btn danger" type="button" onclick="deleteSale('${x.id}')">Delete</button>`}</td></tr>`).join("")||'<tr><td colspan="6" class="empty">No bill records.</td></tr>';
  $("saleDaySummaryPanel").style.display="block";
