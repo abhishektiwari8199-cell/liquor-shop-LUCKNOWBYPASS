@@ -2652,7 +2652,7 @@ async function loadSalesHistoryFast(){
    db.from("purchase_invoices").select("id,invoice_date,category").eq("user_id",user.id).gte("invoice_date",from).lte("invoice_date",to),
    db.from("inventory_register_entries").select("entry_date,product_id,purchase_qty,purchase_rate_snapshot,purchase_tcs_percent_snapshot,purchase_tcs_amount_snapshot,purchase_total_snapshot").eq("user_id",user.id).gte("entry_date",from).lte("entry_date",to).gt("purchase_qty",0),
    db.from("inventory_register_entries").select("entry_date,product_id,purchase_qty,sale_qty").eq("user_id",user.id).gte("entry_date",STOCK_START_DATE).lt("entry_date",to),
-   db.from("night_cash_received").select("record_date,category,rokad_received").eq("user_id",user.id).gte("record_date",from).lte("record_date",to)
+   db.from("night_cash_received").select("record_date,category,cash_received,online_received,rokad_received").eq("user_id",user.id).gte("record_date",from).lte("record_date",to)
   ]);
   for(const r of [salesResult,expenseResult,counterResult,dailyCashResult,purchaseResult,inventoryPurchaseResult,openingMovementResult,nightCashResult])if(r.error)throw r.error;
   const bills=salesResult.data||[],billIds=bills.map(x=>x.id).filter(id=>uuidPattern.test(String(id||""))),purchaseHeaders=purchaseResult.data||[],purchaseIds=purchaseHeaders.map(x=>x.id).filter(id=>uuidPattern.test(String(id||"")));
@@ -2662,7 +2662,7 @@ async function loadSalesHistoryFast(){
   ]);
   if(billItemsResult.error||purchaseItemsResult.error)throw(billItemsResult.error||purchaseItemsResult.error);
   const items=billItemsResult.data||[],purchaseItems=purchaseItemsResult.data||[],productMap=new Map(products.map(p=>[String(p.id),p]));
-  const daily=new Map(),getDay=date=>{if(!daily.has(date))daily.set(date,{date,beerQty:0,liquorQty:0,totalQty:0,saleAmount:0,profit:0,expenses:0,purchaseBeer:0,purchaseLiquor:0,purchaseBeerQty:0,purchaseLiquorQty:0,cashReceived:0,onlineReceived:0,previousRokad:0,closingRokad:0,registerCash:0,registerOnline:0,registerRokad:0,beerRokad:0,liquorRokad:0,registerOther:0,registerExpenses:0,registerNotes:"",liquorExpense:0,beerExpense:0,liquorCash:0,liquorOnline:0,beerCash:0,beerOnline:0,products:new Map(),bills:[],expenseRows:[],purchaseProducts:new Map(),openingProducts:new Map()});return daily.get(date)};
+  const daily=new Map(),getDay=date=>{if(!daily.has(date))daily.set(date,{date,beerQty:0,liquorQty:0,totalQty:0,saleAmount:0,profit:0,expenses:0,purchaseBeer:0,purchaseLiquor:0,purchaseBeerQty:0,purchaseLiquorQty:0,cashReceived:0,onlineReceived:0,previousRokad:0,closingRokad:0,registerCash:0,registerOnline:0,registerRokad:0,beerRokad:0,liquorRokad:0,registerOther:0,registerExpenses:0,registerNotes:"",liquorExpense:0,beerExpense:0,liquorCash:0,liquorOnline:0,beerCash:0,beerOnline:0,nightCashRowsFound:false,products:new Map(),bills:[],expenseRows:[],purchaseProducts:new Map(),openingProducts:new Map()});return daily.get(date)};
   const addSale=(date,pid,qty,amount,catHint)=>{
    const p=productMap.get(String(pid)),cat=String(p?.category||catHint||"").toLowerCase(),d=getDay(date),rate=inventoryRate(p),mrpAmount=num(qty)*rate.mrp,profit=num(qty)*(rate.mrp-rate.wholesale_base);amount=mrpAmount;
    d.totalQty+=num(qty);d.saleAmount+=num(amount);d.profit+=profit;
@@ -2682,20 +2682,32 @@ async function loadSalesHistoryFast(){
    if(cat==="liquor")d.liquorExpense+=amount;else if(cat==="beer")d.beerExpense+=amount;
    d.expenseRows.push({category:cat||"other",name:x.expense_name||"Expense",mode:x.payment_type||"—",amount});
   }
+  // Inventory Day Summary is a fallback only. Night Cash Received is the source of truth
+  // for the actual department-wise Cash and Online amounts shown in the Inventory counter.
+  const counterByDateDept=new Map();
   for(const x of counterResult.data||[]){
-   const d=getDay(x.record_date),cat=String(x.category||"").toLowerCase();
-   d.cashReceived+=num(x.cash_received);d.onlineReceived+=num(x.online_received);
-   if(cat==="liquor"){d.liquorCash+=num(x.cash_received);d.liquorOnline+=num(x.online_received)}
-   else if(cat==="beer"){d.beerCash+=num(x.cash_received);d.beerOnline+=num(x.online_received)}
+   const date=String(x.record_date),cat=String(x.category||"").trim().toLowerCase(),d=getDay(date);
+   if(cat==="liquor"){d.liquorCash=num(x.cash_received);d.liquorOnline=num(x.online_received)}
+   else if(cat==="beer"){d.beerCash=num(x.cash_received);d.beerOnline=num(x.online_received)}
+   counterByDateDept.set(date+"|"+cat,true);
   }
   for(const x of dailyCashResult.data||[]){const d=getDay(x.record_date);d.registerCash+=num(x.cash_received);d.registerOnline+=num(x.online_received);d.registerRokad+=num(x.credit_rokad);d.closingRokad+=num(x.credit_rokad);d.registerOther+=num(x.other_cash_in);d.registerExpenses+=num(x.expenses);if(x.notes)d.registerNotes=x.notes}
-  // Night Cash Received stores Liquor and Beer Rokad separately. Use both departments for present-day Rokad.
+  // Night Cash Received stores the saved department-wise Cash, Online and Rokad values.
+  // Prefer it over Inventory Day Summary, while retaining the latter as a legacy fallback
+  // only when a department has no Night Cash row for that date.
   const nightRows=nightCashResult.data||[],nightDatesWithRows=new Set(nightRows.map(x=>String(x.record_date))),nightRokadByDate=new Map(),nightRokadByDepartment=new Map();
   for(const x of nightRows){
-   const date=String(x.record_date),category=String(x.category||"").toLowerCase(),amount=num(x.rokad_received);
+   const date=String(x.record_date),category=String(x.category||"").trim().toLowerCase(),amount=num(x.rokad_received),d=getDay(date);
+   if(category==="beer"){d.beerCash=num(x.cash_received);d.beerOnline=num(x.online_received)}
+   else if(category==="liquor"){d.liquorCash=num(x.cash_received);d.liquorOnline=num(x.online_received)}
    nightRokadByDate.set(date,(nightRokadByDate.get(date)||0)+amount);
    if(!nightRokadByDepartment.has(date))nightRokadByDepartment.set(date,{beer:0,liquor:0});
    const dept=nightRokadByDepartment.get(date);if(category==="beer")dept.beer+=amount;else if(category==="liquor")dept.liquor+=amount;
+  }
+  for(const date of daily.keys()){
+   const d=getDay(date);
+   d.cashReceived=num(d.liquorCash)+num(d.beerCash);
+   d.onlineReceived=num(d.liquorOnline)+num(d.beerOnline);
   }
   // Previous-day Rokad is the sum of both departments' prior-day night-cash entries.
   const prevDates=[...daily.keys()].map(date=>{const dt=new Date(date+"T12:00:00");dt.setDate(dt.getDate()-1);return dt.toISOString().slice(0,10)});
@@ -3401,7 +3413,8 @@ function downloadCompleteSaleSummary(date,returnDocument=false){
  const sumRows=(rows,key)=>rows.reduce((a,x)=>a+num(x[key]),0);
  const liquorOpenQty=sumRows(liquorOpen,"qty"),beerOpenQty=sumRows(beerOpen,"qty"),liquorOpenMrp=sumRows(liquorOpen,"mrp"),beerOpenMrp=sumRows(beerOpen,"mrp"),openingMrp=liquorOpenMrp+beerOpenMrp,openingQty=liquorOpenQty+beerOpenQty;
  const beerRokad=num(day.beerRokad),liquorRokad=num(day.liquorRokad),presentRokad=(beerRokad+liquorRokad)||num(day.registerRokad??day.closingRokad),previousRokad=num(day.previousRokad),totalRokad=previousRokad+presentRokad;
- const cash=num(day.registerCash)>0?num(day.registerCash):num(day.cashReceived),online=num(day.registerOnline)>0?num(day.registerOnline):num(day.onlineReceived);
+ const hasNightCashRows=day.nightCashRowsFound===true;
+const cash=hasNightCashRows?num(day.liquorCash)+num(day.beerCash):(num(day.registerCash)>0?num(day.registerCash):num(day.cashReceived)),online=hasNightCashRows?num(day.liquorOnline)+num(day.beerOnline):(num(day.registerOnline)>0?num(day.registerOnline):num(day.onlineReceived));
  // Header
  doc.setFillColor(...NAVY);doc.rect(0,0,W,26,"F");doc.setFillColor(...YELLOW);doc.rect(0,26,W,2.2,"F");
  doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(15);doc.text("COMPLETE DAILY BUSINESS SUMMARY",L,11);
