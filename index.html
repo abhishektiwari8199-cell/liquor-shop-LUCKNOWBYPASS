@@ -2653,8 +2653,20 @@ async function loadSalesHistoryFast(){
   for(const row of items){const key=String(row.sale_id);if(!itemsBySale.has(key))itemsBySale.set(key,[]);itemsBySale.get(key).push(row);const h=bills.find(x=>String(x.id)===key);if(h)addSale(h.sale_date,row.product_id,row.quantity,num(row.quantity)*num(row.sale_rate),h.category)}
   for(const b of bills){const rows=itemsBySale.get(String(b.id))||[];getDay(b.sale_date).bills.push({id:b.id,bill_number:b.bill_number||"—",category:b.category||"—",payment_mode:b.payment_mode||"—",qty:rows.reduce((a,x)=>a+num(x.quantity),0),amount:rows.reduce((a,x)=>a+num(x.quantity)*num(x.sale_rate),0)})}
   for(const r of manualRows||[]){const d=getDay(r.sale_date);addSale(r.sale_date,r.product_id,r.quantity,r.amount,r.category);d.bills.push({id:null,bill_number:"Inventory entry",category:r.category||"—",payment_mode:"Not specified",qty:num(r.quantity),amount:num(r.amount),manual:true})}
-  for(const x of expenseResult.data||[]){const d=getDay(x.expense_date),cat=String(x.category||"").toLowerCase();d.expenses+=num(x.amount);if(cat==="liquor")d.liquorExpense+=num(x.amount);else if(cat==="beer")d.beerExpense+=num(x.amount);d.expenseRows.push({category:cat||"unassigned",name:x.expense_name||"Expense",mode:x.payment_type||"—",amount:num(x.amount)})}
-  for(const x of counterResult.data||[]){const d=getDay(x.record_date),cat=String(x.category||"").toLowerCase();d.expenses+=num(x.expense_amount);d.cashReceived+=num(x.cash_received);d.onlineReceived+=num(x.online_received);if(cat==="liquor"){d.liquorCash+=num(x.cash_received);d.liquorOnline+=num(x.online_received);d.liquorExpense+=num(x.expense_amount)}else if(cat==="beer"){d.beerCash+=num(x.cash_received);d.beerOnline+=num(x.online_received);d.beerExpense+=num(x.expense_amount)}if(num(x.expense_amount)>0)d.expenseRows.push({category:cat||"unassigned",name:"Inventory counter expense ("+x.category+")",mode:"Counter",amount:num(x.expense_amount)})}
+  // Expense Register rows are the sole source of report expenses.
+  // Counter expense_amount is an operational counter figure, not a line added in the Expense Register.
+  for(const x of expenseResult.data||[]){
+   const d=getDay(x.expense_date),cat=String(x.category||"").trim().toLowerCase(),amount=num(x.amount);
+   d.expenses+=amount;
+   if(cat==="liquor")d.liquorExpense+=amount;else if(cat==="beer")d.beerExpense+=amount;
+   d.expenseRows.push({category:cat||"other",name:x.expense_name||"Expense",mode:x.payment_type||"—",amount});
+  }
+  for(const x of counterResult.data||[]){
+   const d=getDay(x.record_date),cat=String(x.category||"").toLowerCase();
+   d.cashReceived+=num(x.cash_received);d.onlineReceived+=num(x.online_received);
+   if(cat==="liquor"){d.liquorCash+=num(x.cash_received);d.liquorOnline+=num(x.online_received)}
+   else if(cat==="beer"){d.beerCash+=num(x.cash_received);d.beerOnline+=num(x.online_received)}
+  }
   for(const x of dailyCashResult.data||[]){const d=getDay(x.record_date);d.registerCash+=num(x.cash_received);d.registerOnline+=num(x.online_received);d.registerRokad+=num(x.credit_rokad);d.closingRokad+=num(x.credit_rokad);d.registerOther+=num(x.other_cash_in);d.registerExpenses+=num(x.expenses);if(x.notes)d.registerNotes=x.notes}
   // Night Cash Received stores Liquor and Beer Rokad separately. Use both departments for present-day Rokad.
   const nightRows=nightCashResult.data||[],nightDatesWithRows=new Set(nightRows.map(x=>String(x.record_date))),nightRokadByDate=new Map(),nightRokadByDepartment=new Map();
@@ -3382,7 +3394,7 @@ function downloadCompleteSaleSummary(date){
   ["BEER SALE",fmt([...day.products.values()].filter(x=>x.category==="beer").reduce((a,x)=>a+x.amount,0)),""],
   ["CASH RECEIVED",fmt(cash),""],["ONLINE RECEIVED",fmt(online),""],
   ["BEER ROKAD",fmt(beerRokad),""],["LIQUOR ROKAD",fmt(liquorRokad),""],
-  ["TOTAL ROKAD",fmt(presentRokad),""],["TOTAL EXPENSES",fmt(num(day.expenses)+num(day.registerExpenses)),""]
+  ["TOTAL ROKAD",fmt(presentRokad),""],["TOTAL EXPENSES",fmt(num(day.expenses)),""]
  ];
  const gap=1.5,cw=(W-L-R-gap*(cards.length-1))/cards.length;
  cards.forEach((c,i)=>{const x=L+i*(cw+gap);doc.setFillColor(...PALE);doc.setDrawColor(205,218,230);doc.roundedRect(x,31,cw,18,1,1,"FD");doc.setFillColor(...YELLOW);doc.rect(x,31,cw,1.4,"F");doc.setTextColor(...MUTED);doc.setFont("helvetica","bold");doc.setFontSize(3.8);doc.text(c[0],x+1,35.5);doc.setTextColor(...NAVY);doc.setFontSize(5.5);doc.text(c[1],x+1,41.5);if(c[2]){doc.setFont("helvetica","normal");doc.setFontSize(4.1);doc.text(c[2],x+1,46.5)}});
@@ -3428,7 +3440,30 @@ function downloadCompleteSaleSummary(date){
  table("DEPARTMENT COLLECTION & EXPENSES",deptRows,[{h:"DEPT",w:18,v:x=>x.dept,max:10},{h:"CASH",w:22,v:x=>fmt(x.cash),max:13},{h:"ONLINE",w:22,v:x=>fmt(x.online),max:13},{h:"EXPENSE",w:22,v:x=>fmt(x.expense),max:13}],rightX,69,rightW,3,4,4.5);
  const recon=[{label:"Cash Received",amount:cash},{label:"Online Received",amount:online},{label:"Previous Day Rokad",amount:previousRokad},{label:"Present Day Rokad",amount:presentRokad},{label:"TOTAL ROKAD (Previous + Present)",amount:totalRokad},{label:"Other Cash In",amount:day.registerOther}];
  table("DAYBOOK & ROKAD RECONCILIATION",recon,[{h:"DESCRIPTION",w:58,v:x=>x.label,max:32},{h:"AMOUNT",w:34,v:x=>fmt(x.amount),max:19}],rightX,101,rightW,6,4,4.7);
- table("EXPENSE REGISTER · DEPARTMENT-WISE",day.expenseRows,[{h:"DEPARTMENT / EXPENSE",w:57,v:x=>(x.category||"—")+" / "+x.name,max:35},{h:"MODE",w:18,v:x=>x.mode,max:11},{h:"AMOUNT",w:25,v:x=>fmt(x.amount),max:16}],rightX,140,rightW,10,3.5,4.4);
+ // Group only manually added Expense Register lines by department; do not include counter expense_amount.
+ const drawGroupedExpenseRegister=()=>{
+  const x=rightX,y=140,w=rightW,headY=y+3,headH=4.6;
+  doc.setFont("helvetica","bold");doc.setFontSize(7);doc.setTextColor(...NAVY);doc.text("EXPENSE REGISTER · DEPARTMENT-WISE",x,y);
+  doc.setFillColor(...BLUE);doc.roundedRect(x,headY,w,headH,.6,.6,"F");
+  doc.setFont("helvetica","bold");doc.setFontSize(4.8);doc.setTextColor(255,255,255);
+  doc.text("DEPARTMENT / EXPENSE",x+1,headY+3.1);doc.text("MODE",x+w*.69,headY+3.1);doc.text("AMOUNT",x+w*.83,headY+3.1);
+  let yy=headY+headH;const rowH=2.65,groups=[["beer","BEER"],["liquor","LIQUOR"],["other","OTHER"]];
+  for(const [key,label] of groups){
+   const rows=day.expenseRows.filter(r=>String(r.category||"other").toLowerCase()===key);
+   if(!rows.length)continue;
+   doc.setFillColor(255,247,218);doc.rect(x,yy,w,rowH,"F");doc.setFont("helvetica","bold");doc.setFontSize(4.6);doc.setTextColor(...NAVY);doc.text(label,x+1,yy+1.85);yy+=rowH;
+   let subtotal=0;
+   for(const r of rows){
+    subtotal+=num(r.amount);doc.setFillColor(242,247,251);doc.rect(x,yy,w,rowH,"F");
+    doc.setFont("helvetica","normal");doc.setFontSize(4.35);doc.setTextColor(...INK);
+    let name=String(r.name||"Expense").replace(/\\s+/g," ");if(name.length>37)name=name.slice(0,36)+"…";
+    doc.text(name,x+1,yy+1.85);doc.text(String(r.mode||"—").slice(0,12),x+w*.69,yy+1.85);doc.text(fmt(r.amount),x+w*.83,yy+1.85);yy+=rowH;
+   }
+   doc.setFillColor(225,235,245);doc.rect(x,yy,w,rowH,"F");doc.setFont("helvetica","bold");doc.setFontSize(4.45);doc.setTextColor(...NAVY);doc.text(label+" TOTAL",x+1,yy+1.85);doc.text(fmt(subtotal),x+w*.83,yy+1.85,{align:"left"});yy+=rowH;
+  }
+  if(!day.expenseRows.length){doc.setFont("helvetica","normal");doc.setFontSize(4.8);doc.setTextColor(...MUTED);doc.text("No Expense Register entries",x+1,yy+3)}
+ };
+ drawGroupedExpenseRegister();
  // Size-wise sales totals remain available beneath the brand ranking.
  const bySize=cat=>{const m=new Map();for(const x of day.products.values()){if(x.category!==cat)continue;const k=x.size||"Other",v=m.get(k)||{size:k,qty:0,sale:0};v.qty+=num(x.qty);v.sale+=num(x.amount);m.set(k,v)}return [...m.values()].sort((a,b)=>a.size.localeCompare(b.size,undefined,{numeric:true}))};
  table("LIQUOR SALE · SIZE TOTAL",bySize("liquor"),[{h:"SIZE",w:28,v:x=>x.size,max:18},{h:"QTY",w:18,v:x=>x.qty,max:10},{h:"MRP SALE",w:32,v:x=>fmt(x.sale),max:19}],L,177,65,4,3,4.5);
@@ -3446,7 +3481,7 @@ function showSaleDaySummary(date){
  $("sdsQty").textContent=day.totalQty.toLocaleString("en-IN",{maximumFractionDigits:2});
  $("sdsSale").textContent=money(day.saleAmount);
  $("sdsProfit").textContent=money(day.profit);
- $("sdsExpenses").textContent=money(day.expenses+num(day.registerExpenses));
+ $("sdsExpenses").textContent=money(day.expenses);
  $("sdsNetProfit").textContent=money(day.profit);
  if($("sdsCashRegister"))$("sdsCashRegister").innerHTML=`Cash ₹${money(day.registerCash)} · Online ₹${money(day.registerOnline)} · Rokad ₹${money(day.registerRokad)} · Other ₹${money(day.registerOther)} · Expenses ₹${money(day.registerExpenses)}${day.registerNotes?`<br>Notes: ${safe(day.registerNotes)}`:""}`;
  $("sdsLiquorQty").textContent=day.liquorQty.toLocaleString("en-IN",{maximumFractionDigits:2})+" units";
