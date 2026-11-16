@@ -913,7 +913,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
     <div class="kpi glass"><small>Total Sale Price</small><strong id="sdsSale">₹0.00</strong></div>
     <div class="kpi glass"><small>Profit of Day</small><strong id="sdsProfit">₹0.00</strong></div>
     <div class="kpi glass"><small>Expenses</small><strong id="sdsExpenses">₹0.00</strong></div>
-    <div class="kpi glass"><small>Net Profit</small><strong id="sdsNetProfit">₹0.00</strong></div>
+    <div class="kpi glass"><small>Profit (Before Expenses)</small><strong id="sdsNetProfit">₹0.00</strong></div>
    </div>
    <div class="category-cards">
     <div class="category-card liquor glass"><div><span class="tag">LIQUOR SOLD</span><h4 id="sdsLiquorQty">0</h4><p id="sdsLiquorAmount">₹0.00</p></div><div class="art">🥃</div></div>
@@ -1164,8 +1164,12 @@ async function loadWholesaleRateMaster(){
 function inventoryRate(p){
  // Keep legacy inclusive rate for stock valuation; use wholesale_base for profit (TCS excluded).
  const saved=wholesaleRateMaster[String(p?.id)];
- const base=num(saved?.cost_per_bottle??(saved?.petty_total!=null?num(saved.petty_total)/Math.max(1,num(saved.petty_bottle_qty)):p?.wholesale_price));
  const tcsPct=num(saved?.tcs_percent??2);
+ // Product.wholesale_price is stored inclusive of TCS by loadWholesaleRateMaster().
+ // When no separate base rate exists, reverse TCS before calculating gross profit.
+ const fallbackInclusive=num(p?.wholesale_price);
+ const fallbackBase=fallbackInclusive/(1+tcsPct/100);
+ const base=num(saved?.cost_per_bottle??(saved?.petty_total!=null?num(saved.petty_total)/Math.max(1,num(saved.petty_bottle_qty)):fallbackBase));
  const inclusive=num(saved?.wholesale_with_tcs>0?saved.wholesale_with_tcs:base+base*tcsPct/100);
  return {mrp:num(saved?.mrp??p?.mrp),wholesale_price:inclusive,wholesale_base:base,tcs_percent:tcsPct,tcs_amount:num(saved?.tcs_amount??(base*tcsPct/100)),wholesale_with_tcs:inclusive};
 }
@@ -2626,9 +2630,10 @@ async function loadSalesHistoryFast(){
    db.from("daily_cash").select("record_date,cash_received,online_received,credit_rokad,other_cash_in,expenses,notes").eq("user_id",user.id).gte("record_date",from).lte("record_date",to),
    db.from("purchase_invoices").select("id,invoice_date,category").eq("user_id",user.id).gte("invoice_date",from).lte("invoice_date",to),
    db.from("inventory_register_entries").select("entry_date,product_id,purchase_qty,purchase_rate_snapshot,purchase_tcs_percent_snapshot,purchase_tcs_amount_snapshot,purchase_total_snapshot").eq("user_id",user.id).gte("entry_date",from).lte("entry_date",to).gt("purchase_qty",0),
-   db.from("inventory_register_entries").select("entry_date,product_id,purchase_qty,sale_qty").eq("user_id",user.id).gte("entry_date",STOCK_START_DATE).lt("entry_date",to)
+   db.from("inventory_register_entries").select("entry_date,product_id,purchase_qty,sale_qty").eq("user_id",user.id).gte("entry_date",STOCK_START_DATE).lt("entry_date",to),
+   db.from("night_cash_received").select("record_date,category,rokad_received").eq("user_id",user.id).gte("record_date",from).lte("record_date",to)
   ]);
-  for(const r of [salesResult,expenseResult,counterResult,dailyCashResult,purchaseResult,inventoryPurchaseResult,openingMovementResult])if(r.error)throw r.error;
+  for(const r of [salesResult,expenseResult,counterResult,dailyCashResult,purchaseResult,inventoryPurchaseResult,openingMovementResult,nightCashResult])if(r.error)throw r.error;
   const bills=salesResult.data||[],billIds=bills.map(x=>x.id).filter(id=>uuidPattern.test(String(id||""))),purchaseHeaders=purchaseResult.data||[],purchaseIds=purchaseHeaders.map(x=>x.id).filter(id=>uuidPattern.test(String(id||"")));
   const [billItemsResult,purchaseItemsResult]=await Promise.all([
    billIds.length?db.from("sale_items").select("sale_id,product_id,quantity,sale_rate").eq("user_id",user.id).in("sale_id",billIds):Promise.resolve({data:[],error:null}),
@@ -2650,7 +2655,17 @@ async function loadSalesHistoryFast(){
   for(const r of manualRows||[]){const d=getDay(r.sale_date);addSale(r.sale_date,r.product_id,r.quantity,r.amount,r.category);d.bills.push({id:null,bill_number:"Inventory entry",category:r.category||"—",payment_mode:"Not specified",qty:num(r.quantity),amount:num(r.amount),manual:true})}
   for(const x of expenseResult.data||[]){const d=getDay(x.expense_date),cat=String(x.category||"").toLowerCase();d.expenses+=num(x.amount);if(cat==="liquor")d.liquorExpense+=num(x.amount);else if(cat==="beer")d.beerExpense+=num(x.amount);d.expenseRows.push({category:cat||"unassigned",name:x.expense_name||"Expense",mode:x.payment_type||"—",amount:num(x.amount)})}
   for(const x of counterResult.data||[]){const d=getDay(x.record_date),cat=String(x.category||"").toLowerCase();d.expenses+=num(x.expense_amount);d.cashReceived+=num(x.cash_received);d.onlineReceived+=num(x.online_received);if(cat==="liquor"){d.liquorCash+=num(x.cash_received);d.liquorOnline+=num(x.online_received);d.liquorExpense+=num(x.expense_amount)}else if(cat==="beer"){d.beerCash+=num(x.cash_received);d.beerOnline+=num(x.online_received);d.beerExpense+=num(x.expense_amount)}if(num(x.expense_amount)>0)d.expenseRows.push({category:cat||"unassigned",name:"Inventory counter expense ("+x.category+")",mode:"Counter",amount:num(x.expense_amount)})}
-  for(const x of dailyCashResult.data||[]){const d=getDay(x.record_date);d.registerCash+=num(x.cash_received);d.registerOnline+=num(x.online_received);d.registerRokad+=num(x.credit_rokad);d.previousRokad=Math.max(d.previousRokad,num(x.credit_rokad));d.closingRokad+=num(x.credit_rokad);d.registerOther+=num(x.other_cash_in);d.registerExpenses+=num(x.expenses);if(x.notes)d.registerNotes=x.notes}
+  for(const x of dailyCashResult.data||[]){const d=getDay(x.record_date);d.registerCash+=num(x.cash_received);d.registerOnline+=num(x.online_received);d.registerRokad+=num(x.credit_rokad);d.closingRokad+=num(x.credit_rokad);d.registerOther+=num(x.other_cash_in);d.registerExpenses+=num(x.expenses);if(x.notes)d.registerNotes=x.notes}
+  // Night Cash Received stores Liquor and Beer Rokad separately. Use both departments for present-day Rokad.
+  const nightRows=nightCashResult.data||[],nightDatesWithRows=new Set(nightRows.map(x=>String(x.record_date))),nightRokadByDate=new Map();
+  for(const x of nightRows)nightRokadByDate.set(String(x.record_date),(nightRokadByDate.get(String(x.record_date))||0)+num(x.rokad_received));
+  // Previous-day Rokad is the sum of both departments' prior-day night-cash entries.
+  const prevDates=[...daily.keys()].map(date=>{const dt=new Date(date+"T12:00:00");dt.setDate(dt.getDate()-1);return dt.toISOString().slice(0,10)});
+  const earliestPrev=prevDates.length?prevDates.sort()[0]:from;
+  const prevNightResult=await db.from("night_cash_received").select("record_date,category,rokad_received").eq("user_id",user.id).gte("record_date",earliestPrev).lt("record_date",from);
+  if(prevNightResult.error)throw prevNightResult.error;
+  const prevNightByDate=new Map();for(const x of prevNightResult.data||[])prevNightByDate.set(String(x.record_date),(prevNightByDate.get(String(x.record_date))||0)+num(x.rokad_received));
+  for(const date of daily.keys()){const dt=new Date(date+"T12:00:00");dt.setDate(dt.getDate()-1);const prev=dt.toISOString().slice(0,10);const d=getDay(date);d.previousRokad=prevNightByDate.get(prev)||0;d.registerRokad=nightDatesWithRows.has(date)?(nightRokadByDate.get(date)||0):d.closingRokad;}
   const registerPurchaseDates=new Set((inventoryPurchaseResult.data||[]).map(x=>String(x.entry_date)));
   for(const x of inventoryPurchaseResult.data||[]){
    const p=productMap.get(String(x.product_id));if(!p)continue;
@@ -3355,15 +3370,15 @@ function downloadCompleteSaleSummary(date){
  ];
  const cw=(W-L-R-18)/10;
  cards.forEach((c,i)=>{const x=L+i*(cw+2);doc.setFillColor(...PALE);doc.setDrawColor(205,218,230);doc.roundedRect(x,32,cw,17,1.2,1.2,"FD");doc.setFillColor(...YELLOW);doc.rect(x,32,cw,1.5,"F");doc.setTextColor(...MUTED);doc.setFont("helvetica","bold");doc.setFontSize(4.1);doc.text(c[0],x+1,37);doc.setTextColor(...NAVY);doc.setFontSize(5.8);doc.text(c[1],x+1,43.5);if(i===0||i===1){doc.setFont("helvetica","normal");doc.setFontSize(4.2);doc.text("Qty: "+(i===0?liquorOpen.qty:beerOpen.qty).toLocaleString("en-IN"),x+1,47)}});
- const totalSale=day.saleAmount,net=day.profit-day.expenses-num(day.registerExpenses);
+ const totalSale=day.saleAmount;
  doc.setFillColor(255,247,218);doc.setDrawColor(242,199,65);doc.roundedRect(L,52,W-L-R,13,1.4,1.4,"FD");
  doc.setTextColor(...NAVY);doc.setFont("helvetica","bold");doc.setFontSize(7.6);
  doc.text("TOTAL PURCHASE: "+fmt(day.purchaseBeer+day.purchaseLiquor),L+4,57.5);
  doc.text("TOTAL SALE: "+fmt(totalSale),L+75,57.5);
  doc.text("PROFIT ESTIMATE: "+fmt(day.profit),L+143,57.5);
- doc.text("NET PROFIT EST.: "+fmt(net),W-R-4,57.5,{align:"right"});
+ doc.text("PROFIT (BEFORE EXPENSES): "+fmt(day.profit),W-R-4,57.5,{align:"right"});
  doc.setFont("helvetica","normal");doc.setFontSize(5.8);doc.setTextColor(...MUTED);
- doc.text("Present Day Rokad: "+fmt(day.registerRokad||day.closingRokad)+"  |  Cash and Online values are from saved Daily Counter records.",L+4,62.5);
+ doc.text("Present Day Rokad: "+fmt(day.registerRokad??day.closingRokad)+"  |  Cash and Online values are from saved Daily Counter records.",L+4,62.5);
  function section(title,rows,cols,x,y,width,maxRows,rowH=4){
   doc.setFont("helvetica","bold");doc.setFontSize(7.4);doc.setTextColor(...NAVY);doc.text(title,x,y);
   const top=y+3.2;doc.setFillColor(...BLUE);doc.roundedRect(x,top,width,5,0.7,0.7,"F");
@@ -3378,24 +3393,24 @@ function downloadCompleteSaleSummary(date){
  const openingMap=new Map();for(const x of day.openingProducts.values()){const key=x.category+"|"+x.size,v=openingMap.get(key)||{category:x.category,size:x.size,qty:0,mrp:0};v.qty+=num(x.qty);v.mrp+=num(x.mrp);openingMap.set(key,v)}
  const openingRows=[...openingMap.values()].sort((a,b)=>a.category.localeCompare(b.category)||a.size.localeCompare(b.size,undefined,{numeric:true}));
  section("TODAY OPENING STOCK · SIZE-WISE MRP VALUE",openingRows,[{h:"DEPT",w:18,v:x=>x.category,max:10},{h:"SIZE",w:22,v:x=>x.size,max:14},{h:"OPEN QTY",w:20,v:x=>x.qty,max:12},{h:"MRP VALUE",w:30,v:x=>fmt(x.mrp),max:18}],L,70,W-L-R,8,2.7);
- const purchaseRows=[...day.purchaseProducts.values()].sort((a,b)=>a.category.localeCompare(b.category)||a.brand.localeCompare(b.brand));
- section("PURCHASE RECORD · LIQUOR & BEER",purchaseRows,[{h:"DEPT",w:13,v:x=>x.category,max:8},{h:"BRAND / SIZE",w:28,v:x=>x.brand+" "+x.size,max:23},{h:"QTY",w:9,v:x=>x.qty,max:8},{h:"WHOLESALE",w:18,v:x=>fmt(x.wholesale),max:14},{h:"TCS",w:10,v:x=>fmt(x.tcs),max:10},{h:"MRP VALUE",w:17,v:x=>fmt(x.mrp),max:14},{h:"TOTAL COST",w:18,v:x=>fmt(x.total),max:14}],L,104,W-L-R,12,2.5);
+ const deptProfitRows=["liquor","beer"].map(cat=>{const sold=[...day.products.values()].filter(x=>x.category===cat);const sale=sold.reduce((a,x)=>a+num(x.amount),0);const gross=sold.reduce((a,x)=>a+num(x.profit),0);const cost=sold.reduce((a,x)=>{const p=products.find(p=>String(p.brand_name)===String(x.brand)&&String(p.size)===String(x.size)&&String(p.category||"").toLowerCase()===cat);return a+num(x.qty)*inventoryRate(p).wholesale_base},0);return {dept:cat==="liquor"?"Liquor":"Beer",qty:sold.reduce((a,x)=>a+num(x.qty),0),sale,cost,gross}});
+ section("DEPARTMENT PROFIT · LIQUOR & BEER",deptProfitRows,[{h:"DEPT",w:14,v:x=>x.dept,max:10},{h:"SOLD QTY",w:13,v:x=>x.qty,max:10},{h:"MRP SALE",w:22,v:x=>fmt(x.sale),max:14},{h:"WHOLESALE COST",w:25,v:x=>fmt(x.cost),max:16},{h:"PROFIT",w:22,v:x=>fmt(x.gross),max:14}],L,104,W-L-R,4,4.2);
  const bySize=(cat)=>{const m=new Map();for(const x of day.products.values()){if(x.category!==cat)continue;const k=x.size||"Other",v=m.get(k)||{size:k,qty:0,mrp:0};v.qty+=num(x.qty);const prod=products.find(p=>String(p.brand_name)===String(x.brand)&&String(p.size)===String(x.size)&&String(p.category).toLowerCase()===cat);v.mrp+=num(x.qty)*inventoryRate(prod).mrp;m.set(k,v)}return [...m.values()]};
  const liquorSizes=bySize("liquor"),beerSizes=bySize("beer");
  section("LIQUOR SALE · SIZE TOTAL",liquorSizes,[{h:"SIZE",w:25,v:x=>x.size,max:18},{h:"QTY",w:20,v:x=>x.qty,max:12},{h:"MRP SALE",w:35,v:x=>fmt(x.mrp),max:20}],L,157,65,5,3.2);
  section("BEER SALE · SIZE TOTAL",beerSizes,[{h:"SIZE",w:25,v:x=>x.size,max:18},{h:"QTY",w:20,v:x=>x.qty,max:12},{h:"MRP SALE",w:35,v:x=>fmt(x.mrp),max:20}],L+70,157,65,5,3.2);
  const deptRows=[{dept:"Liquor",cash:day.liquorCash,online:day.liquorOnline,expense:day.liquorExpense},{dept:"Beer",cash:day.beerCash,online:day.beerOnline,expense:day.beerExpense}];
  section("DEPARTMENT COLLECTION & EXPENSES",deptRows,[{h:"DEPT",w:25,v:x=>x.dept,max:12},{h:"CASH",w:25,v:x=>fmt(x.cash),max:14},{h:"ONLINE",w:25,v:x=>fmt(x.online),max:14},{h:"EXPENSE",w:25,v:x=>fmt(x.expense),max:14}],rightX,104,rightW,4,4.2);
- const cashRows=[{label:"Total Cash",amount:day.registerCash||day.cashReceived},{label:"Total Online",amount:day.registerOnline||day.onlineReceived},{label:"Present Day Rokad",amount:day.registerRokad||day.closingRokad},{label:"Other Cash In",amount:day.registerOther},{label:"Register Expenses",amount:day.registerExpenses}];
+ const cashRows=[{label:"Total Cash",amount:day.registerCash??day.cashReceived},{label:"Total Online",amount:day.registerOnline??day.onlineReceived},{label:"Present Day Rokad",amount:day.registerRokad??day.closingRokad},{label:"Other Cash In",amount:day.registerOther},{label:"Register Expenses",amount:day.registerExpenses}];
  section("DAYBOOK RECONCILIATION",cashRows,[{h:"DESCRIPTION",w:55,v:x=>x.label,max:38},{h:"AMOUNT",w:35,v:x=>fmt(x.amount),max:20}],rightX,132,rightW,5,3.8);
  section("EXPENSE REGISTER",day.expenseRows,[{h:"DEPARTMENT / EXPENSE",w:55,v:x=>(x.category||"—")+" / "+x.name,max:38},{h:"MODE",w:20,v:x=>x.mode,max:12},{h:"AMOUNT",w:25,v:x=>fmt(x.amount),max:18}],rightX,158,rightW,8,3.1);
  // Final totals are deliberately placed at the bottom of every generated sale report.
- const totalCash=num(day.registerCash||day.cashReceived),totalRokad=num(day.registerRokad||day.closingRokad);
+ const totalCash=num(day.registerCash??day.cashReceived),totalRokad=num(day.registerRokad??day.closingRokad);
  doc.setFillColor(...NAVY);doc.roundedRect(L,196,W-L-R,10,1.3,1.3,"F");doc.setFillColor(...YELLOW);doc.rect(L,196,2,10,"F");
  doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(9);
  doc.text("TOTAL CASH  :  "+fmt(totalCash),L+8,202.5);
  doc.text("TOTAL ROKAD  :  "+fmt(totalRokad),W-R-8,202.5,{align:"right"});
- doc.setFont("helvetica","italic");doc.setFontSize(5);doc.setTextColor(...MUTED);doc.text("Office-style report · Gross Profit = Sale Qty × (MRP − Wholesale without TCS); TCS excluded from profit cost.",L,209);
+ doc.setFont("helvetica","italic");doc.setFontSize(5);doc.setTextColor(...MUTED);doc.text("Office-style report · Profit = MRP sale value − wholesale cost of sold quantity (TCS excluded). Expenses are shown separately and are not deducted from profit.",L,209);
  doc.save("Complete-Sale-Summary-"+date+".pdf");
 }
 
@@ -3406,7 +3421,7 @@ function showSaleDaySummary(date){
  $("sdsSale").textContent=money(day.saleAmount);
  $("sdsProfit").textContent=money(day.profit);
  $("sdsExpenses").textContent=money(day.expenses+num(day.registerExpenses));
- $("sdsNetProfit").textContent=money(day.profit-day.expenses-num(day.registerExpenses));
+ $("sdsNetProfit").textContent=money(day.profit);
  if($("sdsCashRegister"))$("sdsCashRegister").innerHTML=`Cash ₹${money(day.registerCash)} · Online ₹${money(day.registerOnline)} · Rokad ₹${money(day.registerRokad)} · Other ₹${money(day.registerOther)} · Expenses ₹${money(day.registerExpenses)}${day.registerNotes?`<br>Notes: ${safe(day.registerNotes)}`:""}`;
  $("sdsLiquorQty").textContent=day.liquorQty.toLocaleString("en-IN",{maximumFractionDigits:2})+" units";
  $("sdsLiquorAmount").textContent=money([...day.products.values()].filter(x=>x.category==="liquor").reduce((a,x)=>a+x.amount,0));
