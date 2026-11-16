@@ -2615,16 +2615,17 @@ async function loadSalesHistoryFast(){
  if(from>to){setMsg("saleHistoryStatus","Start date cannot be later than end date.");return}
  setMsg("saleHistoryStatus",`Loading ${from} to ${to}…`);
  try{
-  const [salesResult,manualRows,expenseResult,counterResult,purchaseResult,dailyCashResult,inventoryPurchaseResult]=await Promise.all([
+  const [salesResult,manualRows,expenseResult,counterResult,purchaseResult,dailyCashResult,inventoryPurchaseResult,openingMovementResult]=await Promise.all([
    db.from("sales").select("id,sale_date,bill_number,category,payment_mode").eq("user_id",user.id).gte("sale_date",from).lte("sale_date",to).order("sale_date",{ascending:false}),
    getInventorySaleRows(from,to,"all"),
    db.from("daily_expenses").select("expense_date,expense_name,amount,payment_type,category").eq("user_id",user.id).gte("expense_date",from).lte("expense_date",to),
    db.from("inventory_day_summary").select("record_date,category,expense_amount,cash_received,online_received").eq("user_id",user.id).gte("record_date",from).lte("record_date",to),
    db.from("daily_cash").select("record_date,cash_received,online_received,credit_rokad,other_cash_in,expenses,notes").eq("user_id",user.id).gte("record_date",from).lte("record_date",to),
    db.from("purchase_invoices").select("id,invoice_date,category").eq("user_id",user.id).gte("invoice_date",from).lte("invoice_date",to),
-   db.from("inventory_register_entries").select("entry_date,product_id,purchase_qty,purchase_rate_snapshot,purchase_tcs_percent_snapshot,purchase_tcs_amount_snapshot,purchase_total_snapshot").eq("user_id",user.id).gte("entry_date",from).lte("entry_date",to).gt("purchase_qty",0)
+   db.from("inventory_register_entries").select("entry_date,product_id,purchase_qty,purchase_rate_snapshot,purchase_tcs_percent_snapshot,purchase_tcs_amount_snapshot,purchase_total_snapshot").eq("user_id",user.id).gte("entry_date",from).lte("entry_date",to).gt("purchase_qty",0),
+   db.from("inventory_register_entries").select("entry_date,product_id,purchase_qty,sale_qty").eq("user_id",user.id).gte("entry_date",STOCK_START_DATE).lt("entry_date",to)
   ]);
-  for(const r of [salesResult,expenseResult,counterResult,dailyCashResult,purchaseResult,inventoryPurchaseResult])if(r.error)throw r.error;
+  for(const r of [salesResult,expenseResult,counterResult,dailyCashResult,purchaseResult,inventoryPurchaseResult,openingMovementResult])if(r.error)throw r.error;
   const bills=salesResult.data||[],billIds=bills.map(x=>x.id),purchaseHeaders=purchaseResult.data||[],purchaseIds=purchaseHeaders.map(x=>x.id);
   const [billItemsResult,purchaseItemsResult]=await Promise.all([
    billIds.length?db.from("sale_items").select("sale_id,product_id,quantity,sale_rate").eq("user_id",user.id).in("sale_id",billIds):Promise.resolve({data:[],error:null}),
@@ -2632,7 +2633,7 @@ async function loadSalesHistoryFast(){
   ]);
   if(billItemsResult.error||purchaseItemsResult.error)throw(billItemsResult.error||purchaseItemsResult.error);
   const items=billItemsResult.data||[],purchaseItems=purchaseItemsResult.data||[],productMap=new Map(products.map(p=>[String(p.id),p]));
-  const daily=new Map(),getDay=date=>{if(!daily.has(date))daily.set(date,{date,beerQty:0,liquorQty:0,totalQty:0,saleAmount:0,profit:0,expenses:0,purchaseBeer:0,purchaseLiquor:0,purchaseBeerQty:0,purchaseLiquorQty:0,cashReceived:0,onlineReceived:0,previousRokad:0,closingRokad:0,registerCash:0,registerOnline:0,registerRokad:0,registerOther:0,registerExpenses:0,registerNotes:"",liquorExpense:0,beerExpense:0,liquorCash:0,liquorOnline:0,beerCash:0,beerOnline:0,products:new Map(),bills:[],expenseRows:[],purchaseProducts:new Map()});return daily.get(date)};
+  const daily=new Map(),getDay=date=>{if(!daily.has(date))daily.set(date,{date,beerQty:0,liquorQty:0,totalQty:0,saleAmount:0,profit:0,expenses:0,purchaseBeer:0,purchaseLiquor:0,purchaseBeerQty:0,purchaseLiquorQty:0,cashReceived:0,onlineReceived:0,previousRokad:0,closingRokad:0,registerCash:0,registerOnline:0,registerRokad:0,registerOther:0,registerExpenses:0,registerNotes:"",liquorExpense:0,beerExpense:0,liquorCash:0,liquorOnline:0,beerCash:0,beerOnline:0,products:new Map(),bills:[],expenseRows:[],purchaseProducts:new Map(),openingProducts:new Map()});return daily.get(date)};
   const addSale=(date,pid,qty,amount,catHint)=>{
    const p=productMap.get(String(pid)),cat=String(p?.category||catHint||"").toLowerCase(),d=getDay(date),rate=inventoryRate(p),mrpAmount=num(qty)*rate.mrp,profit=num(qty)*(rate.mrp-rate.wholesale_base);amount=mrpAmount;
    d.totalQty+=num(qty);d.saleAmount+=num(amount);d.profit+=profit;
@@ -2661,6 +2662,18 @@ async function loadSalesHistoryFast(){
   // Legacy FL2 invoice records are used only for dates without Inventory Register purchase entries.
   const purchaseById=new Map(purchaseHeaders.map(x=>[String(x.id),String(x.category||"").toLowerCase()]));
   for(const x of purchaseItems){const h=purchaseHeaders.find(y=>String(y.id)===String(x.invoice_id));if(!h||registerPurchaseDates.has(String(h.invoice_date)))continue;const d=getDay(h.invoice_date),cat=purchaseById.get(String(x.invoice_id)),p=productMap.get(String(x.product_id)),qty=num(x.quantity),rate=inventoryRate(p),base=num(x.purchase_rate)||rate.wholesale_base,tcs=qty*base*rate.tcs_percent/100,total=qty*base+tcs,mrp=qty*rate.mrp;const row={category:cat,brand:p?.brand_name||"Product",size:p?.size||"",qty,wholesale:qty*base,tcs,mrp,total};d.purchaseProducts.set(String(x.product_id),row);if(cat==="beer"){d.purchaseBeer+=total;d.purchaseBeerQty+=qty}else if(cat==="liquor"){d.purchaseLiquor+=total;d.purchaseLiquorQty+=qty}}
+  // Opening stock for each report date = configured base opening stock + all earlier inventory purchases - earlier sales.
+  const openingMoves=openingMovementResult.data||[];
+  for(const [reportDate,d] of daily){
+   for(const p of products){
+    const base=num(p.opening_stock);
+    const moved=openingMoves.filter(m=>String(m.product_id)===String(p.id)&&String(m.entry_date)<reportDate).reduce((a,m)=>a+num(m.purchase_qty)-num(m.sale_qty),0);
+    const qty=Math.max(0,base+moved);if(qty<=0)continue;
+    const rate=inventoryRate(p),category=String(p.category||"").toLowerCase();
+    const row={category,brand:p.brand_name||"Product",size:p.size||"Other",qty,mrp:qty*rate.mrp};
+    d.openingProducts.set(String(p.id),row);
+   }
+  }
   saleHistoryDailyData=Object.fromEntries([...daily.entries()]);
   const dates=[...daily.keys()].sort((a,b)=>b.localeCompare(a));
   $("hist").innerHTML=dates.map(date=>{const x=daily.get(date);return `<tr><td><b>${safe(date)}</b></td><td>${x.beerQty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${x.liquorQty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${money(x.saleAmount)}</td><td><button class="btn" type="button" onclick="showSaleDaySummary('${safe(date)}')">View Summary Report</button></td><td><button class="btn secondary" type="button" onclick="downloadCompleteSaleSummary('${safe(date)}')">↓ Download PDF</button></td></tr>`}).join("")||'<tr><td colspan="6" class="empty">No sales or cash entries recorded for this date range.</td></tr>';
@@ -3326,15 +3339,19 @@ function downloadCompleteSaleSummary(date){
  doc.setFillColor(...NAVY);doc.rect(0,0,W,27,"F");doc.setFillColor(...YELLOW);doc.rect(0,27,W,2.2,"F");
  doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(16);doc.text("COMPLETE DAILY BUSINESS SUMMARY",L,11);
  doc.setFont("helvetica","normal");doc.setFontSize(9);doc.text("Sale Date: "+date,L,19);doc.text("LIQUOR SHOP  |  PURCHASE · SALES · COLLECTIONS · EXPENSES",W-R,19,{align:"right"});
+ const openingTotals=(cat)=>{const rows=[...day.openingProducts.values()].filter(x=>x.category===cat);return {qty:rows.reduce((a,x)=>a+x.qty,0),mrp:rows.reduce((a,x)=>a+x.mrp,0)}};
+ const liquorOpen=openingTotals("liquor"),beerOpen=openingTotals("beer");
  const cards=[
-  ["LIQUOR PURCHASE",fmt(day.purchaseLiquor)], ["BEER PURCHASE",fmt(day.purchaseBeer)],
+  ["LIQUOR OPENING STOCK",fmt(liquorOpen.mrp)], ["BEER OPENING STOCK",fmt(beerOpen.mrp)],
+  ["LIQUOR PURCHASE · MRP",fmt([...day.purchaseProducts.values()].filter(x=>x.category==="liquor").reduce((a,x)=>a+x.mrp,0))],
+  ["BEER PURCHASE · MRP",fmt([...day.purchaseProducts.values()].filter(x=>x.category==="beer").reduce((a,x)=>a+x.mrp,0))],
   ["LIQUOR SALE",fmt([...day.products.values()].filter(x=>x.category==="liquor").reduce((a,x)=>a+x.amount,0))],
   ["BEER SALE",fmt([...day.products.values()].filter(x=>x.category==="beer").reduce((a,x)=>a+x.amount,0))],
   ["CASH RECEIVED",fmt(day.registerCash||day.cashReceived)], ["ONLINE RECEIVED",fmt(day.registerOnline||day.onlineReceived)],
   ["PREVIOUS DAY ROKAD",fmt(day.previousRokad)], ["EXPENSES",fmt(day.expenses+num(day.registerExpenses))]
  ];
- const cw=(W-L-R-14)/8;
- cards.forEach((c,i)=>{const x=L+i*(cw+2);doc.setFillColor(...PALE);doc.setDrawColor(205,218,230);doc.roundedRect(x,32,cw,17,1.2,1.2,"FD");doc.setFillColor(...YELLOW);doc.rect(x,32,cw,1.5,"F");doc.setTextColor(...MUTED);doc.setFont("helvetica","bold");doc.setFontSize(5.2);doc.text(c[0],x+1.4,37);doc.setTextColor(...NAVY);doc.setFontSize(7.6);doc.text(c[1],x+1.4,44)});
+ const cw=(W-L-R-18)/10;
+ cards.forEach((c,i)=>{const x=L+i*(cw+2);doc.setFillColor(...PALE);doc.setDrawColor(205,218,230);doc.roundedRect(x,32,cw,17,1.2,1.2,"FD");doc.setFillColor(...YELLOW);doc.rect(x,32,cw,1.5,"F");doc.setTextColor(...MUTED);doc.setFont("helvetica","bold");doc.setFontSize(4.1);doc.text(c[0],x+1,37);doc.setTextColor(...NAVY);doc.setFontSize(5.8);doc.text(c[1],x+1,43.5);if(i===0||i===1){doc.setFont("helvetica","normal");doc.setFontSize(4.2);doc.text("Qty: "+(i===0?liquorOpen.qty:beerOpen.qty).toLocaleString("en-IN"),x+1,47)}});
  const totalSale=day.saleAmount,net=day.profit-day.expenses-num(day.registerExpenses);
  doc.setFillColor(255,247,218);doc.setDrawColor(242,199,65);doc.roundedRect(L,52,W-L-R,13,1.4,1.4,"FD");
  doc.setTextColor(...NAVY);doc.setFont("helvetica","bold");doc.setFontSize(7.6);
@@ -3355,17 +3372,20 @@ function downloadCompleteSaleSummary(date){
   if(!rows.length){doc.setFontSize(5.5);doc.setTextColor(...MUTED);doc.text("No records",x+1,top+8.5)}
  }
  const leftW=133,rightX=148,rightW=139;
+ const openingMap=new Map();for(const x of day.openingProducts.values()){const key=x.category+"|"+x.size,v=openingMap.get(key)||{category:x.category,size:x.size,qty:0,mrp:0};v.qty+=num(x.qty);v.mrp+=num(x.mrp);openingMap.set(key,v)}
+ const openingRows=[...openingMap.values()].sort((a,b)=>a.category.localeCompare(b.category)||a.size.localeCompare(b.size,undefined,{numeric:true}));
+ section("TODAY OPENING STOCK · SIZE-WISE MRP VALUE",openingRows,[{h:"DEPT",w:18,v:x=>x.category,max:10},{h:"SIZE",w:22,v:x=>x.size,max:14},{h:"OPEN QTY",w:20,v:x=>x.qty,max:12},{h:"MRP VALUE",w:30,v:x=>fmt(x.mrp),max:18}],L,70,W-L-R,8,2.7);
  const purchaseRows=[...day.purchaseProducts.values()].sort((a,b)=>a.category.localeCompare(b.category)||a.brand.localeCompare(b.brand));
- section("PURCHASE RECORD · LIQUOR & BEER",purchaseRows,[{h:"DEPT",w:13,v:x=>x.category,max:8},{h:"BRAND / SIZE",w:28,v:x=>x.brand+" "+x.size,max:23},{h:"QTY",w:9,v:x=>x.qty,max:8},{h:"WHOLESALE",w:18,v:x=>fmt(x.wholesale),max:14},{h:"TCS",w:10,v:x=>fmt(x.tcs),max:10},{h:"MRP VALUE",w:17,v:x=>fmt(x.mrp),max:14},{h:"TOTAL COST",w:18,v:x=>fmt(x.total),max:14}],L,70,W-L-R,18,3.5);
+ section("PURCHASE RECORD · LIQUOR & BEER",purchaseRows,[{h:"DEPT",w:13,v:x=>x.category,max:8},{h:"BRAND / SIZE",w:28,v:x=>x.brand+" "+x.size,max:23},{h:"QTY",w:9,v:x=>x.qty,max:8},{h:"WHOLESALE",w:18,v:x=>fmt(x.wholesale),max:14},{h:"TCS",w:10,v:x=>fmt(x.tcs),max:10},{h:"MRP VALUE",w:17,v:x=>fmt(x.mrp),max:14},{h:"TOTAL COST",w:18,v:x=>fmt(x.total),max:14}],L,104,W-L-R,12,2.5);
  const bySize=(cat)=>{const m=new Map();for(const x of day.products.values()){if(x.category!==cat)continue;const k=x.size||"Other",v=m.get(k)||{size:k,qty:0,mrp:0};v.qty+=num(x.qty);const prod=products.find(p=>String(p.brand_name)===String(x.brand)&&String(p.size)===String(x.size)&&String(p.category).toLowerCase()===cat);v.mrp+=num(x.qty)*inventoryRate(prod).mrp;m.set(k,v)}return [...m.values()]};
  const liquorSizes=bySize("liquor"),beerSizes=bySize("beer");
- section("LIQUOR SALE · SIZE TOTAL",liquorSizes,[{h:"SIZE",w:25,v:x=>x.size,max:18},{h:"QTY",w:20,v:x=>x.qty,max:12},{h:"MRP SALE",w:35,v:x=>fmt(x.mrp),max:20}],L,157,65,5,3.5);
- section("BEER SALE · SIZE TOTAL",beerSizes,[{h:"SIZE",w:25,v:x=>x.size,max:18},{h:"QTY",w:20,v:x=>x.qty,max:12},{h:"MRP SALE",w:35,v:x=>fmt(x.mrp),max:20}],L+70,157,65,5,3.5);
+ section("LIQUOR SALE · SIZE TOTAL",liquorSizes,[{h:"SIZE",w:25,v:x=>x.size,max:18},{h:"QTY",w:20,v:x=>x.qty,max:12},{h:"MRP SALE",w:35,v:x=>fmt(x.mrp),max:20}],L,157,65,5,3.2);
+ section("BEER SALE · SIZE TOTAL",beerSizes,[{h:"SIZE",w:25,v:x=>x.size,max:18},{h:"QTY",w:20,v:x=>x.qty,max:12},{h:"MRP SALE",w:35,v:x=>fmt(x.mrp),max:20}],L+70,157,65,5,3.2);
  const deptRows=[{dept:"Liquor",cash:day.liquorCash,online:day.liquorOnline,expense:day.liquorExpense},{dept:"Beer",cash:day.beerCash,online:day.beerOnline,expense:day.beerExpense}];
- section("DEPARTMENT COLLECTION & EXPENSES",deptRows,[{h:"DEPT",w:25,v:x=>x.dept,max:12},{h:"CASH",w:25,v:x=>fmt(x.cash),max:14},{h:"ONLINE",w:25,v:x=>fmt(x.online),max:14},{h:"EXPENSE",w:25,v:x=>fmt(x.expense),max:14}],rightX,70,rightW,4,4.5);
+ section("DEPARTMENT COLLECTION & EXPENSES",deptRows,[{h:"DEPT",w:25,v:x=>x.dept,max:12},{h:"CASH",w:25,v:x=>fmt(x.cash),max:14},{h:"ONLINE",w:25,v:x=>fmt(x.online),max:14},{h:"EXPENSE",w:25,v:x=>fmt(x.expense),max:14}],rightX,104,rightW,4,4.2);
  const cashRows=[{label:"Total Cash",amount:day.registerCash||day.cashReceived},{label:"Total Online",amount:day.registerOnline||day.onlineReceived},{label:"Present Day Rokad",amount:day.registerRokad||day.closingRokad},{label:"Other Cash In",amount:day.registerOther},{label:"Register Expenses",amount:day.registerExpenses}];
- section("DAYBOOK RECONCILIATION",cashRows,[{h:"DESCRIPTION",w:55,v:x=>x.label,max:38},{h:"AMOUNT",w:35,v:x=>fmt(x.amount),max:20}],rightX,101,rightW,5,4.2);
- section("EXPENSE REGISTER",day.expenseRows,[{h:"DEPARTMENT / EXPENSE",w:55,v:x=>(x.category||"—")+" / "+x.name,max:38},{h:"MODE",w:20,v:x=>x.mode,max:12},{h:"AMOUNT",w:25,v:x=>fmt(x.amount),max:18}],rightX,139,rightW,8,3.6);
+ section("DAYBOOK RECONCILIATION",cashRows,[{h:"DESCRIPTION",w:55,v:x=>x.label,max:38},{h:"AMOUNT",w:35,v:x=>fmt(x.amount),max:20}],rightX,132,rightW,5,3.8);
+ section("EXPENSE REGISTER",day.expenseRows,[{h:"DEPARTMENT / EXPENSE",w:55,v:x=>(x.category||"—")+" / "+x.name,max:38},{h:"MODE",w:20,v:x=>x.mode,max:12},{h:"AMOUNT",w:25,v:x=>fmt(x.amount),max:18}],rightX,158,rightW,8,3.1);
  // Final totals are deliberately placed at the bottom of every generated sale report.
  const totalCash=num(day.registerCash||day.cashReceived),totalRokad=num(day.registerRokad||day.closingRokad);
  doc.setFillColor(...NAVY);doc.roundedRect(L,196,W-L-R,10,1.3,1.3,"F");doc.setFillColor(...YELLOW);doc.rect(L,196,2,10,"F");
@@ -3392,6 +3412,7 @@ function showSaleDaySummary(date){
  const sizeTotals=(cat)=>{const map=new Map();for(const x of day.products.values()){if(x.category!==cat)continue;const size=String(x.size||"Other").trim()||"Other",v=map.get(size)||{qty:0,sale:0};v.qty+=num(x.qty);v.sale+=num(x.qty)*inventoryRate(products.find(p=>String(p.brand_name)===String(x.brand)&&String(p.size)===String(x.size))).mrp;map.set(size,v)}return [...map.entries()].sort((a,b)=>a[0].localeCompare(b[0],undefined,{numeric:true}))};
  const renderSizeRows=(cat)=>sizeTotals(cat).map(([size,x])=>`<tr><td>${safe(size)}</td><td>${x.qty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${money(x.sale)}</td></tr>`).join("")||'<tr><td colspan="3" class="empty">No sale recorded.</td></tr>';
  $("sdsLiquorSizeRows").innerHTML=renderSizeRows("liquor");$("sdsBeerSizeRows").innerHTML=renderSizeRows("beer");
+ if($("sdsOpeningStockRows"))$("sdsOpeningStockRows").innerHTML=[...day.openingProducts.values()].sort((a,b)=>a.category.localeCompare(b.category)||a.size.localeCompare(b.size,undefined,{numeric:true})).map(x=>`<tr><td>${safe(x.category)}</td><td>${safe(x.brand)} ${safe(x.size)}</td><td>${x.qty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${money(x.mrp)}</td></tr>`).join("")||'<tr><td colspan="4" class="empty">No opening stock.</td></tr>';
  $("sdsPurchaseRows").innerHTML=[...day.purchaseProducts.values()].sort((a,b)=>a.category.localeCompare(b.category)||a.brand.localeCompare(b.brand)).map(x=>`<tr><td>${safe(x.category)}</td><td>${safe(x.brand)} ${safe(x.size)}</td><td>${x.qty}</td><td>${money(x.wholesale)}</td><td>${money(x.tcs)}</td><td>${money(x.mrp)}</td><td>${money(x.total)}</td></tr>`).join("")||'<tr><td colspan="7" class="empty">No purchase record found for this date.</td></tr>';
  $("sdsDepartmentRows").innerHTML=`<tr><td><b>Liquor</b></td><td>${money(day.liquorCash)}</td><td>${money(day.liquorOnline)}</td><td>${money(day.liquorExpense)}</td></tr><tr><td><b>Beer</b></td><td>${money(day.beerCash)}</td><td>${money(day.beerOnline)}</td><td>${money(day.beerExpense)}</td></tr>`;
  $("sdsDayTotals").textContent=`Cash ${money(day.registerCash||day.cashReceived)} · Online ${money(day.registerOnline||day.onlineReceived)} · Rokad ${money(day.registerRokad)} · Total Online ${money(day.registerOnline||day.onlineReceived)}`;
