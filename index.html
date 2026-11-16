@@ -3438,7 +3438,7 @@ const cash=hasNightCashRows?num(day.liquorCash)+num(day.beerCash):(num(day.regis
  doc.text("TOTAL OPENING STOCK VALUE: "+fmt(openingMrp),L+3,58.5);
  doc.text("TOTAL SALE: "+fmt(totalSale),L+77,58.5);
  doc.text("GROSS PROFIT: "+fmt(totalProfit),L+145,58.5);
- doc.text("ROKAD TOTAL: "+fmt(totalRokad),W-R-3,58.5,{align:"right"});
+ // Rokad is already shown in the KPI tiles and Daybook reconciliation; keep this summary strip clear.
  function table(title,rows,cols,x,y,w,maxRows,rowH=3.7,fs=5.1){
   doc.setFont("helvetica","bold");doc.setFontSize(7);doc.setTextColor(...NAVY);doc.text(title,x,y);
   const top=y+3,headH=4.6;doc.setFillColor(...BLUE);doc.roundedRect(x,top,w,headH,.6,.6,"F");
@@ -3473,7 +3473,22 @@ const cash=hasNightCashRows?num(day.liquorCash)+num(day.beerCash):(num(day.regis
  // Right column: collections and both Rokad entries explicitly, followed by their combined total.
  const rightX=153,rightW=134;
  const deptRows=[{dept:"Liquor",cash:day.liquorCash,online:day.liquorOnline,expense:day.liquorExpense},{dept:"Beer",cash:day.beerCash,online:day.beerOnline,expense:day.beerExpense}];
- table("DEPARTMENT COLLECTION & EXPENSES",deptRows,[{h:"DEPT",w:18,v:x=>x.dept,max:10},{h:"CASH",w:22,v:x=>fmt(x.cash),max:13},{h:"ONLINE",w:22,v:x=>fmt(x.online),max:13},{h:"EXPENSE",w:22,v:x=>fmt(x.expense),max:13}],rightX,69,rightW,3,4,4.5);
+ // Department collection table with a clearly separated grand-total row.
+ const drawDepartmentCollectionTotals=()=>{
+  const x=rightX,y=69,w=rightW,headY=y+3,headH=4.6;
+  doc.setFont("helvetica","bold");doc.setFontSize(7);doc.setTextColor(...NAVY);doc.text("DEPARTMENT COLLECTION & EXPENSES",x,y);
+  doc.setFillColor(...BLUE);doc.roundedRect(x,headY,w,headH,.6,.6,"F");
+  const cols=[{h:"DEPT",v:"DEPT"},{h:"CASH",v:"CASH"},{h:"ONLINE",v:"ONLINE"},{h:"EXPENSE",v:"EXPENSE"}],weights=[18,22,22,22],totalW=weights.reduce((a,b)=>a+b,0),ws=weights.map(v=>w*v/totalW);
+  let cx=x;doc.setFont("helvetica","bold");doc.setFontSize(4.8);doc.setTextColor(255,255,255);
+  cols.forEach((c,i)=>{doc.text(c.h,cx+1,headY+3.1);cx+=ws[i]});
+  let yy=headY+headH;
+  deptRows.forEach((row,i)=>{if(i%2===0){doc.setFillColor(242,247,251);doc.rect(x,yy,w,4,"F");}cx=x;doc.setFont("helvetica","normal");doc.setFontSize(4.5);doc.setTextColor(...INK);const vals=[row.dept,fmt(row.cash),fmt(row.online),fmt(row.expense)];vals.forEach((v,j)=>{doc.text(String(v),cx+1,yy+2.75);cx+=ws[j]});yy+=4;});
+  const totals={cash:deptRows.reduce((a,r)=>a+num(r.cash),0),online:deptRows.reduce((a,r)=>a+num(r.online),0),expense:deptRows.reduce((a,r)=>a+num(r.expense),0)};
+  doc.setDrawColor(...BLUE);doc.setLineWidth(.45);doc.line(x,yy+.35,x+w,yy+.35);yy+=.8;
+  doc.setFillColor(225,235,245);doc.rect(x,yy,w,4.4,"F");cx=x;doc.setFont("helvetica","bold");doc.setFontSize(4.6);doc.setTextColor(...NAVY);
+  ["TOTAL",fmt(totals.cash),fmt(totals.online),fmt(totals.expense)].forEach((v,j)=>{doc.text(String(v),cx+1,yy+3);cx+=ws[j]});
+ };
+ drawDepartmentCollectionTotals();
  const recon=[{label:"Cash Received",amount:cash},{label:"Online Received",amount:online},{label:"Previous Day Rokad",amount:previousRokad},{label:"Present Day Rokad",amount:presentRokad},{label:"TOTAL ROKAD (Previous + Present)",amount:totalRokad},{label:"Other Cash In",amount:day.registerOther}];
  table("DAYBOOK & ROKAD RECONCILIATION",recon,[{h:"DESCRIPTION",w:58,v:x=>x.label,max:32},{h:"AMOUNT",w:34,v:x=>fmt(x.amount),max:19}],rightX,101,rightW,6,4,4.7);
  // Group only manually added Expense Register lines by department; do not include counter expense_amount.
@@ -3506,7 +3521,7 @@ const cash=hasNightCashRows?num(day.liquorCash)+num(day.beerCash):(num(day.regis
  table("BEER SALE · SIZE TOTAL",bySize("beer"),[{h:"SIZE",w:28,v:x=>x.size,max:18},{h:"QTY",w:18,v:x=>x.qty,max:10},{h:"MRP SALE",w:32,v:x=>fmt(x.sale),max:19}],L+70,181,65,4,3,4.5);
  // Footer total cash and combined Rokad are repeated for quick closing reconciliation.
  doc.setFillColor(...NAVY);doc.roundedRect(L,202,W-L-R,8,1.1,1.1,"F");doc.setFillColor(...YELLOW);doc.rect(L,202,2,8,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(8);
- doc.text("TOTAL CASH : "+fmt(cash),L+8,207.3);doc.text("PREVIOUS ROKAD : "+fmt(previousRokad),L+100,207.3);doc.text("PRESENT ROKAD : "+fmt(presentRokad),L+175,207.3);doc.text("TOTAL ROKAD : "+fmt(totalRokad),W-R-5,207.3,{align:"right"});
+ doc.text("TOTAL CASH : "+fmt(cash),L+8,207.3);doc.text("TOTAL ONLINE : "+fmt(online),L+105,207.3);
  doc.setFont("helvetica","italic");doc.setFontSize(4.6);doc.setTextColor(...MUTED);doc.text("Profit = MRP sale value − wholesale cost of sold quantity (TCS excluded). Expenses are displayed separately and are not deducted from profit.",L,213);
  if(returnDocument)return doc;
  doc.save("Complete-Sale-Summary-"+date+".pdf");
