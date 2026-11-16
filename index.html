@@ -2723,8 +2723,8 @@ async function loadSalesHistoryFast(){
   }
   // Legacy FL2 invoice records are used only for dates without Inventory Register purchase entries.
   const purchaseById=new Map(purchaseHeaders.map(x=>[String(x.id),String(x.category||"").toLowerCase()]));
-  for(const x of purchaseItems){const h=purchaseHeaders.find(y=>String(y.id)===String(x.invoice_id));if(!h||registerPurchaseDates.has(String(h.invoice_date)))continue;const d=getDay(h.invoice_date),cat=purchaseById.get(String(x.invoice_id)),p=productMap.get(String(x.product_id)),qty=num(x.quantity),rate=inventoryRate(p),base=num(x.purchase_rate)||rate.wholesale_base,tcs=qty*base*rate.tcs_percent/100,total=qty*base+tcs,mrp=qty*rate.mrp;const row={category:cat,brand:p?.brand_name||"Product",size:p?.size||"",qty,wholesale:qty*base,tcs,mrp,total};d.purchaseProducts.set(String(x.product_id),row);if(cat==="beer"){d.purchaseBeer+=total;d.purchaseBeerQty+=qty}else if(cat==="liquor"){d.purchaseLiquor+=total;d.purchaseLiquorQty+=qty}}
-  // Opening stock for each report date = configured base opening stock + all earlier inventory purchases - earlier sales.
+  for(const x of purchaseItems){const h=purchaseHeaders.find(y=>String(y.id)===String(x.invoice_id));if(!h||registerPurchaseDates.has(String(h.invoice_date)))continue;const d=getDay(h.invoice_date),cat=purchaseById.get(String(x.invoice_id)),p=productMap.get(String(x.product_id));if(!p)continue;const qty=num(x.quantity),rate=inventoryRate(p),base=num(x.purchase_rate)||rate.wholesale_base,tcs=qty*base*rate.tcs_percent/100,total=qty*base+tcs,mrp=qty*rate.mrp,key=String(x.product_id),prev=d.purchaseProducts.get(key)||{category:cat,brand:p.brand_name||"Product",size:p.size||"",qty:0,wholesale:0,tcs:0,mrp:0,total:0};prev.qty+=qty;prev.wholesale+=qty*base;prev.tcs+=tcs;prev.mrp+=mrp;prev.total+=total;d.purchaseProducts.set(key,prev);if(cat==="beer"){d.purchaseBeer+=total;d.purchaseBeerQty+=qty}else if(cat==="liquor"){d.purchaseLiquor+=total;d.purchaseLiquorQty+=qty}}
+  // Opening stock is the previous closing balance: configured base opening stock + movements strictly BEFORE this report date. Same-day purchases are deliberately excluded and shown separately in STOCK PURCHASE.
   const openingMoves=openingMovementResult.data||[];
   for(const [reportDate,d] of daily){
    for(const p of products){
@@ -3437,12 +3437,14 @@ function downloadCompleteSaleSummary(date,returnDocument=false){
   if(!rows.length){doc.setFontSize(5);doc.setTextColor(...MUTED);doc.text("No records",x+1,yy+3)}
   if(rows.length>shown.length){doc.setFontSize(4.4);doc.setTextColor(150,75,45);doc.text("Showing "+shown.length+" of "+rows.length+" rows",x,yy+2)}
  }
- // Opening stock by department and pack size, plus grand total.
- const openingMap=new Map();for(const x of day.openingProducts.values()){const key=x.category+"|"+x.size,v=openingMap.get(key)||{dept:x.category,size:x.size,qty:0,mrp:0};v.qty+=num(x.qty);v.mrp+=num(x.mrp);openingMap.set(key,v)}
- const openingRows=[...openingMap.values()].sort((a,b)=>a.dept.localeCompare(b.dept)||a.size.localeCompare(b.size,undefined,{numeric:true}));
- table("TODAY OPENING STOCK · SIZE-WISE MRP VALUE",openingRows,[{h:"DEPARTMENT",w:22,v:x=>x.dept,max:12},{h:"SIZE",w:25,v:x=>x.size,max:16},{h:"OPEN QTY",w:18,v:x=>x.qty.toLocaleString("en-IN"),max:12},{h:"MRP VALUE",w:25,v:x=>fmt(x.mrp),max:18}],L,69,135,8,2.8,4.8);
+ // STOCK PURCHASE is separate from opening stock. Group purchase rows by department and size (never by brand).
+ const purchaseBySize=cat=>{const m=new Map();for(const x of day.purchaseProducts.values()){if(String(x.category).toLowerCase()!==cat)continue;const key=String(x.size||"Other"),v=m.get(key)||{size:key,qty:0,mrp:0};v.qty+=num(x.qty);v.mrp+=num(x.mrp);m.set(key,v)}const rows=[...m.values()].sort((a,b)=>a.size.localeCompare(b.size,undefined,{numeric:true}));const total=rows.reduce((a,x)=>({size:"TOTAL",qty:a.qty+x.qty,mrp:a.mrp+x.mrp}),{qty:0,mrp:0});return [...rows,total]};
+ const purchaseDeptTotals=["beer","liquor"].map(cat=>{const rows=[...day.purchaseProducts.values()].filter(x=>String(x.category).toLowerCase()===cat);return {dept:cat.toUpperCase(),qty:rows.reduce((a,x)=>a+num(x.qty),0),wholesale:rows.reduce((a,x)=>a+num(x.wholesale),0),tcs:rows.reduce((a,x)=>a+num(x.tcs),0),mrp:rows.reduce((a,x)=>a+num(x.mrp),0)}});
+ table("STOCK PURCHASE · BEER (SIZE-WISE)",purchaseBySize("beer"),[{h:"SIZE",w:27,v:x=>x.size,max:18},{h:"PURCHASE QTY",w:24,v:x=>num(x.qty).toLocaleString("en-IN"),max:13},{h:"MRP VALUE",w:28,v:x=>fmt(x.mrp),max:17}],L,69,65,7,2.65,4.45);
+ table("STOCK PURCHASE · LIQUOR (SIZE-WISE)",purchaseBySize("liquor"),[{h:"SIZE",w:27,v:x=>x.size,max:18},{h:"PURCHASE QTY",w:24,v:x=>num(x.qty).toLocaleString("en-IN"),max:13},{h:"MRP VALUE",w:28,v:x=>fmt(x.mrp),max:17}],L+70,69,65,7,2.65,4.45);
+ table("STOCK PURCHASE VALUE · WHOLESALE / TCS / MRP",purchaseDeptTotals,[{h:"DEPARTMENT",w:20,v:x=>x.dept,max:12},{h:"QTY",w:12,v:x=>num(x.qty).toLocaleString("en-IN"),max:10},{h:"WHOLESALE",w:23,v:x=>fmt(x.wholesale),max:15},{h:"TCS",w:15,v:x=>fmt(x.tcs),max:12},{h:"MRP SALE VALUE",w:25,v:x=>fmt(x.mrp),max:17}],L,99,135,2,3.1,4.55);
  const deptProfitRows=["liquor","beer"].map(cat=>{const sold=[...day.products.values()].filter(x=>x.category===cat),sale=sold.reduce((a,x)=>a+num(x.amount),0),profit=sold.reduce((a,x)=>a+num(x.profit),0);return {dept:cat==="liquor"?"Liquor":"Beer",qty:sold.reduce((a,x)=>a+num(x.qty),0),sale,cost:sale-profit,profit}});
- table("DEPARTMENT PROFIT · EXPENSES NOT DEDUCTED",deptProfitRows,[{h:"DEPT",w:16,v:x=>x.dept,max:10},{h:"SOLD QTY",w:16,v:x=>x.qty,max:10},{h:"MRP SALE",w:23,v:x=>fmt(x.sale),max:15},{h:"WHOLESALE COST",w:25,v:x=>fmt(x.cost),max:16},{h:"GROSS PROFIT",w:24,v:x=>fmt(x.profit),max:16}],L,105,135,3,4,4.8);
+ table("DEPARTMENT PROFIT · EXPENSES NOT DEDUCTED",deptProfitRows,[{h:"DEPT",w:16,v:x=>x.dept,max:10},{h:"SOLD QTY",w:16,v:x=>x.qty,max:10},{h:"MRP SALE",w:23,v:x=>fmt(x.sale),max:15},{h:"WHOLESALE COST",w:25,v:x=>fmt(x.cost),max:16},{h:"GROSS PROFIT",w:24,v:x=>fmt(x.profit),max:16}],L,116,135,3,3.5,4.65);
  // Top selling brands: aggregate quantities across pack sizes, then rank within each department.
  const topByDept=(cat,limit)=>{const m=new Map();for(const x of day.products.values()){if(x.category!==cat)continue;const key=String(x.brand||"Unknown").trim(),v=m.get(key)||{brand:key,qty:0,sale:0};v.qty+=num(x.qty);v.sale+=num(x.amount);m.set(key,v)}return [...m.values()].sort((a,b)=>b.qty-a.qty||b.sale-a.sale).slice(0,limit)};
  const topLiquor=topByDept("liquor",5),topBeer=topByDept("beer",3);
@@ -3453,8 +3455,8 @@ function downloadCompleteSaleSummary(date,returnDocument=false){
   if(!rows.length){doc.setFontSize(4.8);doc.setTextColor(...MUTED);doc.text("No sales",x,top+4)}
  }
  const maxL=Math.max(0,...topLiquor.map(x=>x.qty)),maxB=Math.max(0,...topBeer.map(x=>x.qty));
- barChart("TOP 5 LIQUOR BRANDS · BY QTY SOLD",topLiquor,L,137,82,maxL);
- barChart("TOP 3 BEER BRANDS · BY QTY SOLD",topBeer,L+87,137,48,maxB);
+ barChart("TOP 5 LIQUOR BRANDS · BY QTY SOLD",topLiquor,L,143,82,maxL);
+ barChart("TOP 3 BEER BRANDS · BY QTY SOLD",topBeer,L+87,143,48,maxB);
  // Right column: collections and both Rokad entries explicitly, followed by their combined total.
  const rightX=153,rightW=134;
  const deptRows=[{dept:"Liquor",cash:day.liquorCash,online:day.liquorOnline,expense:day.liquorExpense},{dept:"Beer",cash:day.beerCash,online:day.beerOnline,expense:day.beerExpense}];
@@ -3487,8 +3489,8 @@ function downloadCompleteSaleSummary(date,returnDocument=false){
  drawGroupedExpenseRegister();
  // Size-wise sales totals remain available beneath the brand ranking.
  const bySize=cat=>{const m=new Map();for(const x of day.products.values()){if(x.category!==cat)continue;const k=x.size||"Other",v=m.get(k)||{size:k,qty:0,sale:0};v.qty+=num(x.qty);v.sale+=num(x.amount);m.set(k,v)}return [...m.values()].sort((a,b)=>a.size.localeCompare(b.size,undefined,{numeric:true}))};
- table("LIQUOR SALE · SIZE TOTAL",bySize("liquor"),[{h:"SIZE",w:28,v:x=>x.size,max:18},{h:"QTY",w:18,v:x=>x.qty,max:10},{h:"MRP SALE",w:32,v:x=>fmt(x.sale),max:19}],L,177,65,4,3,4.5);
- table("BEER SALE · SIZE TOTAL",bySize("beer"),[{h:"SIZE",w:28,v:x=>x.size,max:18},{h:"QTY",w:18,v:x=>x.qty,max:10},{h:"MRP SALE",w:32,v:x=>fmt(x.sale),max:19}],L+70,177,65,4,3,4.5);
+ table("LIQUOR SALE · SIZE TOTAL",bySize("liquor"),[{h:"SIZE",w:28,v:x=>x.size,max:18},{h:"QTY",w:18,v:x=>x.qty,max:10},{h:"MRP SALE",w:32,v:x=>fmt(x.sale),max:19}],L,181,65,4,3,4.5);
+ table("BEER SALE · SIZE TOTAL",bySize("beer"),[{h:"SIZE",w:28,v:x=>x.size,max:18},{h:"QTY",w:18,v:x=>x.qty,max:10},{h:"MRP SALE",w:32,v:x=>fmt(x.sale),max:19}],L+70,181,65,4,3,4.5);
  // Footer total cash and combined Rokad are repeated for quick closing reconciliation.
  doc.setFillColor(...NAVY);doc.roundedRect(L,202,W-L-R,8,1.1,1.1,"F");doc.setFillColor(...YELLOW);doc.rect(L,202,2,8,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(8);
  doc.text("TOTAL CASH : "+fmt(cash),L+8,207.3);doc.text("PREVIOUS ROKAD : "+fmt(previousRokad),L+100,207.3);doc.text("PRESENT ROKAD : "+fmt(presentRokad),L+175,207.3);doc.text("TOTAL ROKAD : "+fmt(totalRokad),W-R-5,207.3,{align:"right"});
