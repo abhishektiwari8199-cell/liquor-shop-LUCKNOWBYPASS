@@ -3637,7 +3637,8 @@ async function stockInStopCamera(){
 }
 
 </script>
-<script src="./madhushala-tools.js?v=2">
+<script src="./madhushala-tools.js?v=2"></script>
+<script>
 /* Separate department-wise A4 daily report.
    Reads the same date-wise inventory state used by the Inventory Register,
    and the same-date Night Cash Received + Daily Expenses records. */
@@ -3664,19 +3665,27 @@ async function downloadDepartmentA4Report(category){
     .eq("user_id",user.id).eq("record_date",date).eq("category",cat)
   ]);
   for(const r of [cashResult,expenseResult,counterResult])if(r.error)throw r.error;
-  const cash=cashResult.data?.[0]||{};
+  const cashRows=cashResult.data||[];
+  const cash={
+   cash_received:cashRows.reduce((sum,x)=>sum+num(x.cash_received),0),
+   online_received:cashRows.reduce((sum,x)=>sum+num(x.online_received),0),
+   rokad_received:cashRows.reduce((sum,x)=>sum+num(x.rokad_received),0)
+  };
   const expenseRows=(expenseResult.data||[]).map(x=>({name:x.expense_name||"Expense",mode:x.payment_type||"—",amount:num(x.amount)}));
   const counterExpense=(counterResult.data||[]).reduce((a,x)=>a+num(x.expense_amount),0);
-  // Avoid counting the counter amount twice if an expense line was already added with the same total.
-  const expenseTotal=expenseRows.reduce((a,x)=>a+x.amount,0)+counterExpense;
+  const expenseBookTotal=expenseRows.reduce((a,x)=>a+x.amount,0);
+  // If the counter amount is just a mirrored total of the expense-book lines, count it once.
+  const sameExpenseTotal=Math.abs(counterExpense-expenseBookTotal)<0.01;
+  const expenseTotal=expenseBookTotal+(counterExpense>0&&!sameExpenseTotal?counterExpense:0);
   const rows=categoryProducts.map(p=>{
    const id=String(p.id),opening=num(inventoryOpeningForDate?.[id]),purchase=num(inventoryPurchased?.[id]),sale=num(inventorySold?.[id]);
    const mrp=num(p.mrp),wholesale=num(p.wholesale_price),tcsRate=2;
    const purchaseBase=purchase*wholesale,tcs=purchaseBase*tcsRate/100;
-   return {brand:String(p.brand_name||"Product"),size:String(p.size||""),opening,mrp,openingValue:opening*mrp,purchase,wholesale,purchaseBase,tcsRate,tcs,taxTotal:purchaseBase+tcs,sale,saleValue:sale*mrp,closing:opening+purchase-sale,closingValue:(opening+purchase-sale)*mrp};
+   const profitPerBottle=mrp-wholesale,grossProfit=sale*profitPerBottle; // TCS excluded from profit
+   return {brand:String(p.brand_name||"Product"),size:String(p.size||""),opening,mrp,openingValue:opening*mrp,purchase,wholesale,purchaseBase,tcsRate,tcs,taxTotal:purchaseBase+tcs,sale,saleValue:sale*mrp,profitPerBottle,grossProfit,closing:opening+purchase-sale,closingValue:(opening+purchase-sale)*mrp};
   }).filter(x=>x.opening||x.purchase||x.sale||x.mrp);
-  const total=rows.reduce((a,x)=>{for(const k of ["opening","openingValue","purchase","purchaseBase","tcs","taxTotal","sale","saleValue","closing","closingValue"])a[k]+=num(x[k]);return a;},
-   {opening:0,openingValue:0,purchase:0,purchaseBase:0,tcs:0,taxTotal:0,sale:0,saleValue:0,closing:0,closingValue:0});
+  const total=rows.reduce((a,x)=>{for(const k of ["opening","openingValue","purchase","purchaseBase","tcs","taxTotal","sale","saleValue","grossProfit","closing","closingValue"])a[k]+=num(x[k]);return a;},
+   {opening:0,openingValue:0,purchase:0,purchaseBase:0,tcs:0,taxTotal:0,sale:0,saleValue:0,grossProfit:0,closing:0,closingValue:0});
   const cashValue=num(cash.cash_received),onlineValue=num(cash.online_received),rokadValue=num(cash.rokad_received);
   const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4",compress:true});
   const W=210,left=12,right=12,usable=W-left-right;
@@ -3696,13 +3705,15 @@ async function downloadDepartmentA4Report(category){
   function sectionTitle(t){ensureSpace(10);doc.setFont("helvetica","bold");doc.setFontSize(10);doc.setTextColor(18,48,77);doc.text(t,left,y);y+=4;doc.setDrawColor(210,220,230);doc.line(left,y,W-right,y);y+=4;}
   function table(headers,data,widths,rowHeight=6,fontSize=7){
    const x0=left,headerH=7;
-   ensureSpace(headerH+rowHeight);
-   doc.setFillColor(230,237,245);doc.rect(x0,y,usable,headerH,"F");
-   doc.setFont("helvetica","bold");doc.setFontSize(fontSize);doc.setTextColor(35,51,68);
-   let x=x0;headers.forEach((h,i)=>{doc.text(short(h,24),x+1,y+4.7);x+=widths[i];});
-   y+=headerH;
+   const drawTableHeader=()=>{
+    doc.setFillColor(230,237,245);doc.rect(x0,y,usable,headerH,"F");
+    doc.setFont("helvetica","bold");doc.setFontSize(fontSize);doc.setTextColor(35,51,68);
+    let x=x0;headers.forEach((h,i)=>{doc.text(short(h,24),x+1,y+4.7);x+=widths[i];});
+    y+=headerH;
+   };
+   ensureSpace(headerH+rowHeight);drawTableHeader();
    data.forEach((row,ri)=>{
-    ensureSpace(rowHeight);
+    if(y+rowHeight>282){doc.addPage();pageHeader();drawTableHeader();}
     if(ri%2===0){doc.setFillColor(248,250,252);doc.rect(x0,y,usable,rowHeight,"F");}
     doc.setFont("helvetica","normal");doc.setFontSize(fontSize);doc.setTextColor(40,52,65);
     let xx=x0;
@@ -3728,37 +3739,41 @@ async function downloadDepartmentA4Report(category){
     rows.map(x=>[x.brand+" "+x.size,x.opening.toLocaleString("en-IN",{maximumFractionDigits:2}),fmt(x.mrp),fmt(x.openingValue)]),
     [88,30,34,34],6,6.6);
   }else{
-   table(["Brand","Opening Qty","MRP / Unit","Opening Value"],
-    rows.map(x=>[x.brand,x.opening.toLocaleString("en-IN",{maximumFractionDigits:2}),fmt(x.mrp),fmt(x.openingValue)]),
+   table(["Brand / Size","Opening Qty","MRP / Unit","Opening Value"],
+    rows.map(x=>[x.brand+" "+x.size,x.opening.toLocaleString("en-IN",{maximumFractionDigits:2}),fmt(x.mrp),fmt(x.openingValue)]),
     [88,30,34,34],6,6.6);
   }
-  sectionTitle("TODAY'S PURCHASE — WHOLESALE + TCS");
+  sectionTitle((cat==="beer"?"BEER":"LIQUOR")+" PURCHASE — WHOLESALE + TCS 2%");
   table(["Brand / Size","Purchase Qty","Wholesale Rate","Base Amount","TCS 2%","Total"],
    rows.filter(x=>x.purchase>0).map(x=>[x.brand+" "+x.size,x.purchase.toLocaleString("en-IN",{maximumFractionDigits:2}),fmt(x.wholesale),fmt(x.purchaseBase),fmt(x.tcs),fmt(x.taxTotal)]),
    [54,24,28,28,22,30],6,6.1);
-  sectionTitle("TODAY'S SALES — BRAND-WISE");
-  table(["Brand / Size","Sale Qty","MRP / Unit","Sale Amount"],
-   rows.filter(x=>x.sale>0).map(x=>[x.brand+" "+x.size,x.sale.toLocaleString("en-IN",{maximumFractionDigits:2}),fmt(x.mrp),fmt(x.saleValue)]),
-   [88,30,34,34],6,6.6);
+  sectionTitle((cat==="beer"?"BEER":"LIQUOR")+" SALES & PROFIT — WITHOUT TCS");
+  table(["Brand / Size","Sale Qty","MRP","Wholesale / Bottle","Sale Amount","Profit"],
+   rows.filter(x=>x.sale>0).map(x=>[x.brand+" "+x.size,x.sale.toLocaleString("en-IN",{maximumFractionDigits:2}),fmt(x.mrp),fmt(x.wholesale),fmt(x.saleValue),fmt(x.grossProfit)]),
+   [42,18,23,31,34,38],6,5.8);
   sectionTitle("CASH / ONLINE / PRESENT-DAY ROKAD");
   table(["Collection Type","Amount"],[
    ["Offline / Cash received",fmt(cashValue)],["Online / UPI received",fmt(onlineValue)],["Rokad received on "+date,fmt(rokadValue)]
   ],[95,91],7,8);
   sectionTitle("EXPENSES — "+date);
   const expenseDisplay=expenseRows.map(x=>[x.name,x.mode,fmt(x.amount)]);
-  if(counterExpense>0)expenseDisplay.push(["Daily Counter Expense","Counter",fmt(counterExpense)]);
-  table(["Expense Description","Payment Mode","Amount"],expenseDisplay,[92,48,70],6,7);
+  if(counterExpense>0&&!sameExpenseTotal)expenseDisplay.push(["Daily Counter Expense","Counter",fmt(counterExpense)]);
+  table(["Expense Description","Payment Mode","Amount"],expenseDisplay,[88,42,56],6,7);
   sectionTitle("DAILY TOTALS");
   table(["Particular","Quantity / Amount"],[
    ["Opening stock quantity",total.opening.toLocaleString("en-IN",{maximumFractionDigits:2})],
    ["Purchase quantity",total.purchase.toLocaleString("en-IN",{maximumFractionDigits:2})],
    ["Purchase wholesale value",fmt(total.purchaseBase)],["TCS (2%)",fmt(total.tcs)],["Purchase total incl. TCS",fmt(total.taxTotal)],
    ["Sale quantity",total.sale.toLocaleString("en-IN",{maximumFractionDigits:2})],["Sale value at MRP",fmt(total.saleValue)],
-   ["Closing stock quantity",total.closing.toLocaleString("en-IN",{maximumFractionDigits:2})],["Closing stock value at MRP",fmt(total.closingValue)],
-   ["Total expenses",fmt(expenseTotal)]
+   ["Gross profit (Sale Qty × (MRP − Wholesale / Bottle))",fmt(total.grossProfit)],
+   ["TCS impact on profit","Rs. 0.00"],
+   ["Total expenses",fmt(expenseTotal)],["NET PROFIT (Gross Profit − Expenses)",fmt(total.grossProfit-expenseTotal)],
+   ["Closing stock quantity",total.closing.toLocaleString("en-IN",{maximumFractionDigits:2})],["Closing stock value at MRP",fmt(total.closingValue)]
   ],[100,86],6,7);
   doc.setFont("helvetica","italic");doc.setFontSize(6);doc.setTextColor(105,115,125);
-  ensureSpace(8);doc.text("Note: Purchase TCS is calculated at 2% of saved product wholesale rate. Historical purchase rates are not stored per movement in the current Inventory Register; this report uses the current saved wholesale rate.",left,y+2);
+  ensureSpace(12);
+  doc.text("Profit formula: Sale Qty × (MRP per bottle − Wholesale per-bottle rate). TCS is NOT included in wholesale cost or deducted from profit.",left,y+2);
+  doc.text("Wholesale rate uses the currently saved product rate; historical per-entry wholesale rates are not stored in this Inventory Register.",left,y+6);
   doc.save((cat==="beer"?"Beer":"Liquor")+"-Daily-A4-Report-"+date+".pdf");
   setMsg("inventoryDateStatus",(cat==="beer"?"Beer":"Liquor")+" A4 report downloaded for "+date+".");
  }catch(e){
