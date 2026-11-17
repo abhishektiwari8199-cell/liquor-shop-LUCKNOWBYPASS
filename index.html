@@ -1538,57 +1538,71 @@ function downloadActiveInventoryReport(){
   if(!(`${p.brand_name||""} ${p.size||""}`).toLowerCase().includes(search))return false;
   return visibility==="full"||inventoryProductHasActivity(p);
  });
- if(!active.length){alert("Selected date par stock, purchase, sale ya balance wala product nahi hai.");return;}
- const {jsPDF}=window.jspdf;
- const doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4",compress:true});
- applyOfficePdfStyle(doc,"Inventory Stock Report");
- const margin=9,pageW=297;
- doc.setFillColor(13,39,65);doc.rect(0,0,pageW,23,"F");
- doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(14);
- doc.text("ABHISHEK COMPOSITE - ACTIVE INVENTORY REPORT",margin,10);
- doc.setFont("helvetica","normal");doc.setFontSize(8);
- doc.text("Inventory date: "+date+" | "+(inventoryDateHasBeenSaved?"Only active products shown for this saved date":"New / unsaved date: full brand catalogue shown"),margin,17);
- let y=30;
- const drawHeader=()=>{
-  doc.setFillColor(225,236,247);doc.rect(margin,y,279,8,"F");
-  doc.setTextColor(20,45,70);doc.setFont("helvetica","bold");doc.setFontSize(7);
-  const xs=[margin+1,margin+68,margin+105,margin+139,margin+173,margin+207,margin+241];
-  ["BRAND / SIZE","OPENING","PURCHASE","TOTAL","SALE","BALANCE","MRP / BOTTLE"].forEach((t,i)=>doc.text(t,xs[i],y+5.2));
-  y+=8;doc.setFont("helvetica","normal");
+ const rows=[];
+ const addOpeningRow=(p,label)=>{
+  const id=String(p.id);
+  const opening=num(inventoryOpeningForDate[id]??p.opening_stock);
+  // Opening stock is the start-of-day quantity; today's purchases are deliberately excluded.
+  if(opening<=0)return;
+  const mrp=num(inventoryRate(p).mrp);
+  rows.push({label,opening,value:opening*mrp});
  };
- const row=(vals)=>{
-  if(y>193){doc.addPage();y=14;drawHeader();}
-  const xs=[margin+1,margin+68,margin+105,margin+139,margin+173,margin+207,margin+241];
-  doc.setFontSize(7);doc.setTextColor(25,45,65);
-  vals.forEach((v,i)=>doc.text(String(v),xs[i],y+5));
-  doc.setDrawColor(220,226,232);doc.line(margin,y+7,margin+279,y+7);y+=7;
- };
- drawHeader();
  const liquorGroups=orderedBrandGroups(active.filter(p=>String(p.category).toLowerCase()==="liquor"));
  for(const g of liquorGroups){
-  const map=[null,null,null,null];g.products.forEach(p=>{const k=sizeIndex(p.size);if(k>=0)map[k]=p;});
+  const map=[null,null,null,null];
+  g.products.forEach(p=>{const k=sizeIndex(p.size);if(k>=0)map[k]=p;});
   for(let k=0;k<4;k++){
-   const p=map[k];if(!p||!inventoryProductHasActivity(p))continue;
-   const id=String(p.id),opening=num(inventoryOpeningForDate[id]??p.opening_stock),purchase=num(inventoryPurchased[id]),sale=num(inventorySold[id]),total=opening+purchase,balance=total-sale;
-   row([`${g.name} ${p.size||""}`,opening,purchase,total,sale,balance,money(inventoryRate(p).mrp)]);
+   const p=map[k];if(!p)continue;
+   addOpeningRow(p,`${g.name} ${p.size||""}`.trim());
   }
  }
  const beerRows=orderedBeerProducts(active.filter(p=>String(p.category).toLowerCase()==="beer"));
- for(const p of beerRows){
-  const id=String(p.id),opening=num(inventoryOpeningForDate[id]??p.opening_stock),purchase=num(inventoryPurchased[id]),sale=num(inventorySold[id]),total=opening+purchase,balance=total-sale;
-  row([`${cleanBeerBrandName(p.brand_name)} ${p.size||""}`.trim(),opening,purchase,total,sale,balance,money(inventoryRate(p).mrp)]);
- }
+ for(const p of beerRows)addOpeningRow(p,`${cleanBeerBrandName(p.brand_name)} ${p.size||""}`.trim());
  const other=active.filter(p=>!["liquor","beer"].includes(String(p.category).toLowerCase()));
- for(const p of other){
-  const id=String(p.id),opening=num(inventoryOpeningForDate[id]??p.opening_stock),purchase=num(inventoryPurchased[id]),sale=num(inventorySold[id]),total=opening+purchase,balance=total-sale;
-  row([`${p.brand_name||"Product"} ${p.size||""}`.trim(),opening,purchase,total,sale,balance,money(inventoryRate(p).mrp)]);
- }
- doc.setFontSize(7);doc.setTextColor(100,110,120);
- if(y>195){doc.addPage();y=15;}
- doc.text((inventoryDateHasBeenSaved?"Zero-activity products hidden for this saved date only. ":"Full catalogue shown because this date has not been finalized. ")+"No stock or sales records were deleted or modified.",margin,202);
- doc.save("Abhishek-Composite-Active-Inventory-"+date+".pdf");
+ for(const p of other)addOpeningRow(p,`${p.brand_name||"Product"} ${p.size||""}`.trim());
+ if(!rows.length){alert("Selected date par opening stock quantity nahi mili.");return;}
+ const {jsPDF}=window.jspdf;
+ const doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4",compress:true});
+ applyOfficePdfStyle(doc,"Opening Stock MRP Report");
+ const pageW=297,margin=12,tableW=273;
+ const navy=[13,39,65],blue=[35,96,148],pale=[232,241,249],yellow=[255,204,54],ink=[24,45,66];
+ doc.setFillColor(...navy);doc.rect(0,0,pageW,29,"F");
+ doc.setFillColor(...yellow);doc.rect(0,29,pageW,2.2,"F");
+ doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(15);
+ doc.text("ABHISHEK COMPOSITE - OPENING STOCK REPORT",margin,12);
+ doc.setFont("helvetica","normal");doc.setFontSize(9);
+ doc.text("Inventory date: "+date,margin,21);
+ let y=41;
+ const col=[margin,margin+112,margin+190];
+ const widths=[112,78,83];
+ doc.setFillColor(...blue);doc.roundedRect(margin,y,tableW,10,1.5,1.5,"F");
+ doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(255,255,255);
+ doc.text("BRAND / SIZE",col[0]+3,y+6.5);
+ doc.text("OPENING STOCK QTY",col[1]+widths[1]/2,y+6.5,{align:"center"});
+ doc.text("TOTAL MRP STOCK VALUE",col[2]+widths[2]-3,y+6.5,{align:"right"});
+ y+=10;
+ let totalQty=0,totalValue=0;
+ doc.setFont("helvetica","normal");doc.setFontSize(9);
+ rows.forEach((r,i)=>{
+  if(y>185){doc.addPage();y=18;doc.setFillColor(...blue);doc.roundedRect(margin,y,tableW,10,1.5,1.5,"F");doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(255,255,255);doc.text("BRAND / SIZE",col[0]+3,y+6.5);doc.text("OPENING STOCK QTY",col[1]+widths[1]/2,y+6.5,{align:"center"});doc.text("TOTAL MRP STOCK VALUE",col[2]+widths[2]-3,y+6.5,{align:"right"});y+=10;doc.setFont("helvetica","normal");doc.setFontSize(9);}
+  if(i%2===0){doc.setFillColor(...pale);doc.rect(margin,y,tableW,8,"F");}
+  doc.setTextColor(...ink);
+  const label=doc.splitTextToSize(r.label,105);
+  doc.text(label,col[0]+3,y+5.4);
+  doc.text(r.opening.toLocaleString("en-IN"),col[1]+widths[1]/2,y+5.4,{align:"center"});
+  doc.text(officePdfNumber(r.value),col[2]+widths[2]-3,y+5.4,{align:"right"});
+  doc.setDrawColor(215,224,233);doc.line(margin,y+8,margin+tableW,y+8);
+  y+=8;totalQty+=r.opening;totalValue+=r.value;
+ });
+ y+=3;
+ doc.setDrawColor(...navy);doc.setLineWidth(.7);doc.line(margin,y,margin+tableW,y);
+ y+=2;doc.setFillColor(255,247,218);doc.roundedRect(margin,y,tableW,13,1.5,1.5,"F");
+ doc.setFont("helvetica","bold");doc.setFontSize(10);doc.setTextColor(...navy);
+ doc.text("TOTAL",margin+4,y+8.5);
+ doc.text(totalQty.toLocaleString("en-IN"),col[1]+widths[1]/2,y+8.5,{align:"center"});
+ doc.text(officePdfNumber(totalValue),col[2]+widths[2]-3,y+8.5,{align:"right"});
+ doc.save("Abhishek-Composite-Opening-Stock-Report-"+date+".pdf");
 }
-
 function recalculateInventoryLive(){
   const current={};
   for(const p of products){
