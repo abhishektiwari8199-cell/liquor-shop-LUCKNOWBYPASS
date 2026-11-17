@@ -3428,16 +3428,17 @@
      if(!from||!to||from>to){setMsg("fl2ReconStatus","Please select a valid date range.");return}
      const minAllowed=fl2SixMonthsAgo();
      if(from<minAllowed){setMsg("fl2ReconStatus",`Reconciliation is limited to the latest six months. Select ${minAllowed} or later.`);return}
-     setMsg("fl2ReconStatus","Fetching Inventory movements and Cash Register data…");
+     setMsg("fl2ReconStatus","Fetching Inventory movements, Night Cash and Expense Register…");
      try{
-      const [movementResult,counterResult,expenseResult,rokadResult]=await Promise.all([
+      const [movementResult,counterResult,expenseResult,dailyCashResult,nightCashResult]=await Promise.all([
        db.from("inventory_register_entries").select("product_id,entry_date,purchase_qty,sale_qty").eq("user_id",user.id).gte("entry_date",from).lte("entry_date",to).order("entry_date"),
-       db.from("inventory_day_summary").select("record_date,category,cash_received,online_received,expense_amount").eq("user_id",user.id).gte("record_date",from).lte("record_date",to).order("record_date"),
-       db.from("daily_expenses").select("expense_date,amount,payment_type").eq("user_id",user.id).gte("expense_date",from).lte("expense_date",to),
-       db.from("daily_cash").select("record_date,credit_rokad").eq("user_id",user.id).gte("record_date",from).lte("record_date",to)
+       db.from("inventory_day_summary").select("record_date,category,cash_received,online_received").eq("user_id",user.id).gte("record_date",from).lte("record_date",to).order("record_date"),
+       db.from("daily_expenses").select("expense_date,amount,payment_type,category").eq("user_id",user.id).gte("expense_date",from).lte("expense_date",to),
+       db.from("daily_cash").select("record_date,credit_rokad").eq("user_id",user.id).gte("record_date",from).lte("record_date",to),
+       db.from("night_cash_received").select("record_date,category,cash_received,online_received,rokad_received").eq("user_id",user.id).gte("record_date",from).lte("record_date",to)
       ]);
-      for(const r of [movementResult,counterResult,expenseResult,rokadResult])if(r.error)throw r.error;
-      const movements=movementResult.data||[],counters=counterResult.data||[],expenses=expenseResult.data||[],rokadRows=rokadResult.data||[];
+      for(const r of [movementResult,counterResult,expenseResult,dailyCashResult,nightCashResult])if(r.error)throw r.error;
+      const movements=movementResult.data||[],counters=counterResult.data||[],expenses=expenseResult.data||[],dailyCashRows=dailyCashResult.data||[],nightRows=nightCashResult.data||[];
       const productIds=[...new Set(movements.map(x=>String(x.product_id)).filter(Boolean))];
       const productMap=new Map(products.map(x=>[String(x.id),x]));
       const unknown=productIds.filter(id=>!productMap.has(id));
@@ -3450,26 +3451,41 @@
        const cat=String(product.category||"").toLowerCase();if(!["liquor","beer"].includes(cat)||(category!=="all"&&category!==cat))continue;
        const purchase=num(row.purchase_qty),sale=num(row.sale_qty),wh=num(product.wholesale_price),mrp=num(product.mrp);
        const values={purchaseQty:purchase,wholesaleCost:purchase*wh,incomingMrp:purchase*mrp,saleQty:sale,actualSales:sale*mrp,grossProfit:sale*(mrp-wh)};
-       const addTo=(target)=>{Object.keys(values).forEach(k=>target[k]+=values[k]);if(cat==="liquor")target.liquorPurchaseQty+=purchase;else target.beerPurchaseQty+=purchase};
+       const addTo=target=>{Object.keys(values).forEach(k=>target[k]+=values[k]);if(cat==="liquor")target.liquorPurchaseQty+=purchase;else target.beerPurchaseQty+=purchase};
        addTo(get(daily,row.entry_date));addTo(get(monthly,fl2MonthKey(row.entry_date)));
       }
+      // Cash/Online: Night Cash Received is authoritative. Inventory Day Summary is legacy fallback only.
+      const nightDates=new Set(nightRows.map(x=>String(x.record_date)));
+      const cashByDate=new Map();
+      for(const row of nightRows){
+       const date=String(row.record_date),cat=String(row.category||"").toLowerCase();
+       if(category!=="all"&&category!==cat)continue;
+       const target=cashByDate.get(date)||{cash:0,online:0,rokad:0};
+       target.cash+=num(row.cash_received);target.online+=num(row.online_received);target.rokad+=num(row.rokad_received);cashByDate.set(date,target);
+      }
+      const fallbackByDate=new Map();
       for(const row of counters){
-       const cat=String(row.category||"").toLowerCase();if(category!=="all"&&category!==cat)continue;
-       const target=get(daily,row.record_date),month=get(monthly,fl2MonthKey(row.record_date));
-       for(const [k,v] of [["cash","cash_received"],["online","online_received"]]){target[k]+=num(row[v]);month[k]+=num(row[v])}
-       target.expenses+=num(row.expense_amount);month.expenses+=num(row.expense_amount);
+       const date=String(row.record_date),cat=String(row.category||"").toLowerCase();
+       if(category!=="all"&&category!==cat)continue;
+       const target=fallbackByDate.get(date)||{cash:0,online:0};
+       target.cash+=num(row.cash_received);target.online+=num(row.online_received);fallbackByDate.set(date,target);
       }
-      for(const row of rokadRows){
-       const d=get(daily,row.date),m=get(monthly,fl2MonthKey(row.date));
-       d.rokad+=num(row.credit_rokad);m.rokad+=num(row.credit_rokad);
+      const dailyCashByDate=new Map(dailyCashRows.map(row=>[String(row.record_date),num(row.credit_rokad)]));
+      const allDates=new Set([...daily.keys(),...nightDates,...fallbackByDate.keys(),...dailyCashByDate.keys(),...expenses.map(x=>String(x.expense_date))]);
+      for(const date of allDates){
+       const d=get(daily,date),cashData=cashByDate.get(date),fallback=fallbackByDate.get(date);
+       if(nightDates.has(date)){if(cashData){d.cash=cashData.cash;d.online=cashData.online;d.rokad=cashData.rokad}}
+       else if(fallback){d.cash=fallback.cash;d.online=fallback.online;d.rokad=num(dailyCashByDate.get(date))}
+       else d.rokad=num(dailyCashByDate.get(date));
+       const m=get(monthly,fl2MonthKey(date));m.cash+=d.cash;m.online+=d.online;m.rokad+=d.rokad;
       }
+      // Expense Register is the single source for expenses; do not add counter expense_amount again.
       for(const row of expenses){
-       const mode=String(row.payment_type||"").toLowerCase();
-       const d=get(daily,row.expense_date),m=get(monthly,fl2MonthKey(row.expense_date));
-       d.expenses+=num(row.amount);m.expenses+=num(row.amount);
+       const date=String(row.expense_date),amount=num(row.amount),d=get(daily,date),m=get(monthly,fl2MonthKey(date));
+       if(category!=="all"&&String(row.category||"").toLowerCase()!==category)continue;
+       d.expenses+=amount;m.expenses+=amount;
       }
-      // Month keys cover every month in the selected six-month window, even when no transactions occurred.
-      const monthKeys=[];let cursor=new Date(from.slice(0,7)+"-01T00:00:00");const end=new Date(to.slice(0,7)+"-01T00:00:00");
+      const monthKeys=[];let cursor=new Date(from.slice(0,7)+"-01T12:00:00"),end=new Date(to.slice(0,7)+"-01T12:00:00");
       while(cursor<=end){monthKeys.push(cursor.toISOString().slice(0,7));cursor.setMonth(cursor.getMonth()+1)}
       const totals=blank();
       for(const key of monthKeys){const v=get(monthly,key);Object.keys(totals).forEach(k=>totals[k]+=v[k])}
@@ -3478,13 +3494,12 @@
       $("frActualSales").textContent=money(totals.actualSales);$("frGrossProfit").textContent=money(totals.grossProfit);
       $("frReceived").textContent=money(totals.cash+totals.online);$("frRokad").textContent=money(totals.rokad);
       $("frExpenses").textContent=money(totals.expenses);$("frNetProfit").textContent=money(totals.grossProfit-totals.expenses);
-      $("fl2ReconMonthRows").innerHTML=monthKeys.map(key=>{const v=get(monthly,key),net=v.grossProfit-v.expenses;return `<tr><td><b>${fl2MonthLabel(key)}</b></td><td>${v.liquorPurchaseQty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${v.beerPurchaseQty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${money(v.beerPurchaseQty?movements.filter(x=>fl2MonthKey(x.entry_date)===key).reduce((a,x)=>{const pr=productMap.get(String(x.product_id));return String(pr?.category||"").toLowerCase()==="beer"?a+num(x.purchase_qty)*num(pr.mrp):a},0):0)}</td><td>${money(v.wholesaleCost)}</td><td>${money(v.actualSales)}</td><td>${money(v.grossProfit)}</td><td>${money(v.cash)}</td><td>${money(v.online)}</td><td>${money(v.expenses)}</td><td>${money(net)}</td></tr>`}).join("");
-      const dayKeys=[...daily.keys()].sort();
+      $("fl2ReconMonthRows").innerHTML=monthKeys.map(key=>{const v=get(monthly,key),net=v.grossProfit-v.expenses;const beerMrp=movements.reduce((a,x)=>{if(fl2MonthKey(x.entry_date)!==key)return a;const pr=productMap.get(String(x.product_id));return String(pr?.category||"").toLowerCase()==="beer"?a+num(x.purchase_qty)*num(pr.mrp):a},0);return `<tr><td><b>${fl2MonthLabel(key)}</b></td><td>${v.liquorPurchaseQty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${v.beerPurchaseQty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${money(beerMrp)}</td><td>${money(v.wholesaleCost)}</td><td>${money(v.actualSales)}</td><td>${money(v.grossProfit)}</td><td>${money(v.cash)}</td><td>${money(v.online)}</td><td>${money(v.expenses)}</td><td>${money(net)}</td></tr>`}).join("");
+      const dayKeys=[...daily.keys()].filter(date=>date>=from&&date<=to).sort();
       $("fl2ReconDayRows").innerHTML=dayKeys.map(date=>{const v=daily.get(date);return `<tr><td>${safe(date)}</td><td>${category==="all"?"Liquor + Beer":safe(category)}</td><td>${v.purchaseQty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${money(v.wholesaleCost)}</td><td>${money(v.incomingMrp)}</td><td>${v.saleQty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${money(v.actualSales)}</td><td>${money(v.grossProfit)}</td><td>${money(v.cash)}</td><td>${money(v.online)}</td><td>${money(v.rokad)}</td><td>${money(v.expenses)}</td></tr>`}).join("")||'<tr><td colspan="12" class="empty">No Inventory movement or cash records found for this period.</td></tr>';
-      setMsg("fl2ReconStatus",`Reconciliation loaded: ${from} to ${to}. ${movements.length} Inventory movement rows and ${counters.length} Cash Register rows fetched. Profit is an estimate based on current saved MRP / wholesale rates.`);
+      setMsg("fl2ReconStatus",`Reconciliation loaded: ${from} to ${to}. ${movements.length} Inventory movement rows, ${nightRows.length} Night Cash rows and ${expenses.length} Expense Register rows fetched. Profit is estimated using currently saved MRP / wholesale rates.`);
      }catch(e){setMsg("fl2ReconStatus","Reconciliation error: "+(e.message||String(e)));console.error(e)}
     }
-
 
 
     async function loadDashboardAutoReport(date){
