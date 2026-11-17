@@ -717,7 +717,7 @@
      </section>
 
      <section id="profit" class="page">
-      <div class="section-head"><div><h3>Profit & margin dashboard</h3><p>Daily closing and current month profitability</p></div><button class="btn secondary" onclick="loadProfitReport()">↻ Refresh profit</button></div>
+      <div class="section-head"><div><h3>Profit & margin dashboard</h3><p>Daily closing and current month profitability</p></div><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end"><button class="btn secondary" type="button" onclick="loadProfitReport()">↻ Refresh profit</button><button class="btn" type="button" onclick="downloadProfitMarginPDF()">▣ Generate PDF</button><button class="btn secondary" type="button" onclick="downloadProfitMarginCSV()">⇩ Download Report (CSV)</button></div></div>
       <div class="panel glass"><div class="form-grid"><label>Profit from date<input id="profitFrom" type="date" onchange="loadProfitReport()" min="2026-11-02"></label><label>Profit to date<input id="profitTo" type="date" onchange="loadProfitReport()" min="2026-11-02"></label><label>View<select id="profitPeriod" onchange="setProfitPeriod()"><option value="month">Current month</option><option value="today">Today</option><option value="custom">Custom date range</option></select></label></div></div>
       <div class="kpis"><div class="kpi glass"><small>Sales revenue</small><strong id="profitRevenue">₹0.00</strong></div><div class="kpi glass"><small>Estimated cost of goods</small><strong id="profitCost">₹0.00</strong></div><div class="kpi glass"><small>Gross profit</small><strong id="profitGross">₹0.00</strong></div><div class="kpi glass"><small>Gross margin</small><strong id="profitMargin">0%</strong></div></div>
       <div class="category-cards"><div class="category-card liquor glass"><div><span class="tag">LIQUOR PROFIT</span><h4 id="profitLiquor">₹0.00</h4><p id="profitLiquorQty">0 bottles sold</p></div><div class="art">🥃</div></div><div class="category-card beer glass"><div><span class="tag">BEER PROFIT</span><h4 id="profitBeer">₹0.00</h4><p id="profitBeerQty">0 units sold</p></div><div class="art">🍺</div></div></div>
@@ -2603,12 +2603,72 @@
       $("brandIntelFastRotate").textContent=fastest?`${fastest.brand} · ${fastest.rotationDays} days`:"—";
       $("brandIntelPriorityCount").textContent=brandList.filter(b=>b.priority==="HIGH").length;
       $("brandIntelligenceRows").innerHTML=brandList.map(b=>`<tr><td><b>${b.priority}</b></td><td>${safe(b.category)}</td><td><b>${safe(b.brand)}</b></td><td>${b.qty}</td><td>${b.rotationDays}</td><td>${b.avgPerActiveDay.toFixed(1)}</td><td>${money(b.profitPerUnit)}</td><td>${b.marginPct.toFixed(1)}%</td><td><b>${money(b.profit)}</b></td><td>${safe(b.advice)}</td></tr>`).join("")||'<tr><td colspan="10" class="empty">Selected period mein brand sales data nahi mila.</td></tr>';
+      // Keep the exact displayed report data available for PDF and CSV export.
+      window.__profitMarginExport = {
+       from,to,revenue,cost,gross,marginPct:revenue?gross/revenue*100:0,
+       liquorProfit,beerProfit,liquorQty,beerQty,
+       daily:Object.keys(byDay).sort().map(day=>({day,...byDay[day]})),
+       products:Object.values(byProduct).sort((a,b)=>b.profit-a.profit).map(b=>({category:b.p.category,brand:b.p.brand_name,size:b.p.size,qty:b.qty,saleRate:b.qty?b.sales/b.qty:0,costRate:b.costRate,profitPerUnit:b.qty?b.profit/b.qty:0,profit:b.profit,sales:b.sales,cost:b.cost})),
+       brands:brandList.map(b=>({priority:b.priority,category:b.category,brand:b.brand,qty:b.qty,rotationDays:b.rotationDays,avgPerActiveDay:b.avgPerActiveDay,profitPerUnit:b.profitPerUnit,marginPct:b.marginPct,profit:b.profit,advice:b.advice}))
+      };
       setMsg("profitMsg",`Report loaded: ${manualRows.length} Inventory Register product/date sale row(s) + ${posItems.length} POS item row(s). Revenue = sold qty × sale rate; cost = sold qty × saved base wholesale rate (TCS excluded). Expenses are not deducted from gross profit.`);
      }catch(e){
       console.error("Profit report load failed:",e);
       setMsg("profitMsg","Profit report error: "+(e.message||String(e)));
      }
     }
+    function profitExportData(){
+     const d=window.__profitMarginExport;
+     if(!d){alert("Pehle Profit & Margin report ko load/refresh karein.");return null;}
+     return d;
+    }
+    function profitFileDate(iso){
+     const p=String(iso||"").split("-");
+     if(p.length!==3)return String(iso||"");
+     return `${p[2]} ${["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][Number(p[1])-1]||p[1]} ${p[0]}`;
+    }
+    function downloadProfitMarginCSV(){
+     const d=profitExportData();if(!d)return;
+     const rows=[
+      ["PROFIT & MARGIN REPORT"],["From",d.from,"To",d.to],[],
+      ["SUMMARY","VALUE"],["Sales Revenue",d.revenue],["Estimated Cost of Goods",d.cost],["Gross Profit",d.gross],["Gross Margin %",d.marginPct.toFixed(2)],["Liquor Profit",d.liquorProfit],["Beer Profit",d.beerProfit],["Liquor Qty Sold",d.liquorQty],["Beer Qty Sold",d.beerQty],[],
+      ["DAY-WISE PROFIT"],["Date","Sales","Cost","Gross Profit"],
+      ...d.daily.map(x=>[x.day,x.sales,x.cost,x.profit]),[],
+      ["BRAND / PRODUCT-WISE PROFIT"],["Category","Brand","Size","Qty Sold","Average Sale Rate","Wholesale Cost","Profit / Unit","Sales Value","Cost Value","Total Profit"],
+      ...d.products.map(x=>[x.category,x.brand,x.size,x.qty,x.saleRate,x.costRate,x.profitPerUnit,x.sales,x.cost,x.profit]),[],
+      ["BRAND ROTATION & MARGIN INTELLIGENCE"],["Priority","Department","Brand","Qty Sold","Sale Days","Avg Qty / Active Day","Profit / Unit","Gross Margin %","Total Profit","Recommendation"],
+      ...d.brands.map(x=>[x.priority,x.category,x.brand,x.qty,x.rotationDays,x.avgPerActiveDay,x.profitPerUnit,x.marginPct,x.profit,x.advice])
+     ];
+     const csv=rows.map(r=>r.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\r\n");
+     const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8;"});
+     const url=URL.createObjectURL(blob),a=document.createElement("a");
+     a.href=url;a.download=`${profitFileDate(d.to)} Profit Margin Report.csv`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+    }
+    function downloadProfitMarginPDF(){
+     const d=profitExportData();if(!d)return;
+     if(!window.jspdf?.jsPDF){alert("PDF library load nahi hui. Internet connection check karein.");return;}
+     const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4",compress:true});
+     const left=12,right=285;let y=15;
+     const moneyPDF=n=>"Rs. "+Number(n||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
+     const heading=(t)=>{if(y>185){doc.addPage();y=15;}doc.setFont("helvetica","bold");doc.setFontSize(12);doc.text(t,left,y);y+=7;};
+     const line=(t,size=8,bold=false)=>{if(y>195){doc.addPage();y=15;}doc.setFont("helvetica",bold?"bold":"normal");doc.setFontSize(size);const lines=doc.splitTextToSize(String(t),right-left);doc.text(lines,left,y);y+=lines.length*4.3;};
+     doc.setFillColor(18,52,85);doc.rect(0,0,297,27,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(18);doc.text("PROFIT & MARGIN REPORT",left,12);doc.setFont("helvetica","normal");doc.setFontSize(9);doc.text(`${profitFileDate(d.from)} to ${profitFileDate(d.to)}`,left,20);doc.setTextColor(20,35,52);y=36;
+     heading("PROFIT SUMMARY");
+     line(`Sales Revenue: ${moneyPDF(d.revenue)}     Estimated Cost: ${moneyPDF(d.cost)}     Gross Profit: ${moneyPDF(d.gross)}     Gross Margin: ${d.marginPct.toFixed(1)}%`,9,true);
+     line(`Liquor Profit: ${moneyPDF(d.liquorProfit)} (${d.liquorQty} units)     Beer Profit: ${moneyPDF(d.beerProfit)} (${d.beerQty} units)`,9);
+     y+=3;heading("DAY-WISE PROFIT");
+     line("DATE                                      SALES                              COST                              GROSS PROFIT",8,true);
+     d.daily.forEach(x=>line(`${x.day}          ${moneyPDF(x.sales)}          ${moneyPDF(x.cost)}          ${moneyPDF(x.profit)}`,8));
+     y+=3;heading("BRAND / PRODUCT-WISE PROFIT");
+     line("CATEGORY       BRAND / SIZE                         QTY       SALE RATE       WHOLESALE       PROFIT / UNIT       TOTAL PROFIT",8,true);
+     d.products.forEach(x=>line(`${x.category}       ${x.brand} / ${x.size}       ${x.qty}       ${moneyPDF(x.saleRate)}       ${moneyPDF(x.costRate)}       ${moneyPDF(x.profitPerUnit)}       ${moneyPDF(x.profit)}`,7.5));
+     y+=3;heading("BRAND ROTATION & MARGIN INTELLIGENCE");
+     line("PRIORITY       DEPARTMENT       BRAND       QTY       SALE DAYS       AVG / ACTIVE DAY       PROFIT / UNIT       MARGIN       TOTAL PROFIT",8,true);
+     d.brands.forEach(x=>{line(`${x.priority}       ${x.category}       ${x.brand}       ${x.qty}       ${x.rotationDays}       ${Number(x.avgPerActiveDay).toFixed(1)}       ${moneyPDF(x.profitPerUnit)}       ${Number(x.marginPct).toFixed(1)}%       ${moneyPDF(x.profit)}`,7.5);line(`Recommendation: ${x.advice}`,7);});
+     const pages=doc.getNumberOfPages();for(let i=1;i<=pages;i++){doc.setPage(i);doc.setFontSize(7);doc.setTextColor(110);doc.text(`Abhishek Composite | Page ${i} of ${pages}`,285,203,{align:"right"});}
+     doc.save(`${profitFileDate(d.to)} Profit Margin Report.pdf`);
+    }
+
     async function loadInventoryExpenses(){
      if(!db||!user||!$("invExpenseRows"))return;
      const date=$("inventoryDate")?.value||$("dayCounterDate")?.value||today();
