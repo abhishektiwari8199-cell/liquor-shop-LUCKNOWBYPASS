@@ -3685,7 +3685,18 @@
       doc.setFont("helvetica","bold");doc.setFontSize(4.8);doc.setTextColor(255,255,255);
       cols.forEach((c,i)=>{doc.text(c.h,cx+1,top+3.1);cx+=ws[i]});
       let yy=top+headH;const shown=rows.slice(0,maxRows);
-      shown.forEach((row,i)=>{if(i%2===0){doc.setFillColor(242,247,251);doc.rect(x,yy,w,rowH,"F")}cx=x;doc.setFont("helvetica","normal");doc.setFontSize(fs);doc.setTextColor(...INK);cols.forEach((c,j)=>{let v=String(c.v(row)??"—").replace(/\s+/g," ");const maxChars=c.max||24;if(v.length>maxChars)v=v.slice(0,maxChars-1)+"…";doc.text(v,cx+1,yy+rowH*.68);cx+=ws[j]});yy+=rowH});
+      shown.forEach((row,i)=>{
+       if(row.kind==="subtotal"||row.kind==="grand"){
+        // Green department subtotal / grand-total bands for clear stock reconciliation.
+        doc.setFillColor(...(row.kind==="grand"?[190,235,205]:[220,245,226]));doc.rect(x,yy,w,rowH,"F");
+        doc.setDrawColor(55,145,85);doc.setLineWidth(row.kind==="grand"?.65:.4);doc.line(x,yy,x+w,yy);
+        doc.setFont("helvetica","bold");doc.setTextColor(20,95,48);
+       }else{
+        if(i%2===0){doc.setFillColor(242,247,251);doc.rect(x,yy,w,rowH,"F")}
+        doc.setFont("helvetica","normal");doc.setTextColor(...INK);
+       }
+       cx=x;doc.setFontSize(fs);cols.forEach((c,j)=>{let v=String(c.v(row)??"—").replace(/\s+/g," ");const maxChars=c.max||24;if(v.length>maxChars)v=v.slice(0,maxChars-1)+"…";doc.text(v,cx+1,yy+rowH*.68);cx+=ws[j]});yy+=rowH
+      });
       if(!rows.length){doc.setFontSize(5);doc.setTextColor(...MUTED);doc.text("No records",x+1,yy+3)}
       if(rows.length>shown.length){doc.setFontSize(4.4);doc.setTextColor(150,75,45);doc.text("Showing "+shown.length+" of "+rows.length+" rows",x,yy+2)}
      }
@@ -3783,10 +3794,16 @@
       }
      }
      const stockBalanceRows=[];
+     // Beer rows followed by a green BEER TOTAL line.
      for(const type of ["bottle","can"]){const v=beerClosing[type];stockBalanceRows.push({dept:"BEER",pack:type.toUpperCase(),qty:v.qty,mrp:v.mrp})}
+     const beerTotal={qty:beerClosing.bottle.qty+beerClosing.can.qty,mrp:beerClosing.bottle.mrp+beerClosing.can.mrp};
+     stockBalanceRows.push({kind:"subtotal",dept:"BEER TOTAL",pack:"TOTAL BEER STOCK",qty:beerTotal.qty,mrp:beerTotal.mrp});
+     // Liquor sizes followed by a green LIQUOR TOTAL line.
      for(const [size,v] of [...liquorClosing.entries()].sort((a,b)=>a[0].localeCompare(b[0],undefined,{numeric:true})))stockBalanceRows.push({dept:"LIQUOR",pack:size,qty:v.qty,mrp:v.mrp});
-     const closingTotal=stockBalanceRows.reduce((a,x)=>({qty:a.qty+x.qty,mrp:a.mrp+x.mrp}),{qty:0,mrp:0});
-     stockBalanceRows.push({dept:"TOTAL",pack:"BALANCE STOCK",qty:closingTotal.qty,mrp:closingTotal.mrp});
+     const liquorTotal=[...liquorClosing.values()].reduce((a,x)=>({qty:a.qty+x.qty,mrp:a.mrp+x.mrp}),{qty:0,mrp:0});
+     stockBalanceRows.push({kind:"subtotal",dept:"LIQUOR TOTAL",pack:"TOTAL LIQUOR STOCK",qty:liquorTotal.qty,mrp:liquorTotal.mrp});
+     const closingTotal={qty:beerTotal.qty+liquorTotal.qty,mrp:beerTotal.mrp+liquorTotal.mrp};
+     stockBalanceRows.push({kind:"grand",dept:"GRAND TOTAL",pack:"TOTAL BALANCE STOCK",qty:closingTotal.qty,mrp:closingTotal.mrp});
      // Keep a visible gap after the dynamically sized Expense Register.
      // This prevents the stock heading/table from colliding with expense subtotal rows.
      let stockBalanceSectionY=Math.max(158,expenseRegisterBottomY+6);
