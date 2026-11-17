@@ -577,8 +577,8 @@
         <div id="posDailySaleStatus" class="status">Selected date ki sale load ho rahi hai…</div>
         <h4 style="margin-top:16px">Liquor · Brand / Size-wise Qty</h4>
         <div class="table-wrap"><table style="min-width:760px"><thead><tr><th>Brand Name</th><th>750ml</th><th>375ml</th><th>180ml</th><th>90ml</th></tr></thead><tbody id="posDailyLiquorRows"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody></table></div>
-        <h4 style="margin-top:16px">Beer · Brand-wise Qty</h4>
-        <div class="table-wrap"><table style="min-width:520px"><thead><tr><th>Brand Name</th><th>Sale Qty</th></tr></thead><tbody id="posDailyBeerRows"><tr><td colspan="2" class="empty">Loading…</td></tr></tbody></table></div>
+        <h4 style="margin-top:16px">Beer · Brand / Pack Size-wise Qty</h4>
+        <div class="table-wrap"><table style="min-width:620px"><thead><tr><th>Brand Name</th><th>Pack Size</th><th>Sale Qty</th></tr></thead><tbody id="posDailyBeerRows"><tr><td colspan="3" class="empty">Loading…</td></tr></tbody></table></div>
        </div>
        <div class="section-head" style="margin-top:24px"><div><h3>Liquor · Brand-wise Sale Summary</h3><p>02–15 Nov ki saved Inventory Sale Qty + POS sales · size-wise quantity aur MRP value</p></div><button class="btn secondary" type="button" onclick="posLoadSaleSummary()">↻ Refresh Summary</button></div>
        <div class="table-wrap"><table style="min-width:900px"><thead><tr><th>Brand Name</th><th>750ml</th><th>375ml</th><th>180ml</th><th>90ml</th><th>MRP Sale Value</th></tr></thead><tbody id="posLiquorSummaryRows"><tr><td colspan="6" class="empty">Loading liquor summary…</td></tr></tbody><tfoot><tr><th>TOTAL</th><th id="posLiquor750Total">0</th><th id="posLiquor375Total">0</th><th id="posLiquor180Total">0</th><th id="posLiquor90Total">0</th><th id="posLiquorValueTotal">₹0.00</th></tr></tfoot></table></div>
@@ -3936,7 +3936,7 @@
       const status=$("posDailySaleStatus"), liquorBody=$("posDailyLiquorRows"), beerBody=$("posDailyBeerRows");
       status.textContent="Selected date ki saved sale load ho rahi hai…";
       liquorBody.innerHTML='<tr><td colspan="5" class="empty">Loading…</td></tr>';
-      beerBody.innerHTML='<tr><td colspan="2" class="empty">Loading…</td></tr>';
+      beerBody.innerHTML='<tr><td colspan="3" class="empty">Loading…</td></tr>';
       try{
         const {data,error}=await db.from("inventory_register_entries")
           .select("product_id,purchase_qty,sale_qty").eq("user_id",user.id).eq("entry_date",date);
@@ -3955,14 +3955,19 @@
           g.products.forEach(p=>{const idx=sizeIndex(p.size);if(idx>=0)bySize[idx]=p;});
           return `<tr><td>${safe(g.name)}</td>${bySize.map((p,i)=>`<td>${p?`<input class="pos-daily-sale-qty" data-product-id="${safe(p.id)}" type="number" min="0" step=".01" value="${num(saved.get(String(p.id))?.sale_qty)}" aria-label="${safe(g.name)} ${sizes[i]}ml sale quantity" style="width:90px;min-width:76px">`:`<span class="muted">—</span>`}</td>`).join("")}</tr>`;
         }).join("");
-        const beerHtml=beerProducts.map(p=>`<tr><td>${safe(p.brand_name||p.name||"Beer")}</td><td><input class="pos-daily-sale-qty" data-product-id="${safe(p.id)}" type="number" min="0" step=".01" value="${num(saved.get(String(p.id))?.sale_qty)}" aria-label="${safe(p.brand_name||"Beer")} sale quantity" style="width:110px"></td></tr>`).join("");
+        // Beer products remain separate by product ID, so each pack size is visible.
+        const beerHtml=beerProducts.map(p=>{
+          const brand=p.brand_name||p.name||"Beer";
+          const packSize=String(p.size||"Size not set").trim();
+          return `<tr><td><b>${safe(brand)}</b></td><td>${safe(packSize)}</td><td><input class="pos-daily-sale-qty" data-product-id="${safe(p.id)}" type="number" min="0" step=".01" value="${num(saved.get(String(p.id))?.sale_qty)}" aria-label="${safe(brand)} ${safe(packSize)} sale quantity" style="width:110px"></td></tr>`;
+        }).join("");
         liquorBody.innerHTML=liquorHtml||'<tr><td colspan="5" class="empty">Is date par koi active liquor brand nahi mila.</td></tr>';
-        beerBody.innerHTML=beerHtml||'<tr><td colspan="2" class="empty">Is date par koi active beer brand nahi mila.</td></tr>';
-        status.textContent=`${date} ki sale load ho gayi. Har active liquor brand ke 750/375/180/90ml boxes editable hain. Naye size variants ka opening stock, purchase, MRP aur wholesale rate 0 hai; sale value/profit ke liye rates set karein.`;
+        beerBody.innerHTML=beerHtml||'<tr><td colspan="3" class="empty">Is date par koi active beer brand nahi mila.</td></tr>';
+        status.textContent=`${date} ki sale load ho gayi. Har active liquor brand ke 750/375/180/90ml boxes aur har beer product ka brand/pack-size row editable hai. Naye size variants ka opening stock, purchase, MRP aur wholesale rate 0 hai; sale value/profit ke liye rates set karein.`;
       }catch(e){
         status.textContent="Daily sale load nahi hui: "+(e.message||String(e));
         liquorBody.innerHTML='<tr><td colspan="5" class="empty">Load failed.</td></tr>';
-        beerBody.innerHTML='<tr><td colspan="2" class="empty">Load failed.</td></tr>';
+        beerBody.innerHTML='<tr><td colspan="3" class="empty">Load failed.</td></tr>';
       }
     }
 
