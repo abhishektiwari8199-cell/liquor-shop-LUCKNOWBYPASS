@@ -567,6 +567,19 @@
         <div id="posStatus" class="status" role="status" aria-live="polite">Ready. Click the barcode box and scan a product.</div>
         <div id="posLastSale" class="pos-last-sale">No scan yet.</div>
        </div>
+       <div class="panel glass" id="posDailySaleEntry" style="margin-top:24px">
+        <div class="section-head" style="margin-top:0"><div><h3>Daily Sale Entry · Active Brands</h3><p>Har din ki sale yahin bharein. Date select karke us din ki saved sale dekhein; sirf active brands dikhaye jayenge.</p></div><span class="tag">DAILY ENTRY</span></div>
+        <div class="form-grid">
+         <label>Sale Date<input id="posDailySaleDate" type="date" min="2026-11-02" value="2026-11-17" onchange="posLoadDailySaleEntry()"></label>
+         <div style="align-self:end"><button class="btn secondary" type="button" onclick="posLoadDailySaleEntry()">↻ Load Selected Date</button></div>
+         <div style="align-self:end"><button class="btn" type="button" id="posDailySaleSaveBtn" onclick="posSaveDailySaleEntry(this)">Save Daily Sale</button></div>
+        </div>
+        <div id="posDailySaleStatus" class="status">Selected date ki sale load ho rahi hai…</div>
+        <h4 style="margin-top:16px">Liquor · Brand / Size-wise Qty</h4>
+        <div class="table-wrap"><table style="min-width:760px"><thead><tr><th>Brand Name</th><th>750ml</th><th>375ml</th><th>180ml</th><th>90ml</th></tr></thead><tbody id="posDailyLiquorRows"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody></table></div>
+        <h4 style="margin-top:16px">Beer · Brand-wise Qty</h4>
+        <div class="table-wrap"><table style="min-width:520px"><thead><tr><th>Brand Name</th><th>Sale Qty</th></tr></thead><tbody id="posDailyBeerRows"><tr><td colspan="2" class="empty">Loading…</td></tr></tbody></table></div>
+       </div>
        <div class="section-head" style="margin-top:24px"><div><h3>Liquor · Brand-wise Sale Summary</h3><p>02–15 Nov ki saved Inventory Sale Qty + POS sales · size-wise quantity aur MRP value</p></div><button class="btn secondary" type="button" onclick="posLoadSaleSummary()">↻ Refresh Summary</button></div>
        <div class="table-wrap"><table style="min-width:900px"><thead><tr><th>Brand Name</th><th>750ml</th><th>375ml</th><th>180ml</th><th>90ml</th><th>MRP Sale Value</th></tr></thead><tbody id="posLiquorSummaryRows"><tr><td colspan="6" class="empty">Loading liquor summary…</td></tr></tbody><tfoot><tr><th>TOTAL</th><th id="posLiquor750Total">0</th><th id="posLiquor375Total">0</th><th id="posLiquor180Total">0</th><th id="posLiquor90Total">0</th><th id="posLiquorValueTotal">₹0.00</th></tr></tfoot></table></div>
        <div class="section-head" style="margin-top:22px"><div><h3>Beer · Brand-wise Sale Summary</h3><p>Brand-wise total quantity aur MRP sale value</p></div></div>
@@ -1123,7 +1136,7 @@
      document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===navId));
      const titles={home:["Business overview","Your store performance at a glance"],cashSalePos:["Cash Sale POS","Barcode scan · Automatic quick sale"],inventory:["Choose inventory","Select Liquor or Beer to continue"],inventoryWork:["Inventory register","Manage the selected department"],profit:["Profit & margin","Monthly profit, day-end closing and bottle-wise margin"],cash:["Daybook","Date-wise cash, collections, expenses and profit"],nightCash:["Night Cash Received","Date-wise Liquor and Beer night collections"],history:["Sales history","Review recent recorded transactions"],fl2:["FL2 to Shop","Separate invoice register and wholesale price management"],purchaseRequirements:["Stock In Shop","Available stock, QR receiving and smart purchase planning"]};
      $("pageTitle").textContent=titles[id][0];$("pageSubtitle").textContent=titles[id][1];
-     if(id==="cashSalePos"){posPopulateBarcodeProducts();posLoadRecent();posLoadSaleSummary();setTimeout(()=>$("posBarcodeInput")?.focus(),80)}
+     if(id==="cashSalePos"){posPopulateBarcodeProducts();posLoadRecent();posLoadSaleSummary();posLoadDailySaleEntry();setTimeout(()=>$("posBarcodeInput")?.focus(),80)}
      if(id==="purchaseRequirements"){stockShopProductOptions();stockShopRefresh();loadPurchaseRequirements()}if(id==="history"){if(!$("saleFrom").value)$("saleFrom").value=dateBack(29);if(!$("saleTo").value)$("saleTo").value=today();loadSalesHistoryFast()}if(id==="fl2"){fl2Tab("home");fl2FillBrands();fl2FillFilterBrands()}if(id==="profit"){setProfitPeriod();loadProfitReport()}if(id==="cash"){if($("daybookDate"))$("daybookDate").value=$("inventoryDate")?.value||today();loadDaybook()}
     }
     function setCategory(cat){$("cat").value=cat;if($("addLiquorProductPanel"))$("addLiquorProductPanel").style.display=cat==="liquor"?"block":"none";if($("addBeerProductPanel"))$("addBeerProductPanel").style.display=cat==="beer"?"block":"none";if($("whCategory"))$("whCategory").value=cat;$("search").value="";$("inventoryWorkTitle").textContent=cat==="liquor"?"Liquor Inventory":"Beer Inventory";$("inventoryWorkSubtitle").textContent=cat==="liquor"?"Manage all liquor brands and bottle sizes":"Manage beer brands and quantities";showPage("inventoryWork");drawProducts();if($("dayCounterDate")){$("dayCounterDate").value=$("inventoryDate").value||dateBack(0);loadInventoryDayCounter()}loadInventoryExpenses()}
@@ -3862,6 +3875,82 @@
     });
 
     // Read-only summary: legacy Inventory sale rows (02–15 Nov) + POS sale_items.
+
+    async function posLoadDailySaleEntry(){
+      const date=$("posDailySaleDate")?.value;
+      if(!date||!db||!user)return;
+      const status=$("posDailySaleStatus"), liquorBody=$("posDailyLiquorRows"), beerBody=$("posDailyBeerRows");
+      status.textContent="Selected date ki saved sale load ho rahi hai…";
+      liquorBody.innerHTML='<tr><td colspan="5" class="empty">Loading…</td></tr>';
+      beerBody.innerHTML='<tr><td colspan="2" class="empty">Loading…</td></tr>';
+      try{
+        const {data,error}=await db.from("inventory_register_entries")
+          .select("product_id,purchase_qty,sale_qty").eq("user_id",user.id).eq("entry_date",date);
+        if(error)throw error;
+        const saved=new Map((data||[]).map(r=>[String(r.product_id),r]));
+        // Same active-brand rule as Inventory: hide brands with no activity/stock on this date.
+        const active=products.filter(p=>!getHiddenInventoryIds().has(String(p.id)) && inventoryProductHasActivity(p));
+        const liquorGroups=orderedBrandGroups(active.filter(p=>String(p.category).toLowerCase()==="liquor"));
+        const beerProducts=orderedBeerProducts(active.filter(p=>String(p.category).toLowerCase()==="beer"));
+        const sizes=["750","375","180","90"];
+        const liquorHtml=liquorGroups.map(g=>{
+          const bySize=[null,null,null,null];
+          g.products.forEach(p=>{const idx=sizeIndex(p.size);if(idx>=0)bySize[idx]=p;});
+          return `<tr><td>${safe(g.name)}</td>${bySize.map(p=>`<td>${p?`<input class="pos-daily-sale-qty" data-product-id="${safe(p.id)}" type="number" min="0" step=".01" value="${num(saved.get(String(p.id))?.sale_qty)}" aria-label="${safe(g.name)} ${sizes[sizeIndex(p.size)]}ml sale quantity" style="width:90px;min-width:76px">`:"—"}</td>`).join("")}</tr>`;
+        }).join("");
+        const beerHtml=beerProducts.map(p=>`<tr><td>${safe(p.brand_name||p.name||"Beer")}</td><td><input class="pos-daily-sale-qty" data-product-id="${safe(p.id)}" type="number" min="0" step=".01" value="${num(saved.get(String(p.id))?.sale_qty)}" aria-label="${safe(p.brand_name||"Beer")} sale quantity" style="width:110px"></td></tr>`).join("");
+        liquorBody.innerHTML=liquorHtml||'<tr><td colspan="5" class="empty">Is date par koi active liquor brand nahi mila.</td></tr>';
+        beerBody.innerHTML=beerHtml||'<tr><td colspan="2" class="empty">Is date par koi active beer brand nahi mila.</td></tr>';
+        status.textContent=`${date} ki saved daily sale load ho gayi. Quantity edit karke Save Daily Sale dabayein.`;
+      }catch(e){
+        status.textContent="Daily sale load nahi hui: "+(e.message||String(e));
+        liquorBody.innerHTML='<tr><td colspan="5" class="empty">Load failed.</td></tr>';
+        beerBody.innerHTML='<tr><td colspan="2" class="empty">Load failed.</td></tr>';
+      }
+    }
+
+    async function posSaveDailySaleEntry(button){
+      if(!db||!user){alert("Pehle login karein.");return;}
+      const date=$("posDailySaleDate")?.value;
+      if(!date||date<STOCK_START_DATE){alert("Valid sale date select karein.");return;}
+      const inputs=[...document.querySelectorAll("#posDailySaleEntry .pos-daily-sale-qty")];
+      const changes=[];
+      for(const input of inputs){
+        const qty=Number(input.value||0);
+        if(!Number.isFinite(qty)||qty<0){alert("Sale quantity zero ya positive number honi chahiye.");return;}
+        changes.push({product_id:input.dataset.productId,sale_qty:qty});
+      }
+      if(!changes.length){alert("Is date ke liye active brand rows nahi hain.");return;}
+      button.disabled=true;const oldText=button.textContent;button.textContent="Saving…";
+      try{
+        const ids=changes.map(x=>x.product_id), existing=[];
+        for(let i=0;i<ids.length;i+=300){
+          const {data,error}=await db.from("inventory_register_entries")
+            .select("product_id,purchase_qty").eq("user_id",user.id).eq("entry_date",date)
+            .in("product_id",ids.slice(i,i+300));
+          if(error)throw error;
+          existing.push(...(data||[]));
+        }
+        const purchaseById=new Map(existing.map(r=>[String(r.product_id),num(r.purchase_qty)]));
+        const rows=changes.map(x=>({user_id:user.id,product_id:x.product_id,entry_date:date,
+          purchase_qty:purchaseById.get(String(x.product_id))||0,sale_qty:x.sale_qty}));
+        const {error}=await db.from("inventory_register_entries").upsert(rows,{onConflict:"user_id,product_id,entry_date"});
+        if(error)throw error;
+        const {data:verified,error:verifyError}=await db.from("inventory_register_entries")
+          .select("product_id,sale_qty").eq("user_id",user.id).eq("entry_date",date)
+          .in("product_id",ids);
+        if(verifyError)throw verifyError;
+        const byId=new Map((verified||[]).map(r=>[String(r.product_id),num(r.sale_qty)]));
+        const mismatch=changes.some(x=>Math.abs((byId.get(String(x.product_id))??-999)-x.sale_qty)>.0001);
+        if(mismatch)throw new Error("Save verification failed. Supabase values match nahi hue.");
+        $("posDailySaleStatus").textContent=`${date} ki daily sale successfully save aur verify ho gayi. Opening stock aur Stock In ko touch nahi kiya gaya.`;
+        await posLoadDailySaleEntry();
+        if(typeof posLoadSaleSummary==="function")await posLoadSaleSummary();
+      }catch(e){
+        $("posDailySaleStatus").textContent="Save nahi hua: "+(e.message||String(e))+". Existing inventory/stock records ko change nahi kiya gaya.";
+      }finally{button.disabled=false;button.textContent=oldText;}
+    }
+
     async function posLoadSaleSummary(){
      const liquorBody=$("posLiquorSummaryRows"),beerBody=$("posBeerSummaryRows");
      if(!liquorBody||!beerBody||!db||!user)return;
