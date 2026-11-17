@@ -2795,7 +2795,7 @@ async function loadSalesHistoryFast(){
    db.from("daily_cash").select("record_date,cash_received,online_received,credit_rokad,other_cash_in,expenses,notes").eq("user_id",user.id).gte("record_date",from).lte("record_date",to),
    db.from("purchase_invoices").select("id,invoice_date,category").eq("user_id",user.id).gte("invoice_date",from).lte("invoice_date",to),
    db.from("inventory_register_entries").select("entry_date,product_id,purchase_qty,purchase_rate_snapshot,purchase_tcs_percent_snapshot,purchase_tcs_amount_snapshot,purchase_total_snapshot").eq("user_id",user.id).gte("entry_date",from).lte("entry_date",to).gt("purchase_qty",0),
-   db.from("inventory_register_entries").select("entry_date,product_id,purchase_qty,sale_qty").eq("user_id",user.id).gte("entry_date",STOCK_START_DATE).lt("entry_date",to),
+   fetchAllInventoryRows(() => db.from("inventory_register_entries").select("id,entry_date,product_id,purchase_qty,sale_qty").eq("user_id",user.id).gte("entry_date",STOCK_START_DATE).lt("entry_date",to).order("entry_date",{ascending:true}).order("product_id",{ascending:true}).order("id",{ascending:true})),
    db.from("night_cash_received").select("record_date,category,cash_received,online_received,rokad_received").eq("user_id",user.id).gte("record_date",from).lte("record_date",to)
   ]);
   for(const r of [salesResult,expenseResult,counterResult,dailyCashResult,purchaseResult,inventoryPurchaseResult,openingMovementResult,nightCashResult])if(r.error)throw r.error;
@@ -2881,15 +2881,34 @@ async function loadSalesHistoryFast(){
   const purchaseById=new Map(purchaseHeaders.map(x=>[String(x.id),String(x.category||"").toLowerCase()]));
   for(const x of purchaseItems){const h=purchaseHeaders.find(y=>String(y.id)===String(x.invoice_id));if(!h||registerPurchaseDates.has(String(h.invoice_date)))continue;const d=getDay(h.invoice_date),cat=purchaseById.get(String(x.invoice_id)),p=productMap.get(String(x.product_id));if(!p)continue;const qty=num(x.quantity),rate=inventoryRate(p),base=num(x.purchase_rate)||rate.wholesale_base,tcs=qty*base*rate.tcs_percent/100,total=qty*base+tcs,mrp=qty*rate.mrp,key=String(x.product_id),prev=d.purchaseProducts.get(key)||{category:cat,brand:p.brand_name||"Product",size:p.size||"",qty:0,wholesale:0,tcs:0,mrp:0,total:0};prev.qty+=qty;prev.wholesale+=qty*base;prev.tcs+=tcs;prev.mrp+=mrp;prev.total+=total;d.purchaseProducts.set(key,prev);if(cat==="beer"){d.purchaseBeer+=total;d.purchaseBeerQty+=qty}else if(cat==="liquor"){d.purchaseLiquor+=total;d.purchaseLiquorQty+=qty}}
   // Opening stock is the previous closing balance: configured base opening stock + movements strictly BEFORE this report date. Same-day purchases are deliberately excluded and shown separately in STOCK PURCHASE.
-  const openingMoves=openingMovementResult.data||[];
-  for(const [reportDate,d] of daily){
+  const openingMoves=openingMovementResult||[];
+  // REPORT-ONLY opening-stock reconstruction. Inventory tables and stock values are read-only here.
+  // Stable id ordering prevents duplicate-date pagination from skipping register rows.
+  // The report reads every historical movement before the report date; no stock is written or altered.
+  const movementByProductDate=new Map();
+  for(const m of openingMoves){
+   const key=String(m.product_id),arr=movementByProductDate.get(key)||[];
+   arr.push({date:String(m.entry_date),net:num(m.purchase_qty)-num(m.sale_qty)});
+   movementByProductDate.set(key,arr);
+  }
+  for(const arr of movementByProductDate.values())arr.sort((a,b)=>a.date.localeCompare(b.date));
+  const openingBalanceByProduct=new Map();
+  for(const p of products){
+   const key=String(p.id),arr=movementByProductDate.get(key)||[];
+   let cursor=0,balance=num(p.opening_stock);
+   openingBalanceByProduct.set(key,{arr,cursor,balance});
+  }
+  const sortedReportDates=[...daily.keys()].sort((a,b)=>a.localeCompare(b));
+  for(const reportDate of sortedReportDates){
    for(const p of products){
-    const base=num(p.opening_stock);
-    const moved=openingMoves.filter(m=>String(m.product_id)===String(p.id)&&String(m.entry_date)<reportDate).reduce((a,m)=>a+num(m.purchase_qty)-num(m.sale_qty),0);
-    const qty=Math.max(0,base+moved);if(qty<=0)continue;
+    const key=String(p.id),state=openingBalanceByProduct.get(key);
+    while(state.cursor<state.arr.length && state.arr[state.cursor].date<reportDate){
+     state.balance+=state.arr[state.cursor].net;state.cursor++;
+    }
+    const qty=Math.max(0,state.balance);if(qty<=0)continue;
     const rate=inventoryRate(p),category=String(p.category||"").toLowerCase();
     const row={category,brand:p.brand_name||"Product",size:p.size||"Other",qty,mrp:qty*rate.mrp};
-    d.openingProducts.set(String(p.id),row);
+    daily.get(reportDate).openingProducts.set(key,row);
    }
   }
   saleHistoryDailyData=Object.fromEntries([...daily.entries()]);
