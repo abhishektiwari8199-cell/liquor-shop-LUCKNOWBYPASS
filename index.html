@@ -491,7 +491,7 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
   <button data-page="profit" onclick="showPage('profit',this)"><span class="ico">₹</span>Profit & Margin</button>
   <button data-page="cash" onclick="showPage('cash',this)"><span class="ico">▤</span>Daybook</button>
   <button data-page="fl2" onclick="showPage('fl2',this)"><span class="ico">▤</span>FL2 to Shop</button>
-  <button data-page="purchaseRequirements" onclick="showPage('purchaseRequirements',this)"><span class="ico">🛒</span>Purchase Order</button>
+  <button data-page="purchaseRequirements" onclick="showPage('purchaseRequirements',this)"><span class="ico">🛒</span>Stock In Shop</button>
   <button data-page="history" onclick="showPage('history',this)"><span class="ico">◷</span>Sales History</button>
  </nav>
  <div class="side-bottom"><div class="user-chip"><small>LOGGED IN AS</small><strong id="who">Cloud user</strong></div><button class="btn secondary full" style="margin-top:10px" onclick="logout()">↪ Sign out</button></div>
@@ -869,10 +869,64 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
  </section>
 
  <section id="purchaseRequirements" class="page">
- <div class="section-head"><div><h3>Purchase Order</h3><p>7-day sales velocity · live stock check · next-day purchase planning</p></div><button class="btn" type="button" onclick="loadPurchaseRequirements()">↻ Refresh Live Requirements</button></div>
+ <div class="section-head"><div><h3>STOCK IN SHOP</h3><p>Existing inventory data stays protected. Every confirmed inward is recorded as a new purchase transaction.</p></div><button class="btn" type="button" onclick="stockShopRefresh()">↻ Refresh Stock</button></div>
+
+ <div class="panel glass">
+  <div class="section-head" style="margin-top:0"><div><h3>1. AVAILABLE STOCK</h3><p>Current closing quantity with wholesale value, estimated TCS and MRP retail value.</p></div></div>
+  <div class="kpis">
+   <div class="kpi glass"><small>LIQUOR QTY</small><strong id="ssLiquorQty">0</strong><div class="kpi-sub" id="ssLiquorMeta">Wholesale ₹0 · TCS ₹0 · MRP ₹0</div></div>
+   <div class="kpi glass"><small>BEER QTY</small><strong id="ssBeerQty">0</strong><div class="kpi-sub" id="ssBeerMeta">Wholesale ₹0 · TCS ₹0 · MRP ₹0</div></div>
+   <div class="kpi glass"><small>TOTAL STOCK QTY</small><strong id="ssTotalQty">0</strong><div class="kpi-sub" id="ssTotalMeta">Wholesale ₹0 · TCS ₹0 · MRP ₹0</div></div>
+  </div>
+  <div class="table-wrap"><table><thead><tr><th>DEPARTMENT</th><th>AVAILABLE QTY</th><th>WHOLESALE VALUE</th><th>TCS ESTIMATE</th><th>MRP VALUE</th></tr></thead><tbody id="ssStockRows"><tr><td colspan="5">Loading available stock…</td></tr></tbody></table></div>
+  <p class="status">Stock quantity is calculated from the same date-wise inventory movements as the Inventory Register. TCS is an estimate using each product's saved TCS rate.</p>
+ </div>
+
+ <div class="panel glass" style="margin-top:16px">
+  <div class="section-head" style="margin-top:0"><div><h3>2. STOCK IN BY QR</h3><p>Choose Bottle QR for one bottle, or Case / Petti barcode for the mapped full case quantity.</p></div><span class="tag">DUPLICATE SAFE SAVE</span></div>
+  <div class="form-grid">
+   <label>Scan type<select id="ssScanMode"><option value="case">Case / Petti QR (full case)</option><option value="bottle">Bottle QR (one bottle)</option></select></label>
+   <label>Scan QR / Barcode<input id="ssScanInput" autocomplete="off" placeholder="Scan carton barcode or bottle QR, then press Enter"></label>
+   <label>Cases in this scan<input id="ssCaseCount" type="number" min="1" max="100" step="1" value="1"></label>
+   <div style="align-self:end"><button class="btn" type="button" onclick="stockShopProcessScan()">Receive Stock</button></div>
+  </div>
+  <div class="stockin-one-line" style="margin-top:10px"><button class="btn secondary" id="ssCameraBtn" type="button" onclick="stockShopStartCamera()">📷 Camera Scan</button><button class="btn secondary" type="button" onclick="stockShopStopCamera()">Stop Camera</button><button class="btn secondary" type="button" onclick="stockShopRefresh()">Refresh Summary</button></div>
+  <div id="ssCameraReader" style="display:none;max-width:520px;margin:14px auto"></div>
+  <div id="ssScanStatus" class="status">First map each carton barcode with its product and bottles per case. Bottle QR mapping uses the product barcode / GTIN.</div>
+  <div class="stockin-count-grid">
+   <div><small>Received Today</small><strong id="ssTodayQty">0</strong></div>
+   <div><small>Products Received</small><strong id="ssTodayProducts">0</strong></div>
+   <div><small>Wholesale Purchase Value</small><strong id="ssTodayValue">₹0.00</strong></div>
+  </div>
+  <div class="table-wrap"><table><thead><tr><th>PRODUCT</th><th>SIZE</th><th>QTY RECEIVED</th><th>WHOLESALE VALUE</th><th>ENTRY TYPE</th></tr></thead><tbody id="ssTodayRows"><tr><td colspan="5">No Stock In entries loaded.</td></tr></tbody></table></div>
+ </div>
+
+ <div class="panel glass" style="margin-top:16px">
+  <div class="section-head" style="margin-top:0"><div><h3>3. CASE / PETTI QR MAPPING</h3><p>Save the carton barcode once with its exact inventory product and fixed bottles-per-case count.</p></div></div>
+  <div class="form-grid">
+   <label class="span2">Inventory Product<select id="ssMapProduct"></select></label>
+   <label>Case barcode / QR<input id="ssMapCode" autocomplete="off" placeholder="Scan carton label here"></label>
+   <label>Bottles per case<input id="ssMapPack" type="number" min="1" max="500" step="1" placeholder="e.g. 12 / 24 / 48"></label>
+   <div style="align-self:end"><button class="btn" type="button" onclick="stockShopSaveCaseMapping()">Save Case Mapping</button></div>
+  </div>
+  <div id="ssMapStatus" class="status">Examples read from your carton photos: Carlsberg Elephant 650 ML = 12; Officer's Choice Blue Special Cask 375 ML = 24; Mountain Oak 180 ML = 48; Officer's Choice Blue Reserve 180 ML = 48. Verify each against the carton before saving.</div>
+  <div class="table-wrap"><table><thead><tr><th>PRODUCT</th><th>CASE CODE</th><th>BOTTLES / CASE</th><th>STATUS</th></tr></thead><tbody id="ssMapRows"><tr><td colspan="4">Loading mappings…</td></tr></tbody></table></div>
+ </div>
+
+ <div class="panel glass" style="margin-top:16px">
+  <div class="section-head" style="margin-top:0"><div><h3>4. TOP 5 FAST-MOVING PRODUCTS · LAST 3 DAYS</h3><p>Liquor and Beer ranked separately from saved Inventory Register sales.</p></div><button class="btn secondary" type="button" onclick="stockShopLoadTopFive()">↻ Recalculate</button></div>
+  <div class="category-cards">
+   <div class="category-card liquor glass"><div><span class="tag">TOP 5 LIQUOR</span><h4>Liquor Reorder List</h4><p>3-day sold quantity, available stock and suggested requirement</p></div><div class="art">🥃</div></div>
+   <div class="category-card beer glass"><div><span class="tag">TOP 5 BEER</span><h4>Beer Reorder List</h4><p>3-day sold quantity, available stock and suggested requirement</p></div><div class="art">🍺</div></div>
+  </div>
+  <div class="table-wrap"><table><thead><tr><th>LIQUOR BRAND / SIZE</th><th>3-DAY SOLD</th><th>AVAILABLE</th><th>REQUIRED QTY</th><th>WHOLESALE / UNIT</th></tr></thead><tbody id="ssTopLiquorRows"><tr><td colspan="5">Calculating…</td></tr></tbody></table></div>
+  <div class="table-wrap" style="margin-top:14px"><table><thead><tr><th>BEER BRAND / SIZE</th><th>3-DAY SOLD</th><th>AVAILABLE</th><th>REQUIRED QTY</th><th>WHOLESALE / UNIT</th></tr></thead><tbody id="ssTopBeerRows"><tr><td colspan="5">Calculating…</td></tr></tbody></table></div>
+  <div class="status" id="ssTopStatus">Required Qty = max(0, 3-day sales − available stock). Adjust final quantities in the purchase order section below.</div>
+ </div>
+ <div class="section-head"><div><h3>5. PURCHASE ORDER</h3><p>Existing editable purchase requirement and PDF order workflow retained.</p></div><button class="btn" type="button" onclick="loadPurchaseRequirements()">↻ Refresh Live Requirements</button></div>
  <div class="panel glass">
   <div class="form-grid">
-   <label>Sales analysis period<input type="text" value="Last 7 completed days (including today)" readonly></label>
+   <label>Sales analysis period<input type="text" value="Last 3 days (including today)" readonly></label>
    <label>Purchase order date<input id="prOrderDate" type="date" readonly></label>
    <label>Target stock coverage<select id="prCoverage" onchange="renderPurchaseRequirements()"><option value="2">2 days</option><option value="3" selected>3 days</option><option value="4">4 days</option><option value="7">7 days</option></select></label>
    <div style="align-self:end"><button class="btn secondary" type="button" onclick="loadPurchaseRequirements()">Calculate Requirements</button></div>
@@ -887,16 +941,16 @@ input,select{width:100%;background:rgba(4,19,36,.75);border:1px solid rgba(168,1
   <div class="kpi glass"><small>Order Total incl. TCS</small><strong id="prGrand">₹0.00</strong></div>
  </div>
  <div class="category-cards" style="margin-top:14px">
-  <div class="category-card beer glass"><div><span class="tag">BEER REQUIREMENTS</span><h4 id="prBeerBrands">0 brands</h4><p>7-day average and low-stock reorder quantity</p></div><div class="art">🍺</div></div>
-  <div class="category-card liquor glass"><div><span class="tag">LIQUOR REQUIREMENTS</span><h4 id="prLiquorBrands">0 brands</h4><p>7-day average and low-stock reorder quantity</p></div><div class="art">🥃</div></div>
+  <div class="category-card beer glass"><div><span class="tag">BEER REQUIREMENTS</span><h4 id="prBeerBrands">0 brands</h4><p>3-day sales average and reorder quantity</p></div><div class="art">🍺</div></div>
+  <div class="category-card liquor glass"><div><span class="tag">LIQUOR REQUIREMENTS</span><h4 id="prLiquorBrands">0 brands</h4><p>3-day sales average and reorder quantity</p></div><div class="art">🥃</div></div>
  </div>
  <div class="panel glass" style="margin-top:16px">
   <div class="section-head" style="margin-top:0"><div><h3>Beer Purchase List</h3><p>Only brands below selected stock coverage appear. Adjust order quantity if needed.</p></div></div>
-  <div class="table-wrap"><table><thead><tr><th>Brand / Size</th><th>Current Stock</th><th>7-Day Sale</th><th>Daily Avg.</th><th>Required Qty</th><th>Wholesale / Unit</th><th>Subtotal</th><th>TCS 2%</th><th>Total</th></tr></thead><tbody id="prBeerRows"><tr><td colspan="9" class="empty">Calculate requirements.</td></tr></tbody></table></div>
+  <div class="table-wrap"><table><thead><tr><th>Brand / Size</th><th>Current Stock</th><th>3-Day Sale</th><th>Daily Avg.</th><th>Required Qty</th><th>Wholesale / Unit</th><th>Subtotal</th><th>TCS 2%</th><th>Total</th></tr></thead><tbody id="prBeerRows"><tr><td colspan="9" class="empty">Calculate requirements.</td></tr></tbody></table></div>
  </div>
  <div class="panel glass" style="margin-top:16px">
   <div class="section-head" style="margin-top:0"><div><h3>Liquor Purchase List</h3><p>Brand and bottle-size wise requirements.</p></div></div>
-  <div class="table-wrap"><table><thead><tr><th>Brand / Size</th><th>Current Stock</th><th>7-Day Sale</th><th>Daily Avg.</th><th>Required Qty</th><th>Wholesale / Unit</th><th>Subtotal</th><th>TCS 2%</th><th>Total</th></tr></thead><tbody id="prLiquorRows"><tr><td colspan="9" class="empty">Calculate requirements.</td></tr></tbody></table></div>
+  <div class="table-wrap"><table><thead><tr><th>Brand / Size</th><th>Current Stock</th><th>3-Day Sale</th><th>Daily Avg.</th><th>Required Qty</th><th>Wholesale / Unit</th><th>Subtotal</th><th>TCS 2%</th><th>Total</th></tr></thead><tbody id="prLiquorRows"><tr><td colspan="9" class="empty">Calculate requirements.</td></tr></tbody></table></div>
  </div>
  <div class="panel glass" style="margin-top:16px">
   <div class="section-head" style="margin-top:0"><div><h3>Next-Day Live Purchase Order</h3><p>Review quantities, then download a printable PDF purchase order. TCS is shown separately.</p></div><button class="btn" type="button" onclick="downloadPurchaseRequirementOrder()">↓ Download Purchase Order PDF</button></div>
@@ -1027,9 +1081,10 @@ async function login(){
 }
 async function logout(){if(db)await db.auth.signOut();user=null;location.reload()}
 async function openApp(){$("loginView").style.display="none";$("appView").style.display="block";
+ const shopScanInput=$("ssScanInput");if(shopScanInput&&!shopScanInput.dataset.bound){shopScanInput.dataset.bound="1";shopScanInput.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();stockShopProcessScan();}});}
  const stockScanInput=$("stockInScanInput");
  if(stockScanInput&&!stockScanInput.dataset.bound){stockScanInput.dataset.bound="1";stockScanInput.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();stockInProcessScan(stockScanInput.value);}});}
- $("who").textContent=user?.email||"Signed in";["dayCounterDate","daybookDate"].forEach(id=>$(id).value=today()<STOCK_START_DATE?STOCK_START_DATE:today());$("inventoryDate").value=today()<STOCK_START_DATE?STOCK_START_DATE:today();await loadProducts();posPopulateBarcodeProducts();$("dayCounterDate").value=$("inventoryDate").value;$("daybookDate").value=$("inventoryDate").value;await refresh();fillBrandFilters();drawWholesaleRates();await loadInventoryDayCounter();await loadDaybook();if($("autoReportDate")){$("autoReportDate").value=$("inventoryDate").value||today();await loadDashboardAutoReport($("autoReportDate").value)}window.MadhushalaToolsAfterOpen?.()} 
+ $("who").textContent=user?.email||"Signed in";["dayCounterDate","daybookDate"].forEach(id=>$(id).value=today()<STOCK_START_DATE?STOCK_START_DATE:today());$("inventoryDate").value=today()<STOCK_START_DATE?STOCK_START_DATE:today();await loadProducts();posPopulateBarcodeProducts();stockShopProductOptions();$("dayCounterDate").value=$("inventoryDate").value;$("daybookDate").value=$("inventoryDate").value;await refresh();fillBrandFilters();drawWholesaleRates();await loadInventoryDayCounter();await loadDaybook();if($("autoReportDate")){$("autoReportDate").value=$("inventoryDate").value||today();await loadDashboardAutoReport($("autoReportDate").value)}window.MadhushalaToolsAfterOpen?.()} 
 function toggleWorkspaceMenu(forceOpen){
  const sidebar=document.querySelector("#appView .sidebar");
  const backdrop=$("workspaceBackdrop");
@@ -1057,10 +1112,10 @@ function showPage(id,button){
  $(id).classList.add("active");
  const navId=id==="inventoryWork"?"inventory":(id==="nightCash"?"cash":id);
  document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===navId));
- const titles={home:["Business overview","Your store performance at a glance"],cashSalePos:["Cash Sale POS","Barcode scan · Automatic quick sale"],inventory:["Choose inventory","Select Liquor or Beer to continue"],inventoryWork:["Inventory register","Manage the selected department"],profit:["Profit & margin","Monthly profit, day-end closing and bottle-wise margin"],cash:["Daybook","Date-wise cash, collections, expenses and profit"],nightCash:["Night Cash Received","Date-wise Liquor and Beer night collections"],history:["Sales history","Review recent recorded transactions"],fl2:["FL2 to Shop","Separate invoice register and wholesale price management"],purchaseRequirements:["Purchase Order","7-day sales velocity, low stock and next-day purchase order"]};
+ const titles={home:["Business overview","Your store performance at a glance"],cashSalePos:["Cash Sale POS","Barcode scan · Automatic quick sale"],inventory:["Choose inventory","Select Liquor or Beer to continue"],inventoryWork:["Inventory register","Manage the selected department"],profit:["Profit & margin","Monthly profit, day-end closing and bottle-wise margin"],cash:["Daybook","Date-wise cash, collections, expenses and profit"],nightCash:["Night Cash Received","Date-wise Liquor and Beer night collections"],history:["Sales history","Review recent recorded transactions"],fl2:["FL2 to Shop","Separate invoice register and wholesale price management"],purchaseRequirements:["Stock In Shop","Available stock, QR receiving and smart purchase planning"]};
  $("pageTitle").textContent=titles[id][0];$("pageSubtitle").textContent=titles[id][1];
  if(id==="cashSalePos"){posPopulateBarcodeProducts();posLoadRecent();setTimeout(()=>$("posBarcodeInput")?.focus(),80)}
- if(id==="purchaseRequirements"){loadPurchaseRequirements()}if(id==="history"){if(!$("saleFrom").value)$("saleFrom").value=dateBack(29);if(!$("saleTo").value)$("saleTo").value=today();loadSalesHistoryFast()}if(id==="fl2"){fl2Tab("home");fl2FillBrands();fl2FillFilterBrands()}if(id==="profit"){setProfitPeriod();loadProfitReport()}if(id==="cash"){if($("daybookDate"))$("daybookDate").value=$("inventoryDate")?.value||today();loadDaybook()}
+ if(id==="purchaseRequirements"){stockShopProductOptions();stockShopRefresh();loadPurchaseRequirements()}if(id==="history"){if(!$("saleFrom").value)$("saleFrom").value=dateBack(29);if(!$("saleTo").value)$("saleTo").value=today();loadSalesHistoryFast()}if(id==="fl2"){fl2Tab("home");fl2FillBrands();fl2FillFilterBrands()}if(id==="profit"){setProfitPeriod();loadProfitReport()}if(id==="cash"){if($("daybookDate"))$("daybookDate").value=$("inventoryDate")?.value||today();loadDaybook()}
 }
 function setCategory(cat){$("cat").value=cat;if($("addLiquorProductPanel"))$("addLiquorProductPanel").style.display=cat==="liquor"?"block":"none";if($("addBeerProductPanel"))$("addBeerProductPanel").style.display=cat==="beer"?"block":"none";if($("whCategory"))$("whCategory").value=cat;$("search").value="";$("inventoryWorkTitle").textContent=cat==="liquor"?"Liquor Inventory":"Beer Inventory";$("inventoryWorkSubtitle").textContent=cat==="liquor"?"Manage all liquor brands and bottle sizes":"Manage beer brands and quantities";showPage("inventoryWork");drawProducts();if($("dayCounterDate")){$("dayCounterDate").value=$("inventoryDate").value||dateBack(0);loadInventoryDayCounter()}loadInventoryExpenses()}
 async function loadProducts(){
@@ -1135,11 +1190,15 @@ async function loadStockMovements(){
 }
 
 function stockFor(p){
+  // Dashboard and purchase planning must use the same date-wise inventory
+  // register source as the Inventory screen, not legacy invoice totals.
   const key=String(p.id);
-  const opening=num(p.opening_stock);
-  const purchased=stockPurchased[key]||0;
-  const sold=stockSold[key]||0;
-  return {opening,purchased,sold,available:opening+purchased-sold,mrpValue:(opening+purchased-sold)*num(p.mrp)};
+  const opening=num(inventoryOpeningForDate[key]??p.opening_stock);
+  const purchased=num(inventoryPurchased[key]);
+  const sold=num(inventorySold[key]);
+  const available=opening+purchased-sold;
+  const mrp=num(inventoryRate(p).mrp);
+  return {opening,purchased,sold,available,mrpValue:available*mrp};
 }
 function sizeIndex(value){
   const raw=String(value||"").toUpperCase().replace(/,/g,".").trim();
@@ -2673,21 +2732,24 @@ function updatePurchaseRequirementQty(key,value){
 }
 async function loadPurchaseRequirements(){
  if(!db||!user)return;
- const status=$("prStatus");if(status)status.textContent="Fetching last 7 days of saved sales and calculating live stock…";
+ const status=$("prStatus");if(status)status.textContent="Fetching last 3 days of saved sales and calculating top-selling purchase requirements…";
  const orderDate=dateBack(-1);if($("prOrderDate"))$("prOrderDate").value=orderDate;
  try{
-  const end=today(),start=dateBack(6);
+  const end=today(),start=dateBack(2);
   const sales=await getInventorySaleRows(start,end,"all");
   const byProduct=new Map();
-  for(const row of sales){const key=String(row.product_id),x=byProduct.get(key)||{sold7:0};x.sold7+=num(row.quantity);byProduct.set(key,x)}
+  for(const row of sales){const key=String(row.product_id),x=byProduct.get(key)||{sold3:0};x.sold3+=num(row.quantity);byProduct.set(key,x)}
   const coverage=num($("prCoverage")?.value||3);
-  purchaseRequirementRows=products.map(p=>{
-   const key=String(p.id),sold7=byProduct.get(key)?.sold7||0,avg=sold7/7,stock=Math.max(0,stockFor(p).available);
+  const ranked=products.map(p=>{
+   const key=String(p.id),sold3=byProduct.get(key)?.sold3||0,avg=sold3/3,stock=Math.max(0,stockFor(p).available);
    const target=avg*coverage,orderQty=stock<target?Math.ceil(target-stock):0,rate=(wholesaleRateMaster[String(p.id)]?.cost_per_bottle??inventoryRate(p).wholesale_price);
-   return {key,productId:p.id,category:String(p.category||"").toLowerCase(),brand:p.brand_name||"Unnamed brand",size:p.size||"",sold7,avg,stock,target,orderQty,rate};
+   return {key,productId:p.id,category:String(p.category||"").toLowerCase(),brand:p.brand_name||"Unnamed brand",size:p.size||"",sold7:sold3,avg,stock,target,orderQty,rate};
   }).filter(x=>["beer","liquor"].includes(x.category));
+  const top=[...ranked.filter(x=>x.sold7>0&&x.category==="beer").sort((a,b)=>b.sold7-a.sold7).slice(0,5),
+             ...ranked.filter(x=>x.sold7>0&&x.category==="liquor").sort((a,b)=>b.sold7-a.sold7).slice(0,5)];
+  purchaseRequirementRows=top;
   renderPurchaseRequirements();
-  status.textContent=`Live calculation complete. Sales window: ${start} to ${end} (7 calendar days). Daily average = total sold ÷ 7. Reorder trigger: stock below ${coverage} days of average sales; order quantity restores stock to ${coverage} days.`;
+  status.textContent=`Top 5 per department ranked by actual sold quantity from ${start} to ${end} (3 days). Daily average = 3-day sold ÷ 3. Required Qty restores stock to ${coverage} days of average sales. Purchase Order uses these top products only.`;
  }catch(e){status.textContent="Purchase requirement error: "+(e.message||String(e));console.error(e)}
 }
 function downloadPurchaseRequirementOrder(){
@@ -2698,7 +2760,7 @@ function downloadPurchaseRequirementOrder(){
  applyOfficePdfStyle(doc,"Purchase Requirement Order");
  const date=$("prOrderDate").value,supplier=$("prSupplier").value||"To be confirmed";
  doc.setFillColor(8,31,55);doc.rect(0,0,297,26,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(16);doc.text("NEXT-DAY PURCHASE ORDER",10,11);doc.setFont("helvetica","normal");doc.setFontSize(9);doc.text("Order date: "+date+"   Supplier: "+supplier,10,19);
- const cols=[["CATEGORY",10],["BRAND / SIZE",58],["CURRENT STOCK",105],["7D SALE",135],["AVG / DAY",158],["ORDER QTY",184],["WHOLESALE",210],["SUBTOTAL",240],["TCS 2%",267]];
+ const cols=[["CATEGORY",10],["BRAND / SIZE",58],["CURRENT STOCK",105],["3D SALE",135],["AVG / DAY",158],["ORDER QTY",184],["WHOLESALE",210],["SUBTOTAL",240],["TCS 2%",267]];
  doc.setFillColor(231,238,245);doc.rect(10,32,277,8,"F");doc.setTextColor(30,45,60);doc.setFont("helvetica","bold");doc.setFontSize(6.5);cols.forEach(([t,x])=>doc.text(t,x,37.5));
  let y=45,total=0;
  rows.forEach((r,i)=>{if(y>185)return;const sub=r.orderQty*r.rate;total+=sub;if(i%2===0){doc.setFillColor(249,251,253);doc.rect(10,y-4,277,7,"F")}doc.setFont("helvetica","normal");doc.setFontSize(6.5);doc.setTextColor(30,45,60);const vals=[r.category.toUpperCase(),r.brand+" "+r.size,r.stock,r.sold7,r.avg.toFixed(2),r.orderQty,prMoney(r.rate),prMoney(sub),prMoney(sub*.02)];vals.forEach((v,j)=>doc.text(String(v).slice(0,j===1?32:18),cols[j][1],y));y+=7});
@@ -3731,6 +3793,129 @@ async function posVoidBill(id){
  await posLoadRecent();await loadProducts();await refresh();
 }
 
+
+
+// STOCK IN SHOP — additive workflow. All accepted inward rows become new purchase records;
+// existing opening stock, historical sales, daybook and prior purchase rows are never overwritten.
+let stockShopCamera=null, stockShopBusy=false, stockShopLastScan={code:"",at:0};
+function stockShopProductOptions(){
+ const el=$("ssMapProduct");if(!el)return;
+ el.innerHTML='<option value="">Select product…</option>'+products.map(p=>`<option value="${safe(p.id)}">${safe(String(p.category||"").toUpperCase())} · ${safe(p.brand_name)} · ${safe(p.size)}</option>`).join("");
+}
+async function stockShopSaveCaseMapping(){
+ const productId=$("ssMapProduct")?.value,code=String($("ssMapCode")?.value||"").trim(),pack=Number($("ssMapPack")?.value||0);
+ if(!productId||!code||!Number.isInteger(pack)||pack<1||pack>500){$("ssMapStatus").textContent="Product, carton code and valid bottles-per-case count are required.";return;}
+ try{
+  const {error}=await db.from("stock_in_case_mappings").upsert({user_id:user.id,product_id:productId,case_code:code,bottles_per_case:pack,active:true},{onConflict:"user_id,case_code"});
+  if(error)throw error;
+  $("ssMapStatus").textContent="Case mapping saved. Confirm the product and pack count before scanning a real case.";
+  $("ssMapCode").value="";$("ssMapPack").value="";
+  await stockShopLoadMappings();
+ }catch(e){$("ssMapStatus").textContent="Mapping save failed: "+(e.message||String(e));}
+}
+async function stockShopLoadMappings(){
+ try{
+  const {data,error}=await db.from("stock_in_case_mappings").select("id,product_id,case_code,bottles_per_case,active").eq("user_id",user.id).order("created_at",{ascending:false});
+  if(error)throw error;
+  $("ssMapRows").innerHTML=(data||[]).map(m=>{const p=products.find(x=>String(x.id)===String(m.product_id));return `<tr><td>${safe(p?.brand_name||"Unknown")} · ${safe(p?.size||"")}</td><td>${safe(m.case_code)}</td><td>${m.bottles_per_case}</td><td>${m.active?"Active":"Inactive"}</td></tr>`}).join("")||'<tr><td colspan="4">No case mappings yet.</td></tr>';
+ }catch(e){$("ssMapRows").innerHTML=`<tr><td colspan="4">${safe(e.message||String(e))}</td></tr>`;}
+}
+async function stockShopRefresh(){
+ if(!db||!user)return;
+ try{
+  // Reuse the Inventory Register loader: it combines legacy purchase invoices,
+  // sale bills and date-wise manual entries without rewriting any saved rows.
+  if($("inventoryDate"))$("inventoryDate").value=today();
+  await loadInventoryForDate();
+  const totals={liquor:{qty:0,wh:0,tcs:0,mrp:0},beer:{qty:0,wh:0,tcs:0,mrp:0}};
+  for(const p of products){
+   const cat=String(p.category||"").toLowerCase();if(!totals[cat])continue;
+   const qty=Math.max(0,Number(stockFor(p).available||0));
+   const r=inventoryRate(p),wh=qty*Number(r.wholesale_base??r.wholesale_price??p.wholesale_price??0),tcs=wh*Number(r.tcs_percent??2)/100,mrp=qty*Number(r.mrp||p.mrp||0);
+   totals[cat].qty+=qty;totals[cat].wh+=wh;totals[cat].tcs+=tcs;totals[cat].mrp+=mrp;
+  }
+  const fmt=x=>money(x);
+  for(const [cat,id] of [["liquor","Liquor"],["beer","Beer"]]){
+   const t=totals[cat];$("ss"+id+"Qty").textContent=t.qty.toLocaleString("en-IN");
+   $("ss"+id+"Meta").textContent=`Wholesale ${fmt(t.wh)} · TCS ${fmt(t.tcs)} · MRP ${fmt(t.mrp)}`;
+  }
+  const all=["qty","wh","tcs","mrp"].reduce((a,k)=>(a[k]=totals.liquor[k]+totals.beer[k],a),{});
+  $("ssTotalQty").textContent=all.qty.toLocaleString("en-IN");$("ssTotalMeta").textContent=`Wholesale ${fmt(all.wh)} · TCS ${fmt(all.tcs)} · MRP ${fmt(all.mrp)}`;
+  $("ssStockRows").innerHTML=[["Liquor",totals.liquor],["Beer",totals.beer],["TOTAL",all]].map(([name,t])=>`<tr><td><b>${name}</b></td><td>${t.qty.toLocaleString("en-IN")}</td><td>${fmt(t.wh)}</td><td>${fmt(t.tcs)}</td><td>${fmt(t.mrp)}</td></tr>`).join("");
+  await stockShopLoadToday();await stockShopLoadMappings();await stockShopLoadTopFive();
+ }catch(e){$("ssScanStatus").textContent="Available stock error: "+(e.message||String(e));}
+}
+async function stockShopLoadToday(){
+ try{
+  const d=today(),prefix="QRSCAN-"+d.replaceAll("-","")+"-";
+  const {data:passes,error}=await db.from("stock_in_passes").select("id,purchase_invoice_id,transport_pass_no").eq("user_id",user.id).gte("issue_date",d).lte("issue_date",d);
+  if(error)throw error;
+  const ids=(passes||[]).map(x=>x.purchase_invoice_id).filter(Boolean);
+  if(!ids.length){$("ssTodayQty").textContent="0";$("ssTodayProducts").textContent="0";$("ssTodayValue").textContent=money(0);$("ssTodayRows").innerHTML='<tr><td colspan="5">No Stock In entries today.</td></tr>';return;}
+  const {data:items,error:ie}=await db.from("purchase_items").select("product_id,quantity,purchase_rate,invoice_id").eq("user_id",user.id).in("invoice_id",ids);
+  if(ie)throw ie;
+  const grouped=new Map();for(const it of items||[]){const p=products.find(x=>String(x.id)===String(it.product_id));if(!p)continue;const g=grouped.get(String(p.id))||{p,qty:0,value:0};g.qty+=Number(it.quantity||0);g.value+=Number(it.quantity||0)*Number(it.purchase_rate||0);grouped.set(String(p.id),g);}
+  const rows=[...grouped.values()];$("ssTodayQty").textContent=rows.reduce((a,x)=>a+x.qty,0).toLocaleString("en-IN");$("ssTodayProducts").textContent=String(rows.length);$("ssTodayValue").textContent=money(rows.reduce((a,x)=>a+x.value,0));
+  $("ssTodayRows").innerHTML=rows.map(x=>`<tr><td>${safe(x.p.brand_name)}</td><td>${safe(x.p.size)}</td><td>${x.qty}</td><td>${money(x.value)}</td><td>Stock In</td></tr>`).join("")||'<tr><td colspan="5">No entries.</td></tr>';
+ }catch(e){$("ssTodayRows").innerHTML=`<tr><td colspan="5">${safe(e.message||String(e))}</td></tr>`;}
+}
+async function stockShopLoadTopFive(){
+ try{
+  const end=today(),start=dateBack(2);
+  const {data,error}=await db.from("inventory_register_entries").select("product_id,sale_qty").eq("user_id",user.id).gte("entry_date",start).lte("entry_date",end).gt("sale_qty",0);
+  if(error)throw error;
+  const sold=new Map();for(const x of data||[])sold.set(String(x.product_id),(sold.get(String(x.product_id))||0)+Number(x.sale_qty||0));
+  const rows=products.map(p=>{const qty=sold.get(String(p.id))||0,stock=Math.max(0,stockFor(p).available),r=inventoryRate(p);return {p,qty,stock,required:Math.max(0,Math.ceil((qty/3)*num($("prCoverage")?.value||3)-stock)),rate:Number(r.wholesale_base??r.wholesale_price??p.wholesale_price??0)}}).filter(x=>x.qty>0);
+  for(const cat of ["liquor","beer"]){const list=rows.filter(x=>String(x.p.category).toLowerCase()===cat).sort((a,b)=>b.qty-a.qty).slice(0,5);const id=cat==="liquor"?"ssTopLiquorRows":"ssTopBeerRows";$(id).innerHTML=list.map(x=>`<tr><td>${safe(x.p.brand_name)} · ${safe(x.p.size)}</td><td>${x.qty}</td><td>${x.stock}</td><td><b>${x.required}</b></td><td>${money(x.rate)}</td></tr>`).join("")||'<tr><td colspan="5">No sales in the last 3 days.</td></tr>';}
+  $("ssTopStatus").textContent=`Sales window: ${start} to ${end}. Top 5 per department by sold quantity. Required Qty = max(0, 3-day sold − current available stock).`;
+ }catch(e){$("ssTopStatus").textContent="Top products calculation error: "+(e.message||String(e));}
+}
+async function stockShopProcessScan(){
+ if(stockShopBusy)return;
+ const code=String($("ssScanInput")?.value||"").trim(),mode=$("ssScanMode")?.value||"case";
+ if(!code){$("ssScanStatus").textContent="Scan a QR or barcode first.";return;}
+ const now=Date.now();
+ if(stockShopLastScan.code===code&&now-stockShopLastScan.at<1800){$("ssScanStatus").textContent="Same code was just scanned. Wait briefly before scanning again.";return;}
+ stockShopLastScan={code,at:now};stockShopBusy=true;
+ try{
+  $("ssScanStatus").textContent="Looking up scanned code…";
+  if(mode==="bottle"){
+   await stockInProcessScan(code);
+   const bottleStatus=$("stockInMsg")?.textContent||"";
+   if(bottleStatus.startsWith("Scan not saved:"))throw new Error(bottleStatus.replace("Scan not saved:","").trim());
+   if(!bottleStatus.startsWith("STOCK IN ✓"))throw new Error(bottleStatus||"Bottle scan was not confirmed.");
+   $("ssScanStatus").textContent=bottleStatus;
+  }else{
+   const count=Number($("ssCaseCount")?.value||1);if(!Number.isInteger(count)||count<1||count>100)throw new Error("Case count must be 1–100.");
+   const scanId=crypto.randomUUID();
+   const {data,error}=await db.rpc("stock_in_scan_case",{p_scanned_code:code,p_scan_id:scanId,p_case_count:count});
+   if(error)throw error;if(!data?.success)throw new Error("Stock In confirmation missing.");
+   if(data.duplicate)throw new Error("This scan request was already received.");
+   $("ssScanStatus").textContent=`CASE STOCK IN ✓ ${data.brand_name} · ${data.size} · ${data.case_count} case(s) × ${data.bottles_per_case} = +${data.received_quantity} bottles. New purchase transaction saved.`;
+  }
+  $("ssScanInput").value="";await stockShopRefresh();
+ }catch(e){$("ssScanStatus").textContent="Stock In failed: "+(e.message||String(e));}
+ finally{stockShopBusy=false;$("ssScanInput")?.focus();}
+}
+async function stockShopStartCamera(){
+ const host=$("ssCameraReader");if(!host)return;
+ if(!window.isSecureContext){$("ssScanStatus").textContent="Camera scan requires HTTPS.";return;}
+ if(!window.Html5Qrcode){const ok=await ensureExciseQrLibrary();if(!ok){$("ssScanStatus").textContent="Scanner library unavailable.";return;}}
+ await stockShopStopCamera();
+ host.style.display="block";host.innerHTML="";
+ try{
+  stockShopCamera=new Html5Qrcode("ssCameraReader",{verbose:false});
+  const formats=[Html5QrcodeSupportedFormats.QR_CODE,Html5QrcodeSupportedFormats.CODE_128,Html5QrcodeSupportedFormats.EAN_13,Html5QrcodeSupportedFormats.EAN_8,Html5QrcodeSupportedFormats.UPC_A,Html5QrcodeSupportedFormats.UPC_E,Html5QrcodeSupportedFormats.ITF];
+  await stockShopCamera.start({facingMode:"environment"},{fps:10,qrbox:{width:260,height:180},formatsToSupport:formats},async decoded=>{
+   if(stockShopBusy)return;$("ssScanInput").value=decoded;await stockShopProcessScan();
+  },()=>{});
+  $("ssScanStatus").textContent="Camera ON · Scan the carton barcode or bottle QR. Check Scan type before scanning.";
+ }catch(e){$("ssScanStatus").textContent="Camera start failed: "+(e.message||String(e));}
+}
+async function stockShopStopCamera(){
+ if(stockShopCamera){try{if(stockShopCamera.isScanning)await stockShopCamera.stop();stockShopCamera.clear();}catch(e){}stockShopCamera=null;}
+ const host=$("ssCameraReader");if(host){host.style.display="none";host.innerHTML="";}
+}
 
 // STOCK IN — additive pass receiving; writes to existing purchase_invoices/purchase_items
 // so existing inventory and POS stock calculations automatically include received bottles.
