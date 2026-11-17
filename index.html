@@ -3876,6 +3876,26 @@
 
     // Read-only summary: legacy Inventory sale rows (02–15 Nov) + POS sale_items.
 
+    // Create missing liquor size variants with zero opening stock and zero purchase history.
+    // Existing products and historical stock/sale rows are never updated or deleted here.
+    async function posEnsureLiquorSizeVariants(groups){
+      const wanted=["750ml","375ml","180ml","90ml"],toCreate=[];
+      for(const group of groups||[]){
+        const existing=products.filter(p=>String(p.category||"").toLowerCase()==="liquor"&&brandKey(p.brand_name)===brandKey(group.name));
+        for(const size of wanted){
+          if(!existing.some(p=>sizeIndex(p.size)===sizeIndex(size))){
+            toCreate.push({user_id:user.id,category:"liquor",brand_name:group.name,size,opening_stock:0,mrp:0,wholesale_price:0});
+          }
+        }
+      }
+      if(!toCreate.length)return;
+      const {data,error}=await db.from("inventory_products").insert(toCreate)
+        .select("id,category,brand_name,size,opening_stock,mrp,wholesale_price");
+      if(error)throw new Error("Missing size variants create nahi hue: "+error.message);
+      products=[...products,...(data||[]).map(x=>({...x,opening_stock:0,mrp:0,wholesale_price:0}))];
+      await loadWholesaleRateMaster();
+    }
+
     async function posLoadDailySaleEntry(){
       const dateInput=$("posDailySaleDate");
       // New day: default to the browser's local date so daily entry is ready without manual date setup.
@@ -3895,20 +3915,23 @@
           .select("product_id,purchase_qty,sale_qty").eq("user_id",user.id).eq("entry_date",date);
         if(error)throw error;
         const saved=new Map((data||[]).map(r=>[String(r.product_id),r]));
-        // Same active-brand rule as Inventory: hide brands with no activity/stock on this date.
-        const active=products.filter(p=>!getHiddenInventoryIds().has(String(p.id)) && inventoryProductHasActivity(p));
-        const liquorGroups=orderedBrandGroups(active.filter(p=>String(p.category).toLowerCase()==="liquor"));
+        // Determine active brands from existing stock/activity, then show all four liquor pack sizes.
+        const hidden=getHiddenInventoryIds();
+        const active=products.filter(p=>!hidden.has(String(p.id)) && inventoryProductHasActivity(p));
+        let liquorGroups=orderedBrandGroups(active.filter(p=>String(p.category).toLowerCase()==="liquor"));
+        await posEnsureLiquorSizeVariants(liquorGroups);
+        liquorGroups=liquorGroups.map(g=>({name:g.name,products:products.filter(p=>String(p.category||"").toLowerCase()==="liquor"&&brandKey(p.brand_name)===brandKey(g.name))}));
         const beerProducts=orderedBeerProducts(active.filter(p=>String(p.category).toLowerCase()==="beer"));
         const sizes=["750","375","180","90"];
         const liquorHtml=liquorGroups.map(g=>{
           const bySize=[null,null,null,null];
           g.products.forEach(p=>{const idx=sizeIndex(p.size);if(idx>=0)bySize[idx]=p;});
-          return `<tr><td>${safe(g.name)}</td>${bySize.map(p=>`<td>${p?`<input class="pos-daily-sale-qty" data-product-id="${safe(p.id)}" type="number" min="0" step=".01" value="${num(saved.get(String(p.id))?.sale_qty)}" aria-label="${safe(g.name)} ${sizes[sizeIndex(p.size)]}ml sale quantity" style="width:90px;min-width:76px">`:"—"}</td>`).join("")}</tr>`;
+          return `<tr><td>${safe(g.name)}</td>${bySize.map((p,i)=>`<td>${p?`<input class="pos-daily-sale-qty" data-product-id="${safe(p.id)}" type="number" min="0" step=".01" value="${num(saved.get(String(p.id))?.sale_qty)}" aria-label="${safe(g.name)} ${sizes[i]}ml sale quantity" style="width:90px;min-width:76px">`:`<span class="muted">—</span>`}</td>`).join("")}</tr>`;
         }).join("");
         const beerHtml=beerProducts.map(p=>`<tr><td>${safe(p.brand_name||p.name||"Beer")}</td><td><input class="pos-daily-sale-qty" data-product-id="${safe(p.id)}" type="number" min="0" step=".01" value="${num(saved.get(String(p.id))?.sale_qty)}" aria-label="${safe(p.brand_name||"Beer")} sale quantity" style="width:110px"></td></tr>`).join("");
         liquorBody.innerHTML=liquorHtml||'<tr><td colspan="5" class="empty">Is date par koi active liquor brand nahi mila.</td></tr>';
         beerBody.innerHTML=beerHtml||'<tr><td colspan="2" class="empty">Is date par koi active beer brand nahi mila.</td></tr>';
-        status.textContent=`${date} ki saved daily sale load ho gayi. Quantity edit karke Save Daily Sale dabayein.`;
+        status.textContent=`${date} ki sale load ho gayi. Har active liquor brand ke 750/375/180/90ml boxes editable hain. Naye size variants ka opening stock, purchase, MRP aur wholesale rate 0 hai; sale value/profit ke liye rates set karein.`;
       }catch(e){
         status.textContent="Daily sale load nahi hui: "+(e.message||String(e));
         liquorBody.innerHTML='<tr><td colspan="5" class="empty">Load failed.</td></tr>';
