@@ -3663,7 +3663,7 @@
      }
      const openingQty=openingBalance.liquor.qty+openingBalance.beer.qty;
      const openingMrp=openingBalance.liquor.mrp+openingBalance.beer.mrp;
-     const beerRokad=num(day.beerRokad),liquorRokad=num(day.liquorRokad),presentRokad=(beerRokad+liquorRokad)||num(day.registerRokad??day.closingRokad),previousRokad=num(day.previousRokad),totalRokad=previousRokad+presentRokad;
+     const beerRokad=num(day.beerRokad),liquorRokad=num(day.liquorRokad),presentRokad=(beerRokad+liquorRokad)||num(day.registerRokad??day.closingRokad),totalRokad=presentRokad;
      const hasNightCashRows=day.nightCashRowsFound===true;
     const cash=hasNightCashRows?num(day.liquorCash)+num(day.beerCash):(num(day.registerCash)>0?num(day.registerCash):num(day.cashReceived)),online=hasNightCashRows?num(day.liquorOnline)+num(day.beerOnline):(num(day.registerOnline)>0?num(day.registerOnline):num(day.onlineReceived));
      // Header
@@ -3754,7 +3754,7 @@
       ["TOTAL",fmt(totals.cash),fmt(totals.online),fmt(totals.expense)].forEach((v,j)=>{doc.text(String(v),cx+1,yy+3);cx+=ws[j]});
      };
      drawDepartmentCollectionTotals();
-     const recon=[{label:"Cash Received",amount:cash},{label:"Online Received",amount:online},{label:"Previous Day Rokad",amount:previousRokad},{label:"Present Day Rokad",amount:presentRokad},{label:"TOTAL ROKAD (Previous + Present)",amount:totalRokad},{label:"Other Cash In",amount:day.registerOther}];
+     const recon=[{label:"Cash Received",amount:cash},{label:"Online Received",amount:online},{label:"Present Day Rokad",amount:presentRokad},{label:"TOTAL PRESENT DAY ROKAD",amount:totalRokad},{label:"Other Cash In",amount:day.registerOther}];
      table("DAYBOOK & ROKAD RECONCILIATION",recon,[{h:"DESCRIPTION",w:58,v:x=>x.label,max:32},{h:"AMOUNT",w:34,v:x=>fmt(x.amount),max:19}],rightX,101,rightW,6,4,4.7);
      // Group only manually added Expense Register lines by department; do not include counter expense_amount.
      const drawGroupedExpenseRegister=()=>{
@@ -3894,7 +3894,7 @@
      if($("sdsOpeningStockRows"))$("sdsOpeningStockRows").innerHTML=[...day.openingProducts.values()].sort((a,b)=>a.category.localeCompare(b.category)||a.size.localeCompare(b.size,undefined,{numeric:true})).map(x=>`<tr><td>${safe(x.category)}</td><td>${safe(x.brand)} ${safe(x.size)}</td><td>${x.qty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${money(x.mrp)}</td></tr>`).join("")||'<tr><td colspan="4" class="empty">No opening stock.</td></tr>';
      $("sdsPurchaseRows").innerHTML=[...day.purchaseProducts.values()].sort((a,b)=>a.category.localeCompare(b.category)||a.brand.localeCompare(b.brand)).map(x=>`<tr><td>${safe(x.category)}</td><td>${safe(x.brand)} ${safe(x.size)}</td><td>${x.qty}</td><td>${money(x.wholesale)}</td><td>${money(x.tcs)}</td><td>${money(x.mrp)}</td><td>${money(x.total)}</td></tr>`).join("")||'<tr><td colspan="7" class="empty">No purchase record found for this date.</td></tr>';
      $("sdsDepartmentRows").innerHTML=`<tr><td><b>Liquor</b></td><td>${money(day.liquorCash)}</td><td>${money(day.liquorOnline)}</td><td>${money(day.liquorExpense)}</td></tr><tr><td><b>Beer</b></td><td>${money(day.beerCash)}</td><td>${money(day.beerOnline)}</td><td>${money(day.beerExpense)}</td></tr>`;
-     $("sdsDayTotals").textContent=`Cash ${money(day.registerCash||day.cashReceived)} · Online ${money(day.registerOnline||day.onlineReceived)} · Previous Rokad ${money(day.previousRokad)} · Present Rokad ${money(day.registerRokad??day.closingRokad)} · Total Rokad ${money(num(day.previousRokad)+num(day.registerRokad??day.closingRokad))}`;
+     $("sdsDayTotals").textContent=`Cash ${money(day.registerCash||day.cashReceived)} · Online ${money(day.registerOnline||day.onlineReceived)} · Present Day Rokad ${money(day.registerRokad??day.closingRokad)} · Total Present Day Rokad ${money(day.registerRokad??day.closingRokad)}`;
      $("sdsExpenseRows").innerHTML=day.expenseRows.map(x=>`<tr><td>${safe(x.category||"—")} · ${safe(x.name)}</td><td>${safe(x.mode)}</td><td>${money(x.amount)}</td></tr>`).join("")||'<tr><td colspan="3" class="empty">No expenses recorded for this date.</td></tr>';
      $("sdsBillRows").innerHTML=day.bills.map(x=>`<tr><td>${safe(x.bill_number)}</td><td>${safe(x.category)}</td><td>${safe(x.payment_mode)}</td><td>${num(x.qty).toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${money(x.amount)}</td><td>${x.manual?'<span class="muted">Edit in Inventory</span>':`<button class="btn secondary" type="button" onclick="editSale('${x.id}')">Edit</button> <button class="btn danger" type="button" onclick="deleteSale('${x.id}')">Delete</button>`}</td></tr>`).join("")||'<tr><td colspan="6" class="empty">No bill records.</td></tr>';
      $("saleDaySummaryPanel").style.display="block";
