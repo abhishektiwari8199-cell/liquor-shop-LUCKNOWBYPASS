@@ -2722,18 +2722,34 @@
      doc.setFont("helvetica","normal");doc.setFontSize(6);doc.setTextColor(...muted);
      doc.text("Note: Detailed product and brand rankings are shown on Page 2. Full raw data remains available in CSV export.",12,187);
 
-     // PAGE 2 — concise product and brand rankings, no automatic page splitting
+     // PAGE 2 — separate Liquor and Beer columns; fixed-width tables prevent overlap.
      doc.addPage("a4","landscape");pageHeader("PRODUCT & BRAND INTELLIGENCE",2);
      doc.setFont("helvetica","bold");doc.setFontSize(15);doc.setTextColor(...navy);doc.text("PRODUCT & BRAND INTELLIGENCE",12,39);
-     doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(...muted);doc.text("Top 14 entries in each ranking, sorted by total profit. Export CSV for the complete list.",12,45);
-     title("TOP PRODUCT PROFITABILITY",55);
-     const prodRows=[...(d.products||[])].sort((a,b)=>(b.profit||0)-(a.profit||0)).slice(0,14)
-      .map(p=>[String(p.category||"").toUpperCase(),`${p.brand} / ${p.size||"-"}`,p.qty,moneyPDF(p.saleRate),moneyPDF(p.costRate),moneyPDF(p.profitPerUnit),moneyPDF(p.profit)]);
-     compactTable(["DEPT","BRAND / SIZE","QTY","SALE RATE","WHOLESALE","PROFIT / UNIT","TOTAL PROFIT"],prodRows,[18,63,15,35,35,38,42],12,62,4.6,5.7);
-     title("BRAND ROTATION & MARGIN INTELLIGENCE",139);
-     const brandRows=[...(d.brands||[])].sort((a,b)=>(b.profit||0)-(a.profit||0)).slice(0,14)
-      .map(b=>[b.priority,String(b.category||"").toUpperCase(),b.brand,b.qty,b.rotationDays,Number(b.avgPerActiveDay||0).toFixed(1),Number(b.marginPct||0).toFixed(1)+"%",moneyPDF(b.profit)]);
-     compactTable(["PRIORITY","DEPT","BRAND","QTY","SALE DAYS","AVG / DAY","MARGIN","TOTAL PROFIT"],brandRows,[22,18,57,15,20,22,20,42],12,146,3.1,5.1);
+     doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(...muted);doc.text("Liquor and Beer are reported separately. Top 8 entries per department; CSV export contains the complete list.",12,45);
+     const leftX=12,rightX=153,colW=132;
+     const deptTitle=(label,x,y,color)=>{
+      doc.setFillColor(...color);doc.roundedRect(x,y-5,colW,7,1,1,"F");
+      doc.setFont("helvetica","bold");doc.setFontSize(7.2);doc.setTextColor(255,255,255);doc.text(label,x+3,y);
+     };
+     const liquorProducts=[...(d.products||[])].filter(p=>String(p.category||"").toLowerCase().includes("liquor")).sort((a,b)=>(b.profit||0)-(a.profit||0)).slice(0,8);
+     const beerProducts=[...(d.products||[])].filter(p=>String(p.category||"").toLowerCase().includes("beer")).sort((a,b)=>(b.profit||0)-(a.profit||0)).slice(0,8);
+     title("TOP PRODUCT PROFITABILITY · DEPARTMENT-WISE",55);
+     deptTitle("LIQUOR PRODUCTS",leftX,65,blue2);
+     deptTitle("BEER PRODUCTS",rightX,65,green);
+     const productRows=arr=>arr.map(p=>[`${p.brand} / ${p.size||"-"}`,p.qty,moneyPDF(p.saleRate),moneyPDF(p.costRate),moneyPDF(p.profitPerUnit),moneyPDF(p.profit)]);
+     compactTable(["BRAND / SIZE","QTY","SALE","COST","PROFIT/U","TOTAL PROFIT"],productRows(liquorProducts),[43,12,18,18,19,22],leftX,72,4.6,5.25);
+     compactTable(["BRAND / SIZE","QTY","SALE","COST","PROFIT/U","TOTAL PROFIT"],productRows(beerProducts),[43,12,18,18,19,22],rightX,72,4.6,5.25);
+
+     title("BRAND ROTATION & MARGIN INTELLIGENCE · DEPARTMENT-WISE",121);
+     deptTitle("LIQUOR BRAND INTELLIGENCE",leftX,131,blue2);
+     deptTitle("BEER BRAND INTELLIGENCE",rightX,131,green);
+     const liquorBrands=[...(d.brands||[])].filter(b=>String(b.category||"").toLowerCase().includes("liquor")).sort((a,b)=>(b.profit||0)-(a.profit||0)).slice(0,8);
+     const beerBrands=[...(d.brands||[])].filter(b=>String(b.category||"").toLowerCase().includes("beer")).sort((a,b)=>(b.profit||0)-(a.profit||0)).slice(0,8);
+     const brandRows=arr=>arr.map(b=>[b.priority,b.brand,b.qty,b.rotationDays,Number(b.marginPct||0).toFixed(1)+"%",moneyPDF(b.profit)]);
+     compactTable(["PRIORITY","BRAND","QTY","DAYS","MARGIN","TOTAL PROFIT"],brandRows(liquorBrands),[18,43,13,13,17,28],leftX,138,4.6,5.2);
+     compactTable(["PRIORITY","BRAND","QTY","DAYS","MARGIN","TOTAL PROFIT"],brandRows(beerBrands),[18,43,13,13,17,28],rightX,138,4.6,5.2);
+     doc.setFont("helvetica","normal");doc.setFontSize(6);doc.setTextColor(...muted);
+     doc.text("Priority is calculated from the selected period's brand rotation days and gross margin. Complete rankings are available in CSV export.",12,188);
      doc.save(`${profitFileDate(d.to)} Profit Margin Report.pdf`);
     }
 
