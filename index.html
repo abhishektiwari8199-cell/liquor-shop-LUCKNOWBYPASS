@@ -1538,6 +1538,74 @@ function downloadActiveInventoryReport(){
   if(!(`${p.brand_name||""} ${p.size||""}`).toLowerCase().includes(search))return false;
   return visibility==="full"||inventoryProductHasActivity(p);
  });
+ if(category==="liquor"){
+  const groups=orderedBrandGroups(active.filter(p=>String(p.category||"").toLowerCase()==="liquor"));
+  const rows=[];
+  const sizeLabels=["750 ML","375 ML","180 ML","90 ML"];
+  for(const g of groups){
+   const qty=[0,0,0,0];
+   let value=0;
+   for(const p of g.products){
+    const k=sizeIndex(p.size);
+    if(k<0)continue;
+    const opening=num(inventoryOpeningForDate[String(p.id)]??p.opening_stock);
+    if(opening<=0)continue;
+    qty[k]+=opening;
+    value+=opening*num(inventoryRate(p).mrp);
+   }
+   if(qty.some(n=>n>0))rows.push({brand:g.name,qty,value});
+  }
+  if(!rows.length){alert("Selected date par Liquor opening stock quantity nahi mili.");return;}
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4",compress:true});
+  applyOfficePdfStyle(doc,"Liquor Opening Stock MRP Report");
+  const pageW=297,margin=12,tableW=273;
+  const navy=[13,39,65],blue=[35,96,148],pale=[232,241,249],yellow=[255,204,54],ink=[24,45,66];
+  const x=[margin,margin+75,margin+111,margin+147,margin+183,margin+219];
+  const w=[75,36,36,36,36,54];
+  const drawPageHeader=()=>{
+   doc.setFillColor(...navy);doc.rect(0,0,pageW,29,"F");
+   doc.setFillColor(...yellow);doc.rect(0,29,pageW,2.2,"F");
+   doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(15);
+   doc.text("ABHISHEK COMPOSITE - LIQUOR OPENING STOCK REPORT",margin,12);
+   doc.setFont("helvetica","normal");doc.setFontSize(9);
+   doc.text("Inventory date: "+date,margin,21);
+  };
+  const drawTableHeader=()=>{
+   doc.setFillColor(...blue);doc.roundedRect(margin,y,tableW,10,1.5,1.5,"F");
+   doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(255,255,255);
+   doc.text("BRAND",x[0]+3,y+6.5);
+   for(let k=0;k<4;k++)doc.text(sizeLabels[k]+" QTY",x[k+1]+w[k+1]/2,y+6.5,{align:"center"});
+   doc.text("TOTAL MRP STOCK VALUE",x[5]+w[5]-3,y+6.5,{align:"right"});
+   y+=10;doc.setFont("helvetica","normal");doc.setFontSize(8.5);
+  };
+  drawPageHeader();
+  let y=41;
+  drawTableHeader();
+  const totals=[0,0,0,0];let totalValue=0;
+  rows.forEach((r,i)=>{
+   if(y>185){doc.addPage();drawPageHeader();y=41;drawTableHeader();}
+   if(i%2===0){doc.setFillColor(...pale);doc.rect(margin,y,tableW,8,"F");}
+   doc.setTextColor(...ink);
+   doc.text(doc.splitTextToSize(r.brand,69),x[0]+3,y+5.4);
+   for(let k=0;k<4;k++){
+    doc.text(r.qty[k].toLocaleString("en-IN",{maximumFractionDigits:2}),x[k+1]+w[k+1]/2,y+5.4,{align:"center"});
+    totals[k]+=r.qty[k];
+   }
+   doc.text(officePdfNumber(r.value),x[5]+w[5]-3,y+5.4,{align:"right"});
+   doc.setDrawColor(215,224,233);doc.line(margin,y+8,margin+tableW,y+8);
+   y+=8;totalValue+=r.value;
+  });
+  if(y>181){doc.addPage();drawPageHeader();y=41;drawTableHeader();}
+  y+=3;doc.setDrawColor(...navy);doc.setLineWidth(.7);doc.line(margin,y,margin+tableW,y);
+  y+=2;doc.setFillColor(255,247,218);doc.roundedRect(margin,y,tableW,13,1.5,1.5,"F");
+  doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(...navy);
+  doc.text("TOTAL",x[0]+4,y+8.5);
+  for(let k=0;k<4;k++)doc.text(totals[k].toLocaleString("en-IN",{maximumFractionDigits:2}),x[k+1]+w[k+1]/2,y+8.5,{align:"center"});
+  doc.text(officePdfNumber(totalValue),x[5]+w[5]-3,y+8.5,{align:"right"});
+  doc.save("Abhishek-Composite-Liquor-Opening-Stock-Report-"+date+".pdf");
+  return;
+ }
  const rows=[];
  const addOpeningRow=(p,label)=>{
   const id=String(p.id);
