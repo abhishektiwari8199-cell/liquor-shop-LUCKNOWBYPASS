@@ -577,8 +577,8 @@
         <div id="posDailySaleStatus" class="status">Selected date ki sale load ho rahi hai…</div>
         <h4 style="margin-top:16px">Liquor · Brand / Size-wise Qty</h4>
         <div class="table-wrap"><table style="min-width:760px"><thead><tr><th>Brand Name</th><th>750ml</th><th>375ml</th><th>180ml</th><th>90ml</th></tr></thead><tbody id="posDailyLiquorRows"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody></table></div>
-        <h4 style="margin-top:16px">Beer · Brand / Pack Size-wise Qty</h4>
-        <div class="table-wrap"><table style="min-width:620px"><thead><tr><th>Brand Name</th><th>Pack Size</th><th>Sale Qty</th></tr></thead><tbody id="posDailyBeerRows"><tr><td colspan="3" class="empty">Loading…</td></tr></tbody></table></div>
+        <h4 style="margin-top:16px">Beer · Brand-wise Qty</h4>
+        <div class="table-wrap"><table style="min-width:520px"><thead><tr><th>Brand Name</th><th>Sale Qty</th></tr></thead><tbody id="posDailyBeerRows"><tr><td colspan="2" class="empty">Loading…</td></tr></tbody></table></div>
        </div>
        <div class="section-head" style="margin-top:24px"><div><h3>Liquor · Brand-wise Sale Summary</h3><p>02–15 Nov ki saved Inventory Sale Qty + POS sales · size-wise quantity aur MRP value</p></div><button class="btn secondary" type="button" onclick="posLoadSaleSummary()">↻ Refresh Summary</button></div>
        <div class="table-wrap"><table style="min-width:900px"><thead><tr><th>Brand Name</th><th>750ml</th><th>375ml</th><th>180ml</th><th>90ml</th><th>MRP Sale Value</th></tr></thead><tbody id="posLiquorSummaryRows"><tr><td colspan="6" class="empty">Loading liquor summary…</td></tr></tbody><tfoot><tr><th>TOTAL</th><th id="posLiquor750Total">0</th><th id="posLiquor375Total">0</th><th id="posLiquor180Total">0</th><th id="posLiquor90Total">0</th><th id="posLiquorValueTotal">₹0.00</th></tr></tfoot></table></div>
@@ -3748,9 +3748,11 @@
        }
        doc.setFillColor(225,235,245);doc.rect(x,yy,w,rowH,"F");doc.setFont("helvetica","bold");doc.setFontSize(4.45);doc.setTextColor(...NAVY);doc.text(label+" TOTAL",x+1,yy+1.85);doc.text(fmt(subtotal),x+w*.83,yy+1.85,{align:"left"});yy+=rowH;
       }
-      if(!day.expenseRows.length){doc.setFont("helvetica","normal");doc.setFontSize(4.8);doc.setTextColor(...MUTED);doc.text("No Expense Register entries",x+1,yy+3)}
+      if(!day.expenseRows.length){doc.setFont("helvetica","normal");doc.setFontSize(4.8);doc.setTextColor(...MUTED);doc.text("No Expense Register entries",x+1,yy+3);yy+=4}
+      // Return the true bottom edge so the next report section never overlaps expense rows.
+      return yy;
      };
-     drawGroupedExpenseRegister();
+     const expenseRegisterBottomY=drawGroupedExpenseRegister();
      // Closing balance stock = morning opening + same-day purchases - same-day sales.
      // Display only; this calculation does not update the inventory ledger.
      const closingByProduct=new Map();
@@ -3779,12 +3781,15 @@
      for(const [size,v] of [...liquorClosing.entries()].sort((a,b)=>a[0].localeCompare(b[0],undefined,{numeric:true})))stockBalanceRows.push({dept:"LIQUOR",pack:size,qty:v.qty,mrp:v.mrp});
      const closingTotal=stockBalanceRows.reduce((a,x)=>({qty:a.qty+x.qty,mrp:a.mrp+x.mrp}),{qty:0,mrp:0});
      stockBalanceRows.push({dept:"TOTAL",pack:"BALANCE STOCK",qty:closingTotal.qty,mrp:closingTotal.mrp});
+     // Keep a visible gap after the dynamically sized Expense Register.
+     // This prevents the stock heading/table from colliding with expense subtotal rows.
+     const stockBalanceSectionY=Math.max(158,expenseRegisterBottomY+5);
      table("BALANCE STOCK VALUE · AFTER TODAY'S SALE / PURCHASE",stockBalanceRows,[
       {h:"DEPT",w:18,v:x=>x.dept,max:10},
       {h:"BOTTLE / CAN / SIZE",w:34,v:x=>x.pack,max:20},
       {h:"BALANCE QTY",w:20,v:x=>num(x.qty).toLocaleString("en-IN",{maximumFractionDigits:2}),max:13},
       {h:"MRP VALUE",w:26,v:x=>fmt(x.mrp),max:17}
-     ],rightX,158,rightW,9,2.35,4.25);
+     ],rightX,stockBalanceSectionY,rightW,9,2.35,4.25);
      // Size-wise sales totals remain available beneath the brand ranking.
      const bySize=cat=>{const m=new Map();for(const x of day.products.values()){if(x.category!==cat)continue;const k=x.size||"Other",v=m.get(k)||{size:k,qty:0,sale:0};v.qty+=num(x.qty);v.sale+=num(x.amount);m.set(k,v)}return [...m.values()].sort((a,b)=>a.size.localeCompare(b.size,undefined,{numeric:true}))};
      table("LIQUOR SALE · SIZE TOTAL",bySize("liquor"),[{h:"SIZE",w:28,v:x=>x.size,max:18},{h:"QTY",w:18,v:x=>x.qty,max:10},{h:"MRP SALE",w:32,v:x=>fmt(x.sale),max:19}],L,181,65,4,3,4.5);
@@ -3936,7 +3941,7 @@
       const status=$("posDailySaleStatus"), liquorBody=$("posDailyLiquorRows"), beerBody=$("posDailyBeerRows");
       status.textContent="Selected date ki saved sale load ho rahi hai…";
       liquorBody.innerHTML='<tr><td colspan="5" class="empty">Loading…</td></tr>';
-      beerBody.innerHTML='<tr><td colspan="3" class="empty">Loading…</td></tr>';
+      beerBody.innerHTML='<tr><td colspan="2" class="empty">Loading…</td></tr>';
       try{
         const {data,error}=await db.from("inventory_register_entries")
           .select("product_id,purchase_qty,sale_qty").eq("user_id",user.id).eq("entry_date",date);
@@ -3955,19 +3960,14 @@
           g.products.forEach(p=>{const idx=sizeIndex(p.size);if(idx>=0)bySize[idx]=p;});
           return `<tr><td>${safe(g.name)}</td>${bySize.map((p,i)=>`<td>${p?`<input class="pos-daily-sale-qty" data-product-id="${safe(p.id)}" type="number" min="0" step=".01" value="${num(saved.get(String(p.id))?.sale_qty)}" aria-label="${safe(g.name)} ${sizes[i]}ml sale quantity" style="width:90px;min-width:76px">`:`<span class="muted">—</span>`}</td>`).join("")}</tr>`;
         }).join("");
-        // Beer products remain separate by product ID, so each pack size is visible.
-        const beerHtml=beerProducts.map(p=>{
-          const brand=p.brand_name||p.name||"Beer";
-          const packSize=String(p.size||"Size not set").trim();
-          return `<tr><td><b>${safe(brand)}</b></td><td>${safe(packSize)}</td><td><input class="pos-daily-sale-qty" data-product-id="${safe(p.id)}" type="number" min="0" step=".01" value="${num(saved.get(String(p.id))?.sale_qty)}" aria-label="${safe(brand)} ${safe(packSize)} sale quantity" style="width:110px"></td></tr>`;
-        }).join("");
+        const beerHtml=beerProducts.map(p=>`<tr><td>${safe(p.brand_name||p.name||"Beer")}</td><td><input class="pos-daily-sale-qty" data-product-id="${safe(p.id)}" type="number" min="0" step=".01" value="${num(saved.get(String(p.id))?.sale_qty)}" aria-label="${safe(p.brand_name||"Beer")} sale quantity" style="width:110px"></td></tr>`).join("");
         liquorBody.innerHTML=liquorHtml||'<tr><td colspan="5" class="empty">Is date par koi active liquor brand nahi mila.</td></tr>';
-        beerBody.innerHTML=beerHtml||'<tr><td colspan="3" class="empty">Is date par koi active beer brand nahi mila.</td></tr>';
-        status.textContent=`${date} ki sale load ho gayi. Har active liquor brand ke 750/375/180/90ml boxes aur har beer product ka brand/pack-size row editable hai. Naye size variants ka opening stock, purchase, MRP aur wholesale rate 0 hai; sale value/profit ke liye rates set karein.`;
+        beerBody.innerHTML=beerHtml||'<tr><td colspan="2" class="empty">Is date par koi active beer brand nahi mila.</td></tr>';
+        status.textContent=`${date} ki sale load ho gayi. Har active liquor brand ke 750/375/180/90ml boxes editable hain. Naye size variants ka opening stock, purchase, MRP aur wholesale rate 0 hai; sale value/profit ke liye rates set karein.`;
       }catch(e){
         status.textContent="Daily sale load nahi hui: "+(e.message||String(e));
         liquorBody.innerHTML='<tr><td colspan="5" class="empty">Load failed.</td></tr>';
-        beerBody.innerHTML='<tr><td colspan="3" class="empty">Load failed.</td></tr>';
+        beerBody.innerHTML='<tr><td colspan="2" class="empty">Load failed.</td></tr>';
       }
     }
 
