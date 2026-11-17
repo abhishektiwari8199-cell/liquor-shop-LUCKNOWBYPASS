@@ -2490,29 +2490,95 @@
     }
     async function loadProfitReport(){
      if(!db||!user)return;
-     const from=$("profitFrom").value,to=$("profitTo").value;if(!from||!to||from>to){setMsg("profitMsg","Valid date range select karein.");return}
-     setMsg("profitMsg","Calculating estimated profit…");
+     const from=$("profitFrom").value,to=$("profitTo").value;
+     if(!from||!to||from>to){setMsg("profitMsg","Valid date range select karein.");return}
+     setMsg("profitMsg","Inventory sales aur Cash Sale POS dono se profit calculate ho raha hai…");
      try{
-      const {data:headers,error}=await db.from("sales").select("id,sale_date,category").gte("sale_date",from).lte("sale_date",to).order("sale_date");if(error)throw error;
-      const ids=(headers||[]).map(x=>x.id);let items=[];
-      if(ids.length){const r=await db.from("sale_items").select("sale_id,product_id,quantity,sale_rate").in("sale_id",ids);if(r.error)throw r.error;items=r.data||[]}
-      const byProduct={},byDay={};let revenue=0,cost=0,liquorProfit=0,beerProfit=0,liquorQty=0,beerQty=0;
-      for(const item of items){
-       const p=products.find(x=>String(x.id)===String(item.product_id));if(!p)continue;
-       const qty=num(item.quantity),rate=inventoryRate(p),saleRate=rate.mrp,costRate=rate.wholesale_base,sales=qty*saleRate,costAmount=qty*costRate,profit=qty*(rate.mrp-rate.wholesale_base),category=String(p.category||"").toLowerCase();
-       revenue+=sales;cost+=costAmount;
-       if(category==="beer"){beerProfit+=profit;beerQty+=qty}else{liquorProfit+=profit;liquorQty+=qty}
-       const key=String(p.id);if(!byProduct[key])byProduct[key]={p,qty:0,sales:0,cost:0,profit:0,rateSum:0,costRate};
-       const b=byProduct[key];b.qty+=qty;b.sales+=sales;b.cost+=costAmount;b.profit+=profit;b.rateSum+=sales;
-       const day=headers.find(h=>h.id===item.sale_id)?.sale_date||"Unknown";if(!byDay[day])byDay[day]={sales:0,cost:0,profit:0};byDay[day].sales+=sales;byDay[day].cost+=costAmount;byDay[day].profit+=profit;
+      // Main source: date-wise Inventory Register manual sale_qty.
+      // This is the same source already used by Sales History and Daybook.
+      const manualRows=await getInventorySaleRows(from,to,"all");
+
+      // Additional source: barcode/POS bills. These are separate POS transactions.
+      const {data:headers,error:headerError}=await db.from("sales")
+       .select("id,sale_date,category")
+       .eq("user_id",user.id)
+       .gte("sale_date",from).lte("sale_date",to)
+       .order("sale_date");
+      if(headerError)throw headerError;
+
+      const ids=(headers||[]).map(x=>x.id).filter(Boolean);
+      let posItems=[];
+      if(ids.length){
+       for(let i=0;i<ids.length;i+=300){
+        const batch=ids.slice(i,i+300);
+        const {data,error}=await db.from("sale_items")
+         .select("sale_id,product_id,quantity,sale_rate")
+         .in("sale_id",batch);
+        if(error)throw error;
+        posItems.push(...(data||[]));
+       }
       }
+
+      const headerById=new Map((headers||[]).map(h=>[String(h.id),h]));
+      const rows=[];
+      for(const x of (manualRows||[])){
+       rows.push({
+        source:"Inventory Register",day:x.sale_date,product:x.product,
+        product_id:x.product_id,qty:num(x.quantity),
+        saleRate:num(x.sale_rate)||num(inventoryRate(x.product).mrp)
+       });
+      }
+      for(const item of posItems){
+       const p=products.find(x=>String(x.id)===String(item.product_id));
+       if(!p)continue;
+       const h=headerById.get(String(item.sale_id));
+       if(!h)continue;
+       rows.push({
+        source:"Cash Sale POS",day:h.sale_date,product:p,
+        product_id:item.product_id,qty:num(item.quantity),
+        saleRate:num(item.sale_rate)||num(inventoryRate(p).mrp)
+       });
+      }
+
+      const byProduct={},byDay={};
+      let revenue=0,cost=0,liquorProfit=0,beerProfit=0,liquorQty=0,beerQty=0;
+      for(const row of rows){
+       const p=row.product,qty=num(row.qty);
+       if(!p||qty<=0)continue;
+       const rate=inventoryRate(p);
+       const saleRate=num(row.saleRate)||num(rate.mrp);
+       const costRate=num(rate.wholesale_base);
+       const sales=qty*saleRate,costAmount=qty*costRate,profit=sales-costAmount;
+       const category=String(p.category||"").toLowerCase();
+       revenue+=sales;cost+=costAmount;
+       if(category==="beer"){beerProfit+=profit;beerQty+=qty}
+       else if(category==="liquor"){liquorProfit+=profit;liquorQty+=qty}
+
+       const key=String(p.id);
+       if(!byProduct[key])byProduct[key]={p,qty:0,sales:0,cost:0,profit:0,costRate:costRate};
+       const b=byProduct[key];b.qty+=qty;b.sales+=sales;b.cost+=costAmount;b.profit+=profit;
+
+       const day=row.day||"Unknown";
+       if(!byDay[day])byDay[day]={sales:0,cost:0,profit:0};
+       byDay[day].sales+=sales;byDay[day].cost+=costAmount;byDay[day].profit+=profit;
+      }
+
       const gross=revenue-cost;
-      $("profitRevenue").textContent=money(revenue);$("profitCost").textContent=money(cost);$("profitGross").textContent=money(gross);$("profitMargin").textContent=(revenue?gross/revenue*100:0).toFixed(1)+"%";
-      $("profitLiquor").textContent=money(liquorProfit);$("profitBeer").textContent=money(beerProfit);$("profitLiquorQty").textContent=liquorQty+" bottles sold";$("profitBeerQty").textContent=beerQty+" units sold";
-      $("dailyProfitRows").innerHTML=Object.keys(byDay).sort().reverse().map(day=>`<tr><td>${day}</td><td>${money(byDay[day].sales)}</td><td>${money(byDay[day].cost)}</td><td><b>${money(byDay[day].profit)}</b></td></tr>`).join("")||'<tr><td colspan="4" class="empty">No sales in this period.</td></tr>';
+      $("profitRevenue").textContent=money(revenue);
+      $("profitCost").textContent=money(cost);
+      $("profitGross").textContent=money(gross);
+      $("profitMargin").textContent=(revenue?gross/revenue*100:0).toFixed(1)+"%";
+      $("profitLiquor").textContent=money(liquorProfit);
+      $("profitBeer").textContent=money(beerProfit);
+      $("profitLiquorQty").textContent=liquorQty+" bottles sold";
+      $("profitBeerQty").textContent=beerQty+" units sold";
+      $("dailyProfitRows").innerHTML=Object.keys(byDay).sort().reverse().map(day=>`<tr><td>${safe(day)}</td><td>${money(byDay[day].sales)}</td><td>${money(byDay[day].cost)}</td><td><b>${money(byDay[day].profit)}</b></td></tr>`).join("")||'<tr><td colspan="4" class="empty">No sales in this period.</td></tr>';
       $("brandProfitRows").innerHTML=Object.values(byProduct).sort((a,b)=>b.profit-a.profit).map(b=>`<tr><td>${safe(b.p.category)}</td><td><b>${safe(b.p.brand_name)}</b></td><td>${safe(b.p.size)}</td><td>${b.qty}</td><td>${money(b.sales/b.qty)}</td><td>${money(b.costRate)}</td><td>${money(b.sales/b.qty-b.costRate)}</td><td><b>${money(b.profit)}</b></td></tr>`).join("")||'<tr><td colspan="8" class="empty">No product sales found.</td></tr>';
-      setMsg("profitMsg","Gross profit = Sale Qty × (MRP per bottle − Base Wholesale per bottle). TCS is excluded from wholesale cost and does not reduce profit. Operating expenses are shown separately.");
-     }catch(e){setMsg("profitMsg","Profit report error: "+e.message)}
+      setMsg("profitMsg",`Report loaded: ${manualRows.length} Inventory Register product/date sale row(s) + ${posItems.length} POS item row(s). Revenue = sold qty × sale rate; cost = sold qty × saved base wholesale rate (TCS excluded). Expenses are not deducted from gross profit.`);
+     }catch(e){
+      console.error("Profit report load failed:",e);
+      setMsg("profitMsg","Profit report error: "+(e.message||String(e)));
+     }
     }
     async function loadInventoryExpenses(){
      if(!db||!user||!$("invExpenseRows"))return;
