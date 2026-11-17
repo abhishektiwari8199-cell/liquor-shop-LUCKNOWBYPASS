@@ -723,6 +723,10 @@
       <div class="category-cards"><div class="category-card liquor glass"><div><span class="tag">LIQUOR PROFIT</span><h4 id="profitLiquor">₹0.00</h4><p id="profitLiquorQty">0 bottles sold</p></div><div class="art">🥃</div></div><div class="category-card beer glass"><div><span class="tag">BEER PROFIT</span><h4 id="profitBeer">₹0.00</h4><p id="profitBeerQty">0 units sold</p></div><div class="art">🍺</div></div></div>
       <div class="section-head"><div><h3>Day-end profit</h3><p>Daily sales less estimated product cost</p></div></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Sales</th><th>Cost</th><th>Gross profit</th></tr></thead><tbody id="dailyProfitRows"></tbody></table></div>
       <div class="section-head"><div><h3>Brand / bottle-wise profit</h3><p>Profit contribution for each product in selected period</p></div></div><div class="table-wrap"><table><thead><tr><th>Category</th><th>Brand</th><th>Size</th><th>Qty sold</th><th>Sale rate</th><th>Wholesale cost</th><th>Profit / unit</th><th>Total profit</th></tr></thead><tbody id="brandProfitRows"></tbody></table></div>
+      <div class="section-head"><div><h3>🏆 Brand Rotation & Margin Intelligence</h3><p>Find high-margin brands, frequently rotating brands and products that deserve purchase priority for the selected period.</p></div></div>
+      <div class="panel glass"><div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin-top:0"><div class="kpi glass"><small>Best margin brand</small><strong id="brandIntelBestMargin" style="font-size:18px">—</strong></div><div class="kpi glass"><small>Fastest rotating brand</small><strong id="brandIntelFastRotate" style="font-size:18px">—</strong></div><div class="kpi glass"><small>Priority brands</small><strong id="brandIntelPriorityCount">0</strong></div></div>
+      <div class="table-wrap"><table style="min-width:900px"><thead><tr><th>Priority</th><th>Department</th><th>Brand</th><th>Qty sold</th><th>Sale days</th><th>Avg qty / active day</th><th>Profit / unit</th><th>Gross margin</th><th>Total profit</th><th>Recommendation</th></tr></thead><tbody id="brandIntelligenceRows"><tr><td colspan="10" class="empty">Loading brand intelligence…</td></tr></tbody></table></div>
+      <div class="status">Priority is based on observed sales rotation and gross margin in the selected date range. It is a decision-support indicator, not an automatic purchase order. Check current stock before reordering.</div></div>
       <div id="profitMsg" class="status">Profit is calculated using current saved wholesale rates.</div>
      </section>
      <section id="cash" class="page">
@@ -2540,7 +2544,7 @@
        });
       }
 
-      const byProduct={},byDay={};
+      const byProduct={},byBrand={},byDay={};
       let revenue=0,cost=0,liquorProfit=0,beerProfit=0,liquorQty=0,beerQty=0;
       for(const row of rows){
        const p=row.product,qty=num(row.qty);
@@ -2558,6 +2562,12 @@
        if(!byProduct[key])byProduct[key]={p,qty:0,sales:0,cost:0,profit:0,costRate:costRate};
        const b=byProduct[key];b.qty+=qty;b.sales+=sales;b.cost+=costAmount;b.profit+=profit;
 
+       // Brand-level rollup combines all pack sizes for the same brand.
+       const brandKey=category+"|"+String(p.brand_name||"Unknown").trim().toLowerCase();
+       if(!byBrand[brandKey])byBrand[brandKey]={category,brand:String(p.brand_name||"Unknown").trim(),qty:0,sales:0,cost:0,profit:0,days:new Set()};
+       const brand=byBrand[brandKey];brand.qty+=qty;brand.sales+=sales;brand.cost+=costAmount;brand.profit+=profit;
+       if(row.day)brand.days.add(String(row.day));
+
        const day=row.day||"Unknown";
        if(!byDay[day])byDay[day]={sales:0,cost:0,profit:0};
        byDay[day].sales+=sales;byDay[day].cost+=costAmount;byDay[day].profit+=profit;
@@ -2574,6 +2584,25 @@
       $("profitBeerQty").textContent=beerQty+" units sold";
       $("dailyProfitRows").innerHTML=Object.keys(byDay).sort().reverse().map(day=>`<tr><td>${safe(day)}</td><td>${money(byDay[day].sales)}</td><td>${money(byDay[day].cost)}</td><td><b>${money(byDay[day].profit)}</b></td></tr>`).join("")||'<tr><td colspan="4" class="empty">No sales in this period.</td></tr>';
       $("brandProfitRows").innerHTML=Object.values(byProduct).sort((a,b)=>b.profit-a.profit).map(b=>`<tr><td>${safe(b.p.category)}</td><td><b>${safe(b.p.brand_name)}</b></td><td>${safe(b.p.size)}</td><td>${b.qty}</td><td>${money(b.sales/b.qty)}</td><td>${money(b.costRate)}</td><td>${money(b.sales/b.qty-b.costRate)}</td><td><b>${money(b.profit)}</b></td></tr>`).join("")||'<tr><td colspan="8" class="empty">No product sales found.</td></tr>';
+
+      // Rotation = number of distinct dates with sales; margin = gross profit / sales.
+      const brandList=Object.values(byBrand).map(b=>({...b,rotationDays:b.days.size,profitPerUnit:b.qty?b.profit/b.qty:0,marginPct:b.sales?b.profit/b.sales*100:0,avgPerActiveDay:b.days.size?b.qty/b.days.size:0}));
+      const avgMargin=brandList.length?brandList.reduce((n,b)=>n+b.marginPct,0)/brandList.length:0;
+      const avgRotation=brandList.length?brandList.reduce((n,b)=>n+b.rotationDays,0)/brandList.length:0;
+      brandList.forEach(b=>{
+       if(b.rotationDays>=avgRotation && b.marginPct>=avgMargin){b.priority="HIGH";b.advice="High priority — margin bhi achha, repeat sale bhi";}
+       else if(b.rotationDays>=avgRotation){b.priority="ROTATION";b.advice="Fast rotating — stock availability maintain karein";}
+       else if(b.marginPct>=avgMargin){b.priority="MARGIN";b.advice="High margin — demand ko monitor karein";}
+       else {b.priority="LOW";b.advice="Low priority — limited quantity mein review karein";}
+      });
+      const priorityOrder={HIGH:0,ROTATION:1,MARGIN:2,LOW:3};
+      brandList.sort((a,b)=>priorityOrder[a.priority]-priorityOrder[b.priority]||b.profit-a.profit||b.rotationDays-a.rotationDays);
+      const bestMargin=[...brandList].sort((a,b)=>b.marginPct-a.marginPct)[0];
+      const fastest=[...brandList].sort((a,b)=>b.rotationDays-a.rotationDays||b.qty-a.qty)[0];
+      $("brandIntelBestMargin").textContent=bestMargin?`${bestMargin.brand} · ${bestMargin.marginPct.toFixed(1)}%`:"—";
+      $("brandIntelFastRotate").textContent=fastest?`${fastest.brand} · ${fastest.rotationDays} days`:"—";
+      $("brandIntelPriorityCount").textContent=brandList.filter(b=>b.priority==="HIGH").length;
+      $("brandIntelligenceRows").innerHTML=brandList.map(b=>`<tr><td><b>${b.priority}</b></td><td>${safe(b.category)}</td><td><b>${safe(b.brand)}</b></td><td>${b.qty}</td><td>${b.rotationDays}</td><td>${b.avgPerActiveDay.toFixed(1)}</td><td>${money(b.profitPerUnit)}</td><td>${b.marginPct.toFixed(1)}%</td><td><b>${money(b.profit)}</b></td><td>${safe(b.advice)}</td></tr>`).join("")||'<tr><td colspan="10" class="empty">Selected period mein brand sales data nahi mila.</td></tr>';
       setMsg("profitMsg",`Report loaded: ${manualRows.length} Inventory Register product/date sale row(s) + ${posItems.length} POS item row(s). Revenue = sold qty × sale rate; cost = sold qty × saved base wholesale rate (TCS excluded). Expenses are not deducted from gross profit.`);
      }catch(e){
       console.error("Profit report load failed:",e);
