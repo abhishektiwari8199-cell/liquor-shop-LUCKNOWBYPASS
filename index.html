@@ -3639,22 +3639,15 @@
      await applyOfficePdfStyle(doc,"Complete Daily Business Summary");
      const W=297,L=10,R=10,fmt=v=>"Rs. "+num(v).toLocaleString("en-IN",{maximumFractionDigits:0});
      const NAVY=[18,48,78],BLUE=[34,91,145],PALE=[235,243,250],YELLOW=[255,205,55],INK=[34,49,64],MUTED=[91,108,124];
-     // Current stock summary uses the exact same source and calculation as the Dashboard.
-     // Do not reconstruct current stock from this report date's historical openingProducts.
-     const currentBalance={
-      liquor:{qty:0,mrp:0},
-      beer:{qty:0,mrp:0}
-     };
-     const liquorProducts=products.filter(p=>String(p.category||"").toLowerCase()==="liquor");
-     const beerProducts=products.filter(p=>String(p.category||"").toLowerCase()==="beer");
-     for(const product of [...liquorProducts,...beerProducts]){
-      const category=String(product.category||"").toLowerCase();
-      const stock=stockFor(product);
-      currentBalance[category].qty+=num(stock.available);
-      currentBalance[category].mrp+=num(stock.mrpValue);
+     // Morning opening stock is reconstructed for this report date BEFORE any same-day sale or purchase.
+     // This is report-only: no inventory or stock records are written or changed here.
+     const openingBalance={liquor:{qty:0,mrp:0},beer:{qty:0,mrp:0}};
+     for(const row of day.openingProducts.values()){
+      const category=String(row.category||"").toLowerCase();
+      if(openingBalance[category]){openingBalance[category].qty+=num(row.qty);openingBalance[category].mrp+=num(row.mrp)}
      }
-     const balanceQty=currentBalance.liquor.qty+currentBalance.beer.qty;
-     const balanceMrp=currentBalance.liquor.mrp+currentBalance.beer.mrp;
+     const openingQty=openingBalance.liquor.qty+openingBalance.beer.qty;
+     const openingMrp=openingBalance.liquor.mrp+openingBalance.beer.mrp;
      const beerRokad=num(day.beerRokad),liquorRokad=num(day.liquorRokad),presentRokad=(beerRokad+liquorRokad)||num(day.registerRokad??day.closingRokad),previousRokad=num(day.previousRokad),totalRokad=previousRokad+presentRokad;
      const hasNightCashRows=day.nightCashRowsFound===true;
     const cash=hasNightCashRows?num(day.liquorCash)+num(day.beerCash):(num(day.registerCash)>0?num(day.registerCash):num(day.cashReceived)),online=hasNightCashRows?num(day.liquorOnline)+num(day.beerOnline):(num(day.registerOnline)>0?num(day.registerOnline):num(day.onlineReceived));
@@ -3664,9 +3657,9 @@
      doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.text("Sale Date: "+date,L,19);doc.text("LIQUOR SHOP  |  SALES · PROFIT · COLLECTIONS · STOCK",W-R,19,{align:"right"});
      // Compact KPI cards. All three opening stock values are visible, including the grand total.
      const cards=[
-      ["TOTAL BALANCE STOCK · MRP",fmt(balanceMrp),"Qty: "+balanceQty.toLocaleString("en-IN")],
-      ["LIQUOR BALANCE · MRP",fmt(currentBalance.liquor.mrp),"Qty: "+currentBalance.liquor.qty.toLocaleString("en-IN")],
-      ["BEER BALANCE · MRP",fmt(currentBalance.beer.mrp),"Qty: "+currentBalance.beer.qty.toLocaleString("en-IN")],
+      ["MORNING OPENING STOCK · MRP",fmt(openingMrp),"Qty: "+openingQty.toLocaleString("en-IN")],
+      ["LIQUOR OPENING · MRP",fmt(openingBalance.liquor.mrp),"Qty: "+openingBalance.liquor.qty.toLocaleString("en-IN")],
+      ["BEER OPENING · MRP",fmt(openingBalance.beer.mrp),"Qty: "+openingBalance.beer.qty.toLocaleString("en-IN")],
       ["LIQUOR SALE",fmt([...day.products.values()].filter(x=>x.category==="liquor").reduce((a,x)=>a+x.amount,0)),""],
       ["BEER SALE",fmt([...day.products.values()].filter(x=>x.category==="beer").reduce((a,x)=>a+x.amount,0)),""],
       ["CASH RECEIVED",fmt(cash),""],["ONLINE RECEIVED",fmt(online),""],
@@ -3678,7 +3671,7 @@
      const totalSale=num(day.saleAmount),totalProfit=num(day.profit);
      doc.setFillColor(255,247,218);doc.setDrawColor(242,199,65);doc.roundedRect(L,52,W-L-R,11,1.2,1.2,"FD");
      doc.setTextColor(...NAVY);doc.setFont("helvetica","bold");doc.setFontSize(7);
-     doc.text("CURRENT BALANCE STOCK: "+balanceQty.toLocaleString("en-IN")+" QTY  |  MRP VALUE: "+fmt(balanceMrp),L+3,58.5);
+     doc.text("MORNING OPENING STOCK (BEFORE SALE / PURCHASE): "+openingQty.toLocaleString("en-IN")+" QTY  |  MRP: "+fmt(openingMrp),L+3,58.5);
      doc.text("TOTAL SALE: "+fmt(totalSale),L+77,58.5);
      doc.text("GROSS PROFIT: "+fmt(totalProfit),L+145,58.5);
      // Rokad is already shown in the KPI tiles and Daybook reconciliation; keep this summary strip clear.
@@ -3758,6 +3751,40 @@
       if(!day.expenseRows.length){doc.setFont("helvetica","normal");doc.setFontSize(4.8);doc.setTextColor(...MUTED);doc.text("No Expense Register entries",x+1,yy+3)}
      };
      drawGroupedExpenseRegister();
+     // Closing balance stock = morning opening + same-day purchases - same-day sales.
+     // Display only; this calculation does not update the inventory ledger.
+     const closingByProduct=new Map();
+     for(const p of products){
+      const id=String(p.id),category=String(p.category||"").toLowerCase();
+      if(category!=="liquor"&&category!=="beer")continue;
+      const opening=num(day.openingProducts.get(id)?.qty);
+      const purchased=num(day.purchaseProducts.get(id)?.qty);
+      const sold=num(day.products.get(id)?.qty);
+      const qty=Math.max(0,opening+purchased-sold);
+      if(qty<=0)continue;
+      const rate=inventoryRate(p),mrp=qty*num(rate.mrp);
+      closingByProduct.set(id,{category,size:String(p.size||"Other"),qty,mrp});
+     }
+     const liquorClosing=new Map(),beerClosing={bottle:{qty:0,mrp:0},can:{qty:0,mrp:0}};
+     for(const row of closingByProduct.values()){
+      if(row.category==="liquor"){
+       const size=String(row.size||"Other").trim()||"Other",v=liquorClosing.get(size)||{label:size,qty:0,mrp:0};
+       v.qty+=row.qty;v.mrp+=row.mrp;liquorClosing.set(size,v);
+      }else{
+       const type=/can/i.test(row.size)?"can":"bottle",v=beerClosing[type];v.qty+=row.qty;v.mrp+=row.mrp;
+      }
+     }
+     const stockBalanceRows=[];
+     for(const type of ["bottle","can"]){const v=beerClosing[type];stockBalanceRows.push({dept:"BEER",pack:type.toUpperCase(),qty:v.qty,mrp:v.mrp})}
+     for(const [size,v] of [...liquorClosing.entries()].sort((a,b)=>a[0].localeCompare(b[0],undefined,{numeric:true})))stockBalanceRows.push({dept:"LIQUOR",pack:size,qty:v.qty,mrp:v.mrp});
+     const closingTotal=stockBalanceRows.reduce((a,x)=>({qty:a.qty+x.qty,mrp:a.mrp+x.mrp}),{qty:0,mrp:0});
+     stockBalanceRows.push({dept:"TOTAL",pack:"BALANCE STOCK",qty:closingTotal.qty,mrp:closingTotal.mrp});
+     table("BALANCE STOCK VALUE · AFTER TODAY'S SALE / PURCHASE",stockBalanceRows,[
+      {h:"DEPT",w:18,v:x=>x.dept,max:10},
+      {h:"BOTTLE / CAN / SIZE",w:34,v:x=>x.pack,max:20},
+      {h:"BALANCE QTY",w:20,v:x=>num(x.qty).toLocaleString("en-IN",{maximumFractionDigits:2}),max:13},
+      {h:"MRP VALUE",w:26,v:x=>fmt(x.mrp),max:17}
+     ],rightX,158,rightW,9,2.35,4.25);
      // Size-wise sales totals remain available beneath the brand ranking.
      const bySize=cat=>{const m=new Map();for(const x of day.products.values()){if(x.category!==cat)continue;const k=x.size||"Other",v=m.get(k)||{size:k,qty:0,sale:0};v.qty+=num(x.qty);v.sale+=num(x.amount);m.set(k,v)}return [...m.values()].sort((a,b)=>a.size.localeCompare(b.size,undefined,{numeric:true}))};
      table("LIQUOR SALE · SIZE TOTAL",bySize("liquor"),[{h:"SIZE",w:28,v:x=>x.size,max:18},{h:"QTY",w:18,v:x=>x.qty,max:10},{h:"MRP SALE",w:32,v:x=>fmt(x.sale),max:19}],L,181,65,4,3,4.5);
