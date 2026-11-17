@@ -3617,9 +3617,22 @@
      await applyOfficePdfStyle(doc,"Complete Daily Business Summary");
      const W=297,L=10,R=10,fmt=v=>"Rs. "+num(v).toLocaleString("en-IN",{maximumFractionDigits:0});
      const NAVY=[18,48,78],BLUE=[34,91,145],PALE=[235,243,250],YELLOW=[255,205,55],INK=[34,49,64],MUTED=[91,108,124];
-     const liquorOpen=[...day.openingProducts.values()].filter(x=>x.category==="liquor"),beerOpen=[...day.openingProducts.values()].filter(x=>x.category==="beer");
-     const sumRows=(rows,key)=>rows.reduce((a,x)=>a+num(x[key]),0);
-     const liquorOpenQty=sumRows(liquorOpen,"qty"),beerOpenQty=sumRows(beerOpen,"qty"),liquorOpenMrp=sumRows(liquorOpen,"mrp"),beerOpenMrp=sumRows(beerOpen,"mrp"),openingMrp=liquorOpenMrp+beerOpenMrp,openingQty=liquorOpenQty+beerOpenQty;
+     // Current stock summary uses the exact same source and calculation as the Dashboard.
+     // Do not reconstruct current stock from this report date's historical openingProducts.
+     const currentBalance={
+      liquor:{qty:0,mrp:0},
+      beer:{qty:0,mrp:0}
+     };
+     const liquorProducts=products.filter(p=>String(p.category||"").toLowerCase()==="liquor");
+     const beerProducts=products.filter(p=>String(p.category||"").toLowerCase()==="beer");
+     for(const product of [...liquorProducts,...beerProducts]){
+      const category=String(product.category||"").toLowerCase();
+      const stock=stockFor(product);
+      currentBalance[category].qty+=num(stock.available);
+      currentBalance[category].mrp+=num(stock.mrpValue);
+     }
+     const balanceQty=currentBalance.liquor.qty+currentBalance.beer.qty;
+     const balanceMrp=currentBalance.liquor.mrp+currentBalance.beer.mrp;
      const beerRokad=num(day.beerRokad),liquorRokad=num(day.liquorRokad),presentRokad=(beerRokad+liquorRokad)||num(day.registerRokad??day.closingRokad),previousRokad=num(day.previousRokad),totalRokad=previousRokad+presentRokad;
      const hasNightCashRows=day.nightCashRowsFound===true;
     const cash=hasNightCashRows?num(day.liquorCash)+num(day.beerCash):(num(day.registerCash)>0?num(day.registerCash):num(day.cashReceived)),online=hasNightCashRows?num(day.liquorOnline)+num(day.beerOnline):(num(day.registerOnline)>0?num(day.registerOnline):num(day.onlineReceived));
@@ -3629,9 +3642,9 @@
      doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.text("Sale Date: "+date,L,19);doc.text("LIQUOR SHOP  |  SALES · PROFIT · COLLECTIONS · STOCK",W-R,19,{align:"right"});
      // Compact KPI cards. All three opening stock values are visible, including the grand total.
      const cards=[
-      ["TOTAL OPENING STOCK · MRP",fmt(openingMrp),"Qty: "+openingQty.toLocaleString("en-IN")],
-      ["LIQUOR OPENING · MRP",fmt(liquorOpenMrp),"Qty: "+liquorOpenQty.toLocaleString("en-IN")],
-      ["BEER OPENING · MRP",fmt(beerOpenMrp),"Qty: "+beerOpenQty.toLocaleString("en-IN")],
+      ["TOTAL BALANCE STOCK · MRP",fmt(balanceMrp),"Qty: "+balanceQty.toLocaleString("en-IN")],
+      ["LIQUOR BALANCE · MRP",fmt(currentBalance.liquor.mrp),"Qty: "+currentBalance.liquor.qty.toLocaleString("en-IN")],
+      ["BEER BALANCE · MRP",fmt(currentBalance.beer.mrp),"Qty: "+currentBalance.beer.qty.toLocaleString("en-IN")],
       ["LIQUOR SALE",fmt([...day.products.values()].filter(x=>x.category==="liquor").reduce((a,x)=>a+x.amount,0)),""],
       ["BEER SALE",fmt([...day.products.values()].filter(x=>x.category==="beer").reduce((a,x)=>a+x.amount,0)),""],
       ["CASH RECEIVED",fmt(cash),""],["ONLINE RECEIVED",fmt(online),""],
@@ -3643,7 +3656,7 @@
      const totalSale=num(day.saleAmount),totalProfit=num(day.profit);
      doc.setFillColor(255,247,218);doc.setDrawColor(242,199,65);doc.roundedRect(L,52,W-L-R,11,1.2,1.2,"FD");
      doc.setTextColor(...NAVY);doc.setFont("helvetica","bold");doc.setFontSize(7);
-     doc.text("TOTAL OPENING STOCK VALUE: "+fmt(openingMrp),L+3,58.5);
+     doc.text("CURRENT BALANCE STOCK: "+balanceQty.toLocaleString("en-IN")+" QTY  |  MRP VALUE: "+fmt(balanceMrp),L+3,58.5);
      doc.text("TOTAL SALE: "+fmt(totalSale),L+77,58.5);
      doc.text("GROSS PROFIT: "+fmt(totalProfit),L+145,58.5);
      // Rokad is already shown in the KPI tiles and Daybook reconciliation; keep this summary strip clear.
