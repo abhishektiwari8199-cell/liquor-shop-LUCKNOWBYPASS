@@ -3669,11 +3669,14 @@
      const gap=1.5,cw=(W-L-R-gap*(cards.length-1))/cards.length;
      cards.forEach((c,i)=>{const x=L+i*(cw+gap);doc.setFillColor(...PALE);doc.setDrawColor(205,218,230);doc.roundedRect(x,31,cw,18,1,1,"FD");doc.setFillColor(...YELLOW);doc.rect(x,31,cw,1.4,"F");doc.setTextColor(...MUTED);doc.setFont("helvetica","bold");doc.setFontSize(3.8);doc.text(c[0],x+1,35.5);doc.setTextColor(...NAVY);doc.setFontSize(5.5);doc.text(c[1],x+1,41.5);if(c[2]){doc.setFont("helvetica","normal");doc.setFontSize(4.1);doc.text(c[2],x+1,46.5)}});
      const totalSale=num(day.saleAmount),totalProfit=num(day.profit);
-     doc.setFillColor(255,247,218);doc.setDrawColor(242,199,65);doc.roundedRect(L,52,W-L-R,11,1.2,1.2,"FD");
-     doc.setTextColor(...NAVY);doc.setFont("helvetica","bold");doc.setFontSize(7);
-     doc.text("MORNING OPENING STOCK (BEFORE SALE / PURCHASE): "+openingQty.toLocaleString("en-IN")+" QTY  |  MRP: "+fmt(openingMrp),L+3,58.5);
-     doc.text("TOTAL SALE: "+fmt(totalSale),L+77,58.5);
-     doc.text("GROSS PROFIT: "+fmt(totalProfit),L+145,58.5);
+     // Three fixed-width cells prevent long opening-stock text from colliding with totals.
+     doc.setFillColor(255,247,218);doc.setDrawColor(242,199,65);doc.roundedRect(L,52,W-L-R,12,1.2,1.2,"FD");
+     const summaryCells=[
+      {x:L+3,label:"MORNING OPENING STOCK",value:openingQty.toLocaleString("en-IN")+" QTY"},
+      {x:L+99,label:"OPENING STOCK MRP",value:fmt(openingMrp)},
+      {x:L+185,label:"TOTAL SALE  |  GROSS PROFIT",value:fmt(totalSale)+"  |  "+fmt(totalProfit)}
+     ];
+     summaryCells.forEach((c,i)=>{doc.setTextColor(...MUTED);doc.setFont("helvetica","bold");doc.setFontSize(4.6);doc.text(c.label,c.x,56.2);doc.setTextColor(...NAVY);doc.setFontSize(i===2?5.0:5.7);doc.text(c.value,c.x,61)});
      // Rokad is already shown in the KPI tiles and Daybook reconciliation; keep this summary strip clear.
      function table(title,rows,cols,x,y,w,maxRows,rowH=3.7,fs=5.1){
       doc.setFont("helvetica","bold");doc.setFontSize(7);doc.setTextColor(...NAVY);doc.text(title,x,y);
@@ -3734,22 +3737,25 @@
       doc.setFillColor(...BLUE);doc.roundedRect(x,headY,w,headH,.6,.6,"F");
       doc.setFont("helvetica","bold");doc.setFontSize(4.8);doc.setTextColor(255,255,255);
       doc.text("DEPARTMENT / EXPENSE",x+1,headY+3.1);doc.text("MODE",x+w*.69,headY+3.1);doc.text("AMOUNT",x+w*.83,headY+3.1);
-      let yy=headY+headH;const rowH=2.65,groups=[["beer","BEER"],["liquor","LIQUOR"],["other","OTHER"]];
+      let yy=headY+headH;const rowH=2.45,groups=[["beer","BEER"],["liquor","LIQUOR"],["other","OTHER"]];
+      let renderedExpenseRows=0;const maxExpenseRows=12;
       for(const [key,label] of groups){
        const rows=day.expenseRows.filter(r=>String(r.category||"other").toLowerCase()===key);
        if(!rows.length)continue;
-       doc.setFillColor(255,247,218);doc.rect(x,yy,w,rowH,"F");doc.setFont("helvetica","bold");doc.setFontSize(4.6);doc.setTextColor(...NAVY);doc.text(label,x+1,yy+1.85);yy+=rowH;
+       doc.setFillColor(255,247,218);doc.rect(x,yy,w,rowH,"F");doc.setFont("helvetica","bold");doc.setFontSize(4.5);doc.setTextColor(...NAVY);doc.text(label,x+1,yy+1.75);yy+=rowH;
        let subtotal=0;
        for(const r of rows){
-        subtotal+=num(r.amount);doc.setFillColor(242,247,251);doc.rect(x,yy,w,rowH,"F");
-        doc.setFont("helvetica","normal");doc.setFontSize(4.35);doc.setTextColor(...INK);
-        let name=String(r.name||"Expense").replace(/\\s+/g," ");if(name.length>37)name=name.slice(0,36)+"…";
-        doc.text(name,x+1,yy+1.85);doc.text(String(r.mode||"—").slice(0,12),x+w*.69,yy+1.85);doc.text(fmt(r.amount),x+w*.83,yy+1.85);yy+=rowH;
+        subtotal+=num(r.amount);
+        if(renderedExpenseRows<maxExpenseRows){
+         doc.setFillColor(242,247,251);doc.rect(x,yy,w,rowH,"F");doc.setFont("helvetica","normal");doc.setFontSize(4.2);doc.setTextColor(...INK);
+         let name=String(r.name||"Expense").replace(/\s+/g," ");if(name.length>37)name=name.slice(0,36)+"…";
+         doc.text(name,x+1,yy+1.75);doc.text(String(r.mode||"—").slice(0,12),x+w*.69,yy+1.75);doc.text(fmt(r.amount),x+w*.83,yy+1.75);yy+=rowH;renderedExpenseRows++;
+        }
        }
-       doc.setFillColor(225,235,245);doc.rect(x,yy,w,rowH,"F");doc.setFont("helvetica","bold");doc.setFontSize(4.45);doc.setTextColor(...NAVY);doc.text(label+" TOTAL",x+1,yy+1.85);doc.text(fmt(subtotal),x+w*.83,yy+1.85,{align:"left"});yy+=rowH;
+       doc.setFillColor(225,235,245);doc.rect(x,yy,w,rowH,"F");doc.setFont("helvetica","bold");doc.setFontSize(4.35);doc.setTextColor(...NAVY);doc.text(label+" TOTAL",x+1,yy+1.75);doc.text(fmt(subtotal),x+w*.83,yy+1.75,{align:"left"});yy+=rowH;
       }
-      if(!day.expenseRows.length){doc.setFont("helvetica","normal");doc.setFontSize(4.8);doc.setTextColor(...MUTED);doc.text("No Expense Register entries",x+1,yy+3);yy+=4}
-      // Return the true bottom edge so the next report section never overlaps expense rows.
+      if(!day.expenseRows.length){doc.setFont("helvetica","normal");doc.setFontSize(4.7);doc.setTextColor(...MUTED);doc.text("No Expense Register entries",x+1,yy+3);yy+=4}
+      if(day.expenseRows.length>maxExpenseRows){doc.setFont("helvetica","italic");doc.setFontSize(4.1);doc.setTextColor(...MUTED);doc.text((day.expenseRows.length-maxExpenseRows)+" additional expense lines included in totals",x+1,yy+2.5);yy+=3}
       return yy;
      };
      const expenseRegisterBottomY=drawGroupedExpenseRegister();
@@ -3783,7 +3789,14 @@
      stockBalanceRows.push({dept:"TOTAL",pack:"BALANCE STOCK",qty:closingTotal.qty,mrp:closingTotal.mrp});
      // Keep a visible gap after the dynamically sized Expense Register.
      // This prevents the stock heading/table from colliding with expense subtotal rows.
-     const stockBalanceSectionY=Math.max(158,expenseRegisterBottomY+5);
+     let stockBalanceSectionY=Math.max(158,expenseRegisterBottomY+6);
+     if(stockBalanceSectionY>181){
+      doc.addPage("a4","landscape");
+      doc.setFillColor(...NAVY);doc.rect(0,0,W,18,"F");doc.setFillColor(...YELLOW);doc.rect(0,18,W,1.8,"F");
+      doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(11);doc.text("BALANCE STOCK VALUE REPORT",L,11);
+      doc.setFont("helvetica","normal");doc.setFontSize(7);doc.text("Sale Date: "+date,W-R,11,{align:"right"});
+      stockBalanceSectionY=27;
+     }
      table("BALANCE STOCK VALUE · AFTER TODAY'S SALE / PURCHASE",stockBalanceRows,[
       {h:"DEPT",w:18,v:x=>x.dept,max:10},
       {h:"BOTTLE / CAN / SIZE",w:34,v:x=>x.pack,max:20},
@@ -3799,7 +3812,9 @@
      doc.text("TOTAL CASH : "+fmt(cash),L+8,207.3);doc.text("TOTAL ONLINE : "+fmt(online),L+105,207.3);
      doc.setFont("helvetica","italic");doc.setFontSize(4.6);doc.setTextColor(...MUTED);doc.text("Profit = MRP sale value − wholesale cost of sold quantity (TCS excluded). Expenses are displayed separately and are not deducted from profit.",L,213);
      if(returnDocument)return doc;
-     doc.save("Complete-Sale-Summary-"+date+".pdf");
+     const reportDate=new Date(date+"T12:00:00");
+     const fileDate=Number.isNaN(reportDate.getTime())?date:reportDate.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"});
+     doc.save(fileDate+" Sale Summary Report.pdf");
     }
 
     async function emailCompleteSaleSummary(date,button){
