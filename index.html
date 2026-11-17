@@ -453,6 +453,8 @@
     .pos-barcode-label{font-size:13px!important;letter-spacing:.5px!important}.pos-barcode-label input{height:70px!important;font-size:clamp(19px,3vw,27px)!important;font-weight:800!important;letter-spacing:1.5px!important;border:2px solid #f5c542!important;background:#06182c!important;color:#fff!important}
     .pos-last-sale{margin-top:12px;padding:14px;border-radius:12px;background:#42d39a12;border:1px solid #42d39a44;color:#d9ffed;font-weight:700;min-height:48px}
     #posRecentRows td{vertical-align:middle}.pos-success{color:#8cf0c4!important;border-color:#42d39a66!important}.pos-error{color:#ffb5bc!important;border-color:#ff727c66!important}
+    #cashSalePos tfoot th{background:#f5c542;color:#102f50;font-size:11px}
+
 
     @media(max-width:760px){.pos-mode-row{align-items:stretch;flex-direction:column}.pos-mode-row label{max-width:none}.pos-barcode-label input{height:62px!important}}
     </style>
@@ -563,6 +565,11 @@
         <div id="posStatus" class="status" role="status" aria-live="polite">Ready. Click the barcode box and scan a product.</div>
         <div id="posLastSale" class="pos-last-sale">No scan yet.</div>
        </div>
+       <div class="section-head" style="margin-top:24px"><div><h3>Liquor · Brand-wise Sale Summary</h3><p>02–15 Nov ki saved Inventory Sale Qty + POS sales · size-wise quantity aur MRP value</p></div><button class="btn secondary" type="button" onclick="posLoadSaleSummary()">↻ Refresh Summary</button></div>
+       <div class="table-wrap"><table style="min-width:900px"><thead><tr><th>Brand Name</th><th>750ml</th><th>375ml</th><th>180ml</th><th>90ml</th><th>MRP Sale Value</th></tr></thead><tbody id="posLiquorSummaryRows"><tr><td colspan="6" class="empty">Loading liquor summary…</td></tr></tbody><tfoot><tr><th>TOTAL</th><th id="posLiquor750Total">0</th><th id="posLiquor375Total">0</th><th id="posLiquor180Total">0</th><th id="posLiquor90Total">0</th><th id="posLiquorValueTotal">₹0.00</th></tr></tfoot></table></div>
+       <div class="section-head" style="margin-top:22px"><div><h3>Beer · Brand-wise Sale Summary</h3><p>Brand-wise total quantity aur MRP sale value</p></div></div>
+       <div class="table-wrap"><table style="min-width:600px"><thead><tr><th>Brand Name</th><th>Qty</th><th>MRP Sale Value</th></tr></thead><tbody id="posBeerSummaryRows"><tr><td colspan="3" class="empty">Loading beer summary…</td></tr></tbody><tfoot><tr><th>TOTAL</th><th id="posBeerQtyTotal">0</th><th id="posBeerValueTotal">₹0.00</th></tr></tfoot></table></div>
+       <div id="posSummaryStatus" class="status">Summary includes saved Inventory sale entries from 02–15 Nov 2026 and POS bills from 02 Nov 2026 onward. Inventory records are read-only here.</div>
        <div class="section-head"><div><h3>Last 10 POS bills</h3><p>Admin can cancel a bill with a mandatory remark.</p></div><button class="btn secondary" type="button" onclick="posLoadRecent()">↻ Refresh</button></div>
        <div class="table-wrap"><table><thead><tr><th>Bill</th><th>Time / Date</th><th>Category</th><th>Payment</th><th>Amount</th><th>Action</th></tr></thead><tbody id="posRecentRows"><tr><td colspan="6" class="empty">No POS bills loaded.</td></tr></tbody></table></div>
        <div id="posBarcodeAdmin" class="panel glass">
@@ -1114,7 +1121,7 @@
      document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===navId));
      const titles={home:["Business overview","Your store performance at a glance"],cashSalePos:["Cash Sale POS","Barcode scan · Automatic quick sale"],inventory:["Choose inventory","Select Liquor or Beer to continue"],inventoryWork:["Inventory register","Manage the selected department"],profit:["Profit & margin","Monthly profit, day-end closing and bottle-wise margin"],cash:["Daybook","Date-wise cash, collections, expenses and profit"],nightCash:["Night Cash Received","Date-wise Liquor and Beer night collections"],history:["Sales history","Review recent recorded transactions"],fl2:["FL2 to Shop","Separate invoice register and wholesale price management"],purchaseRequirements:["Stock In Shop","Available stock, QR receiving and smart purchase planning"]};
      $("pageTitle").textContent=titles[id][0];$("pageSubtitle").textContent=titles[id][1];
-     if(id==="cashSalePos"){posPopulateBarcodeProducts();posLoadRecent();setTimeout(()=>$("posBarcodeInput")?.focus(),80)}
+     if(id==="cashSalePos"){posPopulateBarcodeProducts();posLoadRecent();posLoadSaleSummary();setTimeout(()=>$("posBarcodeInput")?.focus(),80)}
      if(id==="purchaseRequirements"){stockShopProductOptions();stockShopRefresh();loadPurchaseRequirements()}if(id==="history"){if(!$("saleFrom").value)$("saleFrom").value=dateBack(29);if(!$("saleTo").value)$("saleTo").value=today();loadSalesHistoryFast()}if(id==="fl2"){fl2Tab("home");fl2FillBrands();fl2FillFilterBrands()}if(id==="profit"){setProfitPeriod();loadProfitReport()}if(id==="cash"){if($("daybookDate"))$("daybookDate").value=$("inventoryDate")?.value||today();loadDaybook()}
     }
     function setCategory(cat){$("cat").value=cat;if($("addLiquorProductPanel"))$("addLiquorProductPanel").style.display=cat==="liquor"?"block":"none";if($("addBeerProductPanel"))$("addBeerProductPanel").style.display=cat==="beer"?"block":"none";if($("whCategory"))$("whCategory").value=cat;$("search").value="";$("inventoryWorkTitle").textContent=cat==="liquor"?"Liquor Inventory":"Beer Inventory";$("inventoryWorkSubtitle").textContent=cat==="liquor"?"Manage all liquor brands and bottle sizes":"Manage beer brands and quantities";showPage("inventoryWork");drawProducts();if($("dayCounterDate")){$("dayCounterDate").value=$("inventoryDate").value||dateBack(0);loadInventoryDayCounter()}loadInventoryExpenses()}
@@ -3845,11 +3852,88 @@
        }catch(e){status.className="status pos-error";status.textContent="SALE NOT CONFIRMED: "+(e.message||String(e));}
       }
       await posLoadRecent();
+      await posLoadSaleSummary();
      }finally{posScanBusy=false;input?.focus();}
     }
     $("posBarcodeInput")?.addEventListener("keydown",event=>{
      if(event.key==="Enter"){event.preventDefault();posHandleScan();}
     });
+
+    // Read-only summary: legacy Inventory sale rows (02–15 Nov) + POS sale_items.
+    async function posLoadSaleSummary(){
+     const liquorBody=$("posLiquorSummaryRows"),beerBody=$("posBeerSummaryRows");
+     if(!liquorBody||!beerBody||!db||!user)return;
+     liquorBody.innerHTML='<tr><td colspan="6" class="empty">Loading…</td></tr>';
+     beerBody.innerHTML='<tr><td colspan="3" class="empty">Loading…</td></tr>';
+     const start="2026-11-02",legacyEnd="2026-11-15";
+     try{
+      const [legacyRows,saleHeaders]=await Promise.all([
+       fetchAllInventoryRows(()=>db.from("inventory_register_entries")
+        .select("product_id,entry_date,sale_qty").eq("user_id",user.id)
+        .gte("entry_date",start).lte("entry_date",legacyEnd).gt("sale_qty",0)
+        .order("entry_date").order("product_id")),
+       fetchAllInventoryRows(()=>db.from("sales")
+        .select("id,sale_date").gte("sale_date",start).order("sale_date").order("id"))
+      ]);
+      const saleIds=(saleHeaders||[]).map(x=>x.id);
+      const posItems=saleIds.length?await fetchInventoryItems("sale_items","sale_id,product_id,quantity","sale_id",saleIds):[];
+      const summary=new Map();
+      const addSale=(productId,qty)=>{
+       const p=products.find(x=>String(x.id)===String(productId));
+       if(!p)return;
+       const cat=String(p.category||"").toLowerCase();
+       if(cat!=="liquor"&&cat!=="beer")return;
+       const key=String(p.id);
+       let x=summary.get(key);
+       if(!x){x={p,qty:0,value:0};summary.set(key,x)}
+       const q=num(qty),mrp=num(inventoryRate(p).mrp);
+       x.qty+=q;x.value+=q*mrp;
+      };
+      for(const row of legacyRows||[])addSale(row.product_id,row.sale_qty);
+      for(const row of posItems||[])addSale(row.product_id,row.quantity);
+      const liquor=[...summary.values()].filter(x=>String(x.p.category||"").toLowerCase()==="liquor");
+      const beer=[...summary.values()].filter(x=>String(x.p.category||"").toLowerCase()==="beer");
+      const sizeKey=size=>{
+       const n=String(size||"").toLowerCase().replace(/[^0-9]/g,"");
+       if(n==="750")return "750";
+       if(n==="375"||n==="325")return "375";
+       if(n==="180")return "180";
+       if(n==="90")return "90";
+       return "";
+      };
+      const liquorRows=liquor.map(x=>({brand:x.p.brand_name,sz:sizeKey(x.p.size),qty:x.qty,value:x.value}))
+       .reduce((acc,x)=>{
+        let r=acc.find(y=>y.brand===x.brand);
+        if(!r){r={brand:x.brand,"750":0,"375":0,"180":0,"90":0,value:0};acc.push(r)}
+        if(x.sz)r[x.sz]+=x.qty;
+        r.value+=x.value;return acc;
+       },[]).sort((a,b)=>String(a.brand).localeCompare(String(b.brand)));
+      const totals={"750":0,"375":0,"180":0,"90":0,value:0};
+      liquorBody.innerHTML=liquorRows.map(x=>{
+       for(const k of ["750","375","180","90"])totals[k]+=x[k];
+       totals.value+=x.value;
+       return `<tr><td><b>${safe(x.brand)}</b></td><td>${x["750"].toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${x["375"].toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${x["180"].toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${x["90"].toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td><b>${money(x.value)}</b></td></tr>`;
+      }).join("")||'<tr><td colspan="6" class="empty">No liquor sale entries found.</td></tr>';
+      $("posLiquor750Total").textContent=totals["750"].toLocaleString("en-IN",{maximumFractionDigits:2});
+      $("posLiquor375Total").textContent=totals["375"].toLocaleString("en-IN",{maximumFractionDigits:2});
+      $("posLiquor180Total").textContent=totals["180"].toLocaleString("en-IN",{maximumFractionDigits:2});
+      $("posLiquor90Total").textContent=totals["90"].toLocaleString("en-IN",{maximumFractionDigits:2});
+      $("posLiquorValueTotal").textContent=money(totals.value);
+      let beerQty=0,beerValue=0;
+      beerBody.innerHTML=beer.sort((a,b)=>String(a.p.brand_name).localeCompare(String(b.p.brand_name))).map(x=>{
+       beerQty+=x.qty;beerValue+=x.value;
+       return `<tr><td><b>${safe(x.p.brand_name)}</b></td><td>${x.qty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td><b>${money(x.value)}</b></td></tr>`;
+      }).join("")||'<tr><td colspan="3" class="empty">No beer sale entries found.</td></tr>';
+      $("posBeerQtyTotal").textContent=beerQty.toLocaleString("en-IN",{maximumFractionDigits:2});
+      $("posBeerValueTotal").textContent=money(beerValue);
+      $("posSummaryStatus").textContent=`Loaded ${legacyRows.length} historical Inventory sale row(s) from ${start} to ${legacyEnd}, plus ${posItems.length} POS sale line(s) from ${start} onward. MRP Sale Value = Qty × saved product MRP. Inventory records were not changed.`;
+     }catch(e){
+      liquorBody.innerHTML=`<tr><td colspan="6" class="empty">Summary load failed: ${safe(e.message||e)}</td></tr>`;
+      beerBody.innerHTML=`<tr><td colspan="3" class="empty">Summary load failed.</td></tr>`;
+      $("posSummaryStatus").textContent="Sale summary error: "+(e.message||String(e));
+     }
+    }
+
     async function posLoadRecent(){
      const body=$("posRecentRows");if(!body||!db||!user)return;
      body.innerHTML='<tr><td colspan="6" class="empty">Loading recent bills…</td></tr>';
