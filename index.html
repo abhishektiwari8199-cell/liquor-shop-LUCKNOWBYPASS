@@ -570,7 +570,7 @@
        <div class="panel glass" id="posDailySaleEntry" style="margin-top:24px">
         <div class="section-head" style="margin-top:0"><div><h3>Daily Sale Entry · Active Brands</h3><p>Har din ki sale yahin bharein. Date select karke us din ki saved sale dekhein; sirf active brands dikhaye jayenge.</p></div><span class="tag">DAILY ENTRY</span></div>
         <div class="form-grid">
-         <label>Sale Date<input id="posDailySaleDate" type="date" min="2026-11-02" value="2026-11-17" onchange="posLoadDailySaleEntry()"></label>
+         <label>Sale Date<input id="posDailySaleDate" type="date" min="2026-11-02" value="" onchange="posLoadDailySaleEntry()"></label>
          <div style="align-self:end"><button class="btn secondary" type="button" onclick="posLoadDailySaleEntry()">↻ Load Selected Date</button></div>
          <div style="align-self:end"><button class="btn" type="button" id="posDailySaleSaveBtn" onclick="posSaveDailySaleEntry(this)">Save Daily Sale</button></div>
         </div>
@@ -3877,7 +3877,14 @@
     // Read-only summary: legacy Inventory sale rows (02–15 Nov) + POS sale_items.
 
     async function posLoadDailySaleEntry(){
-      const date=$("posDailySaleDate")?.value;
+      const dateInput=$("posDailySaleDate");
+      // New day: default to the browser's local date so daily entry is ready without manual date setup.
+      if(dateInput && !dateInput.value){
+        const now=new Date();
+        const localToday=[now.getFullYear(),String(now.getMonth()+1).padStart(2,"0"),String(now.getDate()).padStart(2,"0")].join("-");
+        dateInput.value=localToday;
+      }
+      const date=dateInput?.value;
       if(!date||!db||!user)return;
       const status=$("posDailySaleStatus"), liquorBody=$("posDailyLiquorRows"), beerBody=$("posDailyBeerRows");
       status.textContent="Selected date ki saved sale load ho rahi hai…";
