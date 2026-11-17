@@ -2647,25 +2647,105 @@
     function downloadProfitMarginPDF(){
      const d=profitExportData();if(!d)return;
      if(!window.jspdf?.jsPDF){alert("PDF library load nahi hui. Internet connection check karein.");return;}
-     const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4",compress:true});
-     const left=12,right=285;let y=15;
+     const {jsPDF}=window.jspdf;
+     const doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4",compress:true});
+     const W=297,H=210, navy=[7,22,41],blue=[22,58,91],blue2=[35,94,145],gold=[255,204,57],pale=[235,243,250],ink=[23,42,62],muted=[102,122,143],green=[30,132,86],red=[177,73,73];
      const moneyPDF=n=>"Rs. "+Number(n||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
-     const heading=(t)=>{if(y>185){doc.addPage();y=15;}doc.setFont("helvetica","bold");doc.setFontSize(12);doc.text(t,left,y);y+=7;};
-     const line=(t,size=8,bold=false)=>{if(y>195){doc.addPage();y=15;}doc.setFont("helvetica",bold?"bold":"normal");doc.setFontSize(size);const lines=doc.splitTextToSize(String(t),right-left);doc.text(lines,left,y);y+=lines.length*4.3;};
-     doc.setFillColor(18,52,85);doc.rect(0,0,297,27,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(18);doc.text("PROFIT & MARGIN REPORT",left,12);doc.setFont("helvetica","normal");doc.setFontSize(9);doc.text(`${profitFileDate(d.from)} to ${profitFileDate(d.to)}`,left,20);doc.setTextColor(20,35,52);y=36;
-     heading("PROFIT SUMMARY");
-     line(`Sales Revenue: ${moneyPDF(d.revenue)}     Estimated Cost: ${moneyPDF(d.cost)}     Gross Profit: ${moneyPDF(d.gross)}     Gross Margin: ${d.marginPct.toFixed(1)}%`,9,true);
-     line(`Liquor Profit: ${moneyPDF(d.liquorProfit)} (${d.liquorQty} units)     Beer Profit: ${moneyPDF(d.beerProfit)} (${d.beerQty} units)`,9);
-     y+=3;heading("DAY-WISE PROFIT");
-     line("DATE                                      SALES                              COST                              GROSS PROFIT",8,true);
-     d.daily.forEach(x=>line(`${x.day}          ${moneyPDF(x.sales)}          ${moneyPDF(x.cost)}          ${moneyPDF(x.profit)}`,8));
-     y+=3;heading("BRAND / PRODUCT-WISE PROFIT");
-     line("CATEGORY       BRAND / SIZE                         QTY       SALE RATE       WHOLESALE       PROFIT / UNIT       TOTAL PROFIT",8,true);
-     d.products.forEach(x=>line(`${x.category}       ${x.brand} / ${x.size}       ${x.qty}       ${moneyPDF(x.saleRate)}       ${moneyPDF(x.costRate)}       ${moneyPDF(x.profitPerUnit)}       ${moneyPDF(x.profit)}`,7.5));
-     y+=3;heading("BRAND ROTATION & MARGIN INTELLIGENCE");
-     line("PRIORITY       DEPARTMENT       BRAND       QTY       SALE DAYS       AVG / ACTIVE DAY       PROFIT / UNIT       MARGIN       TOTAL PROFIT",8,true);
-     d.brands.forEach(x=>{line(`${x.priority}       ${x.category}       ${x.brand}       ${x.qty}       ${x.rotationDays}       ${Number(x.avgPerActiveDay).toFixed(1)}       ${moneyPDF(x.profitPerUnit)}       ${Number(x.marginPct).toFixed(1)}%       ${moneyPDF(x.profit)}`,7.5);line(`Recommendation: ${x.advice}`,7);});
-     const pages=doc.getNumberOfPages();for(let i=1;i<=pages;i++){doc.setPage(i);doc.setFontSize(7);doc.setTextColor(110);doc.text(`Abhishek Composite | Page ${i} of ${pages}`,285,203,{align:"right"});}
+     let page=0,y=0;
+     function header(section){
+      page++;doc.setFillColor(...navy);doc.rect(0,0,W,25,"F");doc.setFillColor(...gold);doc.rect(0,25,W,2.2,"F");
+      doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(15);doc.text("ABHISHEK COMPOSITE",12,10);
+      doc.setFont("helvetica","normal");doc.setFontSize(8);doc.text("LIQUOR & BEER POS  |  PROFITABILITY INTELLIGENCE",12,17);
+      doc.setFont("helvetica","bold");doc.setFontSize(11);doc.text(section,W-12,13,{align:"right"});
+      doc.setTextColor(...ink);y=36;
+     }
+     function footer(){
+      doc.setDrawColor(210,220,230);doc.line(12,201,W-12,201);
+      doc.setFont("helvetica","normal");doc.setFontSize(7);doc.setTextColor(...muted);
+      doc.text(`${profitFileDate(d.from)} to ${profitFileDate(d.to)}  |  Confidential business report`,12,206);
+      doc.text(`Page ${page}`,W-12,206,{align:"right"});
+     }
+     function sectionTitle(t){
+      if(y>184){footer();header(t);}
+      doc.setFillColor(...blue2);doc.roundedRect(12,y-5,W-24,8,1.5,1.5,"F");
+      doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(255,255,255);doc.text(t,16,y);
+      y+=9;doc.setTextColor(...ink);
+     }
+     function textLine(t,x=12,size=8,bold=false,color=ink){
+      doc.setFont("helvetica",bold?"bold":"normal");doc.setFontSize(size);doc.setTextColor(...color);doc.text(String(t),x,y);y+=4.5;
+     }
+     function kpi(x,yy,w,label,value,accent=gold){
+      doc.setFillColor(...pale);doc.roundedRect(x,yy,w,22,2,2,"F");doc.setFillColor(...accent);doc.rect(x,yy,2,22,"F");
+      doc.setFont("helvetica","bold");doc.setFontSize(7);doc.setTextColor(...muted);doc.text(label.toUpperCase(),x+5,yy+7);
+      doc.setFont("helvetica","bold");doc.setFontSize(11);doc.setTextColor(...navy);doc.text(String(value),x+5,yy+16);
+     }
+     function table(headers,rows,widths,opts={}){
+      const x=opts.x||12, rowH=opts.rowH||7, font=opts.font||7;
+      let xx=x;
+      doc.setFillColor(...blue);doc.rect(x,y-4,widths.reduce((a,b)=>a+b,0),8,"F");
+      headers.forEach((h,i)=>{doc.setFont("helvetica","bold");doc.setFontSize(6.7);doc.setTextColor(255,255,255);doc.text(String(h),xx+1.5,y+1);xx+=widths[i];});
+      y+=5;
+      rows.forEach((r,ri)=>{
+       if(y+rowH>196){footer();header(opts.continuation||"REPORT DETAILS");y=36;xx=x;doc.setFillColor(...blue);doc.rect(x,y-4,widths.reduce((a,b)=>a+b,0),8,"F");headers.forEach((h,i)=>{doc.setFont("helvetica","bold");doc.setFontSize(6.7);doc.setTextColor(255,255,255);doc.text(String(h),xx+1.5,y+1);xx+=widths[i];});y+=5;}
+       if(ri%2===0){doc.setFillColor(244,248,252);doc.rect(x,y-4,widths.reduce((a,b)=>a+b,0),rowH,"F");}
+       xx=x;
+       r.forEach((v,i)=>{doc.setFont("helvetica",opts.boldRows&&opts.boldRows.includes(ri)?"bold":"normal");doc.setFontSize(font);doc.setTextColor(...ink);let val=String(v??"");const maxW=widths[i]-3;while(doc.getTextWidth(val)>maxW&&val.length>4)val=val.slice(0,-2)+"…";doc.text(val,xx+1.5,y+1);xx+=widths[i];});
+       y+=rowH;
+      });
+      y+=4;
+     }
+     function barChart(items,x,yy,w,h,title){
+      doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(...navy);doc.text(title,x,yy);
+      const top=yy+7,labelW=42,plotW=w-labelW-4,max=Math.max(1,...items.map(z=>Number(z.value)||0));
+      items.forEach((it,i)=>{const cy=top+i*7;doc.setFont("helvetica","normal");doc.setFontSize(6.5);doc.setTextColor(...ink);let label=String(it.label);while(doc.getTextWidth(label)>labelW-2&&label.length>5)label=label.slice(0,-2)+"…";doc.text(label,x,cy+3);
+       doc.setFillColor(229,236,243);doc.roundedRect(x+labelW,cy,plotW,4,1,1,"F");
+       doc.setFillColor(...(it.color||blue2));doc.roundedRect(x+labelW,cy,Math.max(0.5,plotW*(Number(it.value)||0)/max),4,1,1,"F");
+       doc.setFontSize(6);doc.setTextColor(...muted);doc.text(moneyPDF(it.value),x+w,cy+3,{align:"right"});
+      });
+     }
+     // Page 1: Executive overview
+     header("EXECUTIVE OVERVIEW");
+     doc.setFont("helvetica","bold");doc.setFontSize(20);doc.setTextColor(...navy);doc.text("PROFIT & MARGIN REPORT",12,43);
+     doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(...muted);doc.text(`${profitFileDate(d.from)}  —  ${profitFileDate(d.to)}`,12,50);
+     const gap=4,kw=(W-24-gap*3)/4;
+     kpi(12,57,kw,"Sales Revenue",moneyPDF(d.revenue),blue2);
+     kpi(12+kw+gap,57,kw,"Estimated Cost",moneyPDF(d.cost),blue2);
+     kpi(12+(kw+gap)*2,57,kw,"Gross Profit",moneyPDF(d.gross),green);
+     kpi(12+(kw+gap)*3,57,kw,"Gross Margin",Number(d.marginPct||0).toFixed(1)+"%",gold);
+     y=88;sectionTitle("DEPARTMENT PERFORMANCE");
+     kpi(12,y,132,"Liquor Profit",`${moneyPDF(d.liquorProfit)}  |  ${d.liquorQty} units`,blue2);
+     kpi(153,y,132,"Beer Profit",`${moneyPDF(d.beerProfit)}  |  ${d.beerQty} units`,gold);y+=31;
+     sectionTitle("TOP PROFIT CONTRIBUTING PRODUCTS");
+     const topProducts=[...(d.products||[])].sort((a,b)=>(b.profit||0)-(a.profit||0)).slice(0,8);
+     barChart(topProducts.map(p=>({label:`${p.brand} ${p.size||""}`,value:p.profit})),14,y,125,68,"Top 8 products by total profit");
+     const topBrands=[...(d.brands||[])].sort((a,b)=>(b.marginPct||0)-(a.marginPct||0)).slice(0,8);
+     barChart(topBrands.map(p=>({label:p.brand,value:p.marginPct,color:gold})),157,y,125,68,"Top 8 brands by gross margin (%)");
+     footer();
+     // Page 2: Daily trend + data table
+     header("DAILY PROFIT TREND");
+     sectionTitle("DAY-WISE SALES & GROSS PROFIT");
+     const daily=d.daily||[],chartX=20,chartY=y+8,chartW=255,chartH=64;
+     const maxProfit=Math.max(1,...daily.map(a=>Number(a.profit)||0));
+     doc.setDrawColor(205,216,227);doc.line(chartX,chartY+chartH,chartX+chartW,chartY+chartH);
+     daily.forEach((a,i)=>{const slot=chartW/Math.max(1,daily.length),bh=chartH*(Number(a.profit)||0)/maxProfit,bx=chartX+i*slot+slot*.2;
+      doc.setFillColor(...blue2);doc.roundedRect(bx,chartY+chartH-bh,Math.max(2,slot*.55),bh,0.8,0.8,"F");
+      if(daily.length<=18){doc.setFontSize(5.5);doc.setTextColor(...muted);doc.text(String(a.day).slice(8),bx+slot*.25,chartY+chartH+5,{align:"center"});}
+     });
+     doc.setFontSize(7);doc.setTextColor(...muted);doc.text("Gross profit by day (bar height = profit)",chartX,chartY-3);y=chartY+chartH+15;
+     table(["DATE","SALES REVENUE","ESTIMATED COST","GROSS PROFIT"],daily.map(a=>[a.day,moneyPDF(a.sales),moneyPDF(a.cost),moneyPDF(a.profit)]),[42,62,62,62],{font:7,continuation:"DAILY PROFIT DETAILS"});
+     footer();
+     // Product detail pages
+     header("PRODUCT PROFITABILITY");
+     sectionTitle("BRAND / PRODUCT-WISE PROFIT");
+     const prodRows=(d.products||[]).map(p=>[String(p.category||"").toUpperCase(),`${p.brand} / ${p.size||"-"}`,p.qty,moneyPDF(p.saleRate),moneyPDF(p.costRate),moneyPDF(p.profitPerUnit),moneyPDF(p.profit)]);
+     table(["CATEGORY","BRAND / SIZE","QTY","SALE RATE","WHOLESALE","PROFIT / UNIT","TOTAL PROFIT"],prodRows,[22,68,18,35,35,39,44],{font:6.4,continuation:"PRODUCT PROFITABILITY"});
+     footer();
+     // Brand intelligence
+     header("BRAND ROTATION & MARGIN");
+     sectionTitle("BRAND ROTATION & MARGIN INTELLIGENCE");
+     const brandRows=(d.brands||[]).map(b=>[b.priority,String(b.category||"").toUpperCase(),b.brand,b.qty,b.rotationDays,Number(b.avgPerActiveDay||0).toFixed(1),moneyPDF(b.profitPerUnit),Number(b.marginPct||0).toFixed(1)+"%",moneyPDF(b.profit)]);
+     table(["PRIORITY","DEPT","BRAND","QTY","SALE DAYS","AVG / DAY","PROFIT / UNIT","MARGIN","TOTAL PROFIT"],brandRows,[22,18,56,15,20,22,32,19,37],{font:6.1,continuation:"BRAND INTELLIGENCE"});
+     footer();
      doc.save(`${profitFileDate(d.to)} Profit Margin Report.pdf`);
     }
 
