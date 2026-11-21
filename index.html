@@ -487,6 +487,71 @@
 @media(max-width:600px){#fl2ReconciliationPanel .kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px}#fl2ReconciliationPanel .kpi{padding:12px}#fl2ReconciliationPanel .kpi strong{font-size:18px}}
 </style>
 
+
+<style id="mobile-compact-pos-navigation-v1">
+.mobile-bottom-nav{display:none}
+@media(max-width:760px){
+  #appView .mobile-bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:10010;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;padding:7px 8px calc(7px + env(safe-area-inset-bottom,0px));background:rgba(5,19,35,.97);border-top:1px solid rgba(150,185,220,.22);backdrop-filter:blur(18px);box-shadow:0 -8px 26px rgba(0,0,0,.22)}
+  #appView .mobile-bottom-nav button{min-width:0;min-height:52px;border:0;border-radius:12px;background:transparent;color:#a9bfd4;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font:600 10px Manrope,sans-serif;cursor:pointer}
+  #appView .mobile-bottom-nav button span{font-size:21px;line-height:1.1}
+  #appView .mobile-bottom-nav button.active{color:#ffda65;background:linear-gradient(180deg,rgba(245,197,66,.17),rgba(38,102,158,.15));box-shadow:inset 0 0 0 1px rgba(245,197,66,.22)}
+  #appView .mobile-bottom-nav button small{font-size:10px;line-height:1.1}
+  #appView .main{padding-left:12px!important;padding-right:12px!important;padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
+  #appView .topbar{position:sticky;top:0;z-index:30;padding:8px 0 12px;margin:0 0 14px;background:linear-gradient(180deg,#071629 80%,rgba(7,22,41,.92));backdrop-filter:blur(12px)}
+  #appView #mobileNavToggle{display:none!important}
+  #appView .topbar-heading h2{font-size:17px;line-height:1.2}
+  #appView .topbar-heading p{font-size:10px;line-height:1.35;margin-top:3px}
+  #appView .top-actions .btn{min-height:38px;padding:8px 10px;font-size:11px}
+  #appView .page .section-head{gap:8px;align-items:flex-start;margin-bottom:12px}
+  #appView .page .section-head h3{font-size:17px;line-height:1.25}
+  #appView .page .section-head p{font-size:11px;line-height:1.45}
+  #appView .panel.glass{padding:13px!important;border-radius:15px}
+  #appView .kpis{gap:8px}
+  #appView .kpi{min-width:0;padding:12px;min-height:88px}
+  #appView .kpi strong{font-size:clamp(18px,5vw,23px);overflow-wrap:anywhere}
+  /* Fast billing: barcode field, payment and latest scan stay prominent. */
+  #appView #cashSalePos .pos-scan-panel{position:relative;margin-top:8px;padding:14px!important;border:1px solid rgba(245,197,66,.38);box-shadow:0 12px 30px rgba(0,0,0,.18)}
+  #appView #cashSalePos .pos-mode-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:9px}
+  #appView #cashSalePos .pos-mode-row label{min-width:0;font-size:11px}
+  #appView #cashSalePos .pos-mode-row select{min-height:43px;width:100%;font-size:14px}
+  #appView #cashSalePos .pos-auto-pill{font-size:9px;white-space:nowrap}
+  #appView #cashSalePos .pos-barcode-label{display:block;margin-top:13px;font-size:12px;font-weight:800}
+  #appView #cashSalePos .pos-barcode-label input{width:100%;box-sizing:border-box;height:58px!important;font-size:16px!important;border:2px solid #f5c542!important;border-radius:13px!important;background:#fff!important;color:#10243a!important;padding:12px 14px!important}
+  #appView #cashSalePos #posStatus{font-size:11px;padding:10px;margin-top:9px}
+  #appView #cashSalePos .pos-last-sale{font-size:12px;margin-top:9px}
+  #appView #cashSalePos #posDailySaleEntry{margin-top:13px!important}
+  #appView #cashSalePos #posDailySaleEntry .section-head p{max-width:100%}
+  #appView input,#appView select,#appView textarea{max-width:100%;font-size:16px}
+  #appView .table-wrap{max-width:100%;-webkit-overflow-scrolling:touch}
+  #appView .btn{min-height:42px}
+  #workspaceBackdrop.workspace-visible{z-index:10020!important}
+  #appView .sidebar{z-index:10030!important}
+}
+@media(max-width:380px){
+  #appView .mobile-bottom-nav{padding-left:4px;padding-right:4px}
+  #appView .mobile-bottom-nav button small{font-size:9px}
+  #appView .top-actions .btn{padding:7px 8px}
+  #appView #cashSalePos .pos-mode-row{grid-template-columns:1fr}
+}
+</style>
+
+<style id="inventory-grid-overlap-border-fix-v1">
+/* Inventory register: prevent cell text collision and draw a clear full grid */
+#appView #inventoryWork .table-wrap{border:2px solid #7892ad!important;border-radius:12px!important;overflow:auto!important;background:#f8fbff!important;box-shadow:0 0 0 1px rgba(8,35,63,.16),0 8px 22px rgba(3,18,34,.12)!important}
+#appView #inventoryWork table.inventory-register{border-collapse:separate!important;border-spacing:0!important;border:1px solid #7892ad!important}
+#appView #inventoryWork table.inventory-register th,#appView #inventoryWork table.inventory-register td{box-sizing:border-box!important;border-right:1px solid #9aafc4!important;border-bottom:1px solid #9aafc4!important;vertical-align:middle!important}
+#appView #inventoryWork table.inventory-register thead th{border-top:1px solid #7892ad!important;border-bottom:2px solid #526f8d!important;font-weight:900!important;text-align:center!important;padding:9px 6px!important}
+#appView #inventoryWork table.inventory-register th:first-child,#appView #inventoryWork table.inventory-register td:first-child{border-right:2px solid #526f8d!important;overflow:visible!important}
+#appView #inventoryWork table.liquor-register th:nth-child(1),#appView #inventoryWork table.liquor-register td:nth-child(1),#appView #inventoryWork table.liquor-register th:nth-child(5),#appView #inventoryWork table.liquor-register td:nth-child(5),#appView #inventoryWork table.liquor-register th:nth-child(9),#appView #inventoryWork table.liquor-register td:nth-child(9),#appView #inventoryWork table.liquor-register th:nth-child(13),#appView #inventoryWork table.liquor-register td:nth-child(13),#appView #inventoryWork table.liquor-register th:nth-child(17),#appView #inventoryWork table.liquor-register td:nth-child(17),#appView #inventoryWork table.liquor-register th:nth-child(21),#appView #inventoryWork table.liquor-register td:nth-child(21),#appView #inventoryWork table.liquor-register th:nth-child(25),#appView #inventoryWork table.liquor-register td:nth-child(25),#appView #inventoryWork table.liquor-register th:nth-child(29),#appView #inventoryWork table.liquor-register td:nth-child(29){border-right:2.5px solid #526f8d!important}
+#appView #inventoryWork table.liquor-register tbody td.calc small{display:block!important;max-width:100%!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important;line-height:1.25!important;font-size:10px!important;margin-top:3px!important;color:#526a84!important}
+#appView #inventoryWork table.liquor-register tbody td.calc{white-space:normal!important;overflow-wrap:anywhere!important;padding:7px 4px!important}
+#appView #inventoryWork table.inventory-register tbody tr:nth-child(even) td{box-shadow:inset 0 0 0 9999px rgba(31,79,125,.035)}
+#appView #inventoryWork table.inventory-register tbody tr:hover td{box-shadow:inset 0 0 0 9999px rgba(245,197,66,.10)}
+#appView #inventoryWork table.inventory-register tbody tr:last-child td{border-bottom:2px solid #526f8d!important}
+#appView #inventoryWork table.beer-register th,#appView #inventoryWork table.beer-register td{border-right:1px solid #8da4ba!important;border-bottom:1px solid #8da4ba!important}
+#appView #inventoryWork table.beer-register th:first-child,#appView #inventoryWork table.beer-register td:first-child,#appView #inventoryWork table.beer-register th:nth-child(2),#appView #inventoryWork table.beer-register td:nth-child(2){border-right:2px solid #526f8d!important}
+#appView #inventoryWork .section-head{border-bottom:2px solid #7892ad!important;padding-bottom:12px!important;margin-bottom:14px!important}
+</style>
 </head>
     <body>
     <section id="loginView">
@@ -1070,6 +1135,14 @@
        <div class="table-wrap"><table><thead><tr><th>Bill No.</th><th>Category</th><th>Payment</th><th>Qty</th><th>Amount</th><th>Actions</th></tr></thead><tbody id="sdsBillRows"><tr><td colspan="6" class="empty">No bills.</td></tr></tbody></table></div>
       </div>
      </section>
+
+     <nav class="mobile-bottom-nav" aria-label="Mobile POS navigation">
+      <button type="button" data-mobile-page="home" onclick="showPage('home',this)"><span>⌂</span><small>Home</small></button>
+      <button type="button" data-mobile-page="cashSalePos" onclick="showPage('cashSalePos',this)"><span>▣</span><small>Billing</small></button>
+      <button type="button" data-mobile-page="inventory" onclick="showPage('inventory',this)"><span>▦</span><small>Stock</small></button>
+      <button type="button" data-mobile-page="cash" onclick="showPage('cash',this)"><span>▤</span><small>Daybook</small></button>
+      <button type="button" data-mobile-more="true" onclick="toggleWorkspaceMenu()"><span>☰</span><small>More</small></button>
+     </nav>
     </main></div></section>
     <script>
     var purchaseRequirementRows=[];
@@ -1182,6 +1255,7 @@
      $(id).classList.add("active");
      const navId=id==="inventoryWork"?"inventory":(id==="nightCash"?"cash":id);
      document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===navId));
+     document.querySelectorAll(".mobile-bottom-nav [data-mobile-page]").forEach(b=>b.classList.toggle("active",b.dataset.mobilePage===navId));
      const titles={home:["Business overview","Your store performance at a glance"],cashSalePos:["Cash Sale POS","Barcode scan · Automatic quick sale"],inventory:["Choose inventory","Select Liquor or Beer to continue"],inventoryWork:["Inventory register","Manage the selected department"],profit:["Profit & margin","Monthly profit, day-end closing and bottle-wise margin"],cash:["Daybook","Date-wise cash, collections, expenses and profit"],nightCash:["Night Cash Received","Date-wise Liquor and Beer night collections"],history:["Sales history","Review recent recorded transactions"],fl2:["FL2 to Shop","Separate invoice register and wholesale price management"],purchaseRequirements:["Stock In Shop","Available stock, QR receiving and smart purchase planning"]};
      $("pageTitle").textContent=titles[id][0];$("pageSubtitle").textContent=titles[id][1];
      if(id==="cashSalePos"){posPopulateBarcodeProducts();posLoadRecent();posLoadSaleSummary();posLoadDailySaleEntry();setTimeout(()=>$("posBarcodeInput")?.focus(),80)}
