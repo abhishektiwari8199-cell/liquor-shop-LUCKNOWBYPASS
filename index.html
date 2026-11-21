@@ -916,6 +916,7 @@
         <div class="status" id="fl2ExciseStatus">Camera ya USB scanner se official Excise Transport Pass QR scan karein. Scan ke baad preview verify hoga; bina confirm kiye stock save nahi hoga.</div>
         <div id="fl2ExcisePreview" style="display:none">
          <div class="form-grid" style="margin-top:12px"><label>Transport Pass / Invoice No.<input id="fl2ExcisePassNo" readonly></label><label>Supplier<input id="fl2ExciseSupplier" readonly></label><label>Issue Date<input id="fl2ExciseDate" type="date" readonly></label><label>Pass Quantity<input id="fl2ExciseTotal" readonly></label></div>
+         <div id="fl2IndentFinancialSummary" class="status" style="display:none"></div>
          <div class="table-wrap"><table style="min-width:980px"><thead><tr><th>Excise Brand</th><th>Size</th><th>Pack Type</th><th>Cases</th><th>Bottles</th><th>Inventory Match</th><th>Wholesale / Bottle</th><th>MRP</th><th>Rate Source</th></tr></thead><tbody id="fl2ExciseRows"></tbody></table></div>
          <div class="toolbar"><span class="muted" id="fl2ExciseSummary">Review every product and rate.</span><button class="btn" type="button" onclick="fl2ConfirmExciseInvoice(this)">✓ Confirm Purchase & Receive Full Stock</button></div>
         </div>
@@ -3605,6 +3606,65 @@
     ["fl2Qty","fl2Wholesale"].forEach(id=>$(id)?.addEventListener("input",fl2CalcInvoiceTotal));
     let fl2ExciseScanner=null,fl2ExciseDraft=null,fl2ExciseBusy=false;
     function fl2ExciseMsg(message,isError=false){const el=$("fl2ExciseStatus");if(el){el.textContent=message;el.style.borderColor=isError?"#ff727c":"";}}
+
+    // UP Excise Indent bridge: financial rows arrive from the companion Chrome extension.
+    let fl2PendingIndentFinancial=null;
+    function fl2ApplyIndentFinancialData(data){
+     if(!data||!Array.isArray(data.rows)||!data.rows.length)throw new Error("Indent data rows missing");
+     const passNo=String(data.indentNumber||data.indentNo||"").trim();
+     if(!passNo)throw new Error("Indent number missing");
+     const rows=data.rows.map(r=>({
+      brand:String(r.brand||r.brandName||"").trim(),size:String(r.size||r.packageSize||"").trim(),
+      quantity:Number(r.quantity||r.bottles||r.bottlesRequested||0),
+      mrpTotal:Number(r.mrpTotal||0),retailMarginTotal:Number(r.retailMarginTotal||0),
+      wholesaleTotal:Number(r.wholesaleTotal!=null?r.wholesaleTotal:(Number(r.mrpTotal||0)-Number(r.retailMarginTotal||0))),
+      mrpPerBottle:Number(r.mrpPerBottle||((Number(r.mrpTotal||0)/Number(r.quantity||r.bottles||1))||0)),
+      wholesalePerBottle:Number(r.wholesalePerBottle||((Number(r.wholesaleTotal!=null?r.wholesaleTotal:(Number(r.mrpTotal||0)-Number(r.retailMarginTotal||0)))/Number(r.quantity||r.bottles||1))||0))
+     }));
+     const clean={indentNumber:passNo,rows,tcsAmount:Number(data.tcsAmount||0),
+      totalAmountToPay:Number(data.totalAmountToPay||0),paymentMode:String(data.paymentMode||""),
+      paymentDone:data.paymentDone===true,indentDate:String(data.indentDate||"")};
+     if(!fl2ExciseDraft){fl2PendingIndentFinancial=clean;fl2ExciseMsg("Indent financial details received. Ab Transport Pass QR fetch karein; details automatically match hongi.");return;}
+     const passRows=fl2ExciseDraft.rows;
+     let matched=0;
+     for(const ir of clean.rows){
+      const candidates=passRows.filter(pr=>normExcise(pr.brand)===normExcise(ir.brand)&&normExcise(pr.size)===normExcise(ir.size));
+      if(candidates.length!==1)continue;
+      const pr=candidates[0];
+      if(Math.round(Number(pr.quantity))!==Math.round(ir.quantity))continue;
+      pr.indentFinancial=ir;pr.wholesale=ir.wholesalePerBottle;pr.mrp=ir.mrpPerBottle;
+      pr.rateSource="UP Excise Indent (MRP − Retail Margin)";
+      const idx=passRows.indexOf(pr);
+      if($("fl2ExciseWh_"+idx))$("fl2ExciseWh_"+idx).value=ir.wholesalePerBottle.toFixed(2);
+      if($("fl2ExciseMrp_"+idx))$("fl2ExciseMrp_"+idx).value=ir.mrpPerBottle.toFixed(2);
+      matched++;
+     }
+     if(matched!==clean.rows.length)throw new Error(`Indent/Transport Pass match incomplete: ${matched}/${clean.rows.length}. Brand, size aur dispatched bottles verify karein.`);
+     fl2ExciseDraft.pass.indentNumber=clean.indentNumber;
+     fl2ExciseDraft.pass.mrpTotal=clean.rows.reduce((a,r)=>a+r.mrpTotal,0);
+     fl2ExciseDraft.pass.retailMarginTotal=clean.rows.reduce((a,r)=>a+r.retailMarginTotal,0);
+     fl2ExciseDraft.pass.wholesaleAmount=clean.rows.reduce((a,r)=>a+r.wholesaleTotal,0);
+     fl2ExciseDraft.pass.tcsAmount=clean.tcsAmount;
+     fl2ExciseDraft.pass.totalAmountToPay=clean.totalAmountToPay;
+     fl2ExciseDraft.pass.paymentMode=clean.paymentMode;
+     fl2ExciseDraft.pass.paymentDone=clean.paymentDone;
+     fl2ExciseDraft.pass.indentDate=clean.indentDate;fl2ExciseDraft.pass.receivingDate=today();
+     fl2RenderIndentSummary(clean);
+     fl2ExciseMsg("Indent financial details matched with Transport Pass. Confirm se pehle totals verify karein.");
+    }
+    function fl2RenderIndentSummary(data){
+     const el=$("fl2IndentFinancialSummary");if(!el)return;
+     const fmt=n=>"₹"+Number(n||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
+     const mrp=data.rows.reduce((a,r)=>a+r.mrpTotal,0),margin=data.rows.reduce((a,r)=>a+r.retailMarginTotal,0);
+     const wholesale=data.rows.reduce((a,r)=>a+r.wholesaleTotal,0);
+     el.style.display="block";
+     el.innerHTML=`<b>Indent ${safe(data.indentNumber)}</b><div class="form-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-top:10px"><div>MRP Total<br><b>${fmt(mrp)}</b></div><div>Retail Margin<br><b>${fmt(margin)}</b></div><div>Wholesale Amount<br><b>${fmt(wholesale)}</b></div><div>2% TCS<br><b>${fmt(data.tcsAmount)}</b></div><div>Total Payment<br><b>${fmt(data.totalAmountToPay)}</b></div><div>Payment<br><b>${safe(data.paymentMode||"Not provided")} · ${data.paymentDone?"Done":"Not marked done"}</b></div></div>`;
+    }
+    window.addEventListener("message",ev=>{
+     if(ev.origin!==location.origin||ev.source!==window)return;
+     if(ev.data?.source!=="ABHISHEK_UP_EXCISE_BRIDGE"||ev.data?.type!=="INDENT_DATA")return;
+     try{fl2ApplyIndentFinancialData(ev.data.payload);}catch(e){fl2ExciseMsg("Indent data error: "+e.message,true);}
+    });
     function fl2ParseTransportQr(raw){
      const value=String(raw||"").trim();if(!value)return null;
      // Official finished-goods Transport Pass QR contains tpnum (or the WHOLESALE pass token).
@@ -3652,7 +3712,9 @@
       $("fl2ExciseRows").innerHTML=draftRows.map((x,i)=>`<tr><td>${safe(x.brand)}</td><td>${safe(x.size)}</td><td>${safe(x.packagingType||"—")}</td><td>${x.cases}</td><td><input id="fl2ExciseQty_${i}" type="number" min="1" step="1" value="${x.quantity}" style="width:85px"></td><td><select id="fl2ExciseMatch_${i}" style="min-width:220px">${'<option value="">Select product</option>'+products.filter(p=>String(p.category).toLowerCase()===x.category).map(p=>`<option value="${safe(p.id)}" ${x.product&&String(p.id)===String(x.product.id)?"selected":""}>${safe(p.brand_name)} · ${safe(p.size)}</option>`).join("")}</select></td><td><input id="fl2ExciseWh_${i}" type="number" min="0" step=".01" value="${x.wholesale.toFixed(2)}" style="width:110px"></td><td><input id="fl2ExciseMrp_${i}" type="number" min="0" step=".01" value="${x.mrp.toFixed(2)}" style="width:95px"></td><td style="white-space:normal">${safe(x.rateSource)}</td></tr>`).join("");
       draftRows.forEach((x,i)=>$("fl2ExciseMatch_"+i).addEventListener("change",()=>{const p=products.find(z=>String(z.id)===$("fl2ExciseMatch_"+i).value);if(p){const rate=inventoryRate(p);if(!num($("fl2ExciseWh_"+i).value))$("fl2ExciseWh_"+i).value=num(rate.wholesale_base).toFixed(2);if(!num($("fl2ExciseMrp_"+i).value))$("fl2ExciseMrp_"+i).value=num(rate.mrp).toFixed(2);}}));
       $("fl2ExciseSummary").textContent=`${draftRows.length} invoice rows · ${draftRows.reduce((a,x)=>a+x.quantity,0)} bottles · Check every match and rate before saving.`;
-      $("fl2ExcisePreview").style.display="block";fl2ExciseMsg("Excise se details aa gayi hain. Har brand/size match, bottle total aur rate verify karein. Confirm dabane par Purchase + Stock ek transaction mein save honge.");
+      $("fl2ExcisePreview").style.display="block";
+      if(fl2PendingIndentFinancial){const pending=fl2PendingIndentFinancial;fl2PendingIndentFinancial=null;fl2ApplyIndentFinancialData(pending);}
+      fl2ExciseMsg("Excise se details aa gayi hain. Har brand/size match, bottle total aur rate verify karein. Confirm dabane par Purchase + Stock ek transaction mein save honge.");
      }catch(e){fl2ExciseMsg("Automatic Excise fetch failed: "+(e.message||String(e))+". No invoice or stock was saved.",true);}
     }
     async function fl2ConfirmExciseInvoice(button){
@@ -3662,14 +3724,18 @@
       const row=fl2ExciseDraft.rows[i],id=$("fl2ExciseMatch_"+i)?.value,product=products.find(p=>String(p.id)===String(id));
       const quantity=Number($("fl2ExciseQty_"+i)?.value),wholesalePrice=Number($("fl2ExciseWh_"+i)?.value),mrp=Number($("fl2ExciseMrp_"+i)?.value);
       if(!product||!Number.isInteger(quantity)||quantity<=0||!Number.isFinite(wholesalePrice)||wholesalePrice<=0||!Number.isFinite(mrp)||mrp<=0){fl2ExciseMsg(`Row ${i+1}: product match, whole bottle quantity, wholesale rate aur MRP valid hona chahiye.`,true);return;}
-      items.push({product_id:product.id,quantity,wholesalePrice,mrp});
+      const indentLine=row.indentFinancial||null;
+      items.push({product_id:product.id,quantity,wholesalePrice,mrp,
+       indent_mrp_total:indentLine?.mrpTotal??null,
+       indent_retail_margin_total:indentLine?.retailMarginTotal??null,
+       indent_wholesale_total:indentLine?.wholesaleTotal??null});
      }
      if(items.reduce((a,x)=>a+x.quantity,0)!==fl2ExciseDraft.pass.totalBottles){fl2ExciseMsg("Product rows ka total bottles Transport Pass total se match nahi kar raha. Quantity verify karein.",true);return;}
      if(button){button.disabled=true;button.textContent="Saving invoice & stock…";}
      try{
       const {data,error}=await db.rpc("fl2_save_excise_invoice",{p_pass:fl2ExciseDraft.pass,p_items:items});if(error)throw error;
       fl2ExciseMsg(`Invoice and stock saved successfully. Pass ${data.invoice_number} · ${data.total_bottles} bottles · Purchase value ${money(data.total_purchase_value)}.`);
-      $("fl2ExcisePreview").style.display="none";fl2ExciseDraft=null;await loadProducts();await refresh();
+      $("fl2ExcisePreview").style.display="none";$("fl2IndentFinancialSummary").style.display="none";fl2ExciseDraft=null;await loadProducts();await refresh();
      }catch(e){fl2ExciseMsg("Save failed: "+(e.message||String(e))+". No success was reported; check invoice/pass duplicate status before retrying.",true);}
      finally{if(button){button.disabled=false;button.textContent="✓ Confirm Purchase & Receive Full Stock";}}
     }
