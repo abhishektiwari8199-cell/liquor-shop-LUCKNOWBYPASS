@@ -3247,7 +3247,7 @@
      if(from>to){setMsg("saleHistoryStatus","Start date cannot be later than end date.");return}
      setMsg("saleHistoryStatus",`Loading ${from} to ${to}…`);
      try{
-      const [salesResult,manualRows,expenseResult,counterResult,purchaseResult,dailyCashResult,inventoryPurchaseResult,openingMovementResult,nightCashResult]=await Promise.all([
+      const [salesResult,manualRows,expenseResult,counterResult,purchaseResult,dailyCashResult,inventoryPurchaseResult,openingMovementResult,nightCashResult,openingPurchaseHeadersResult,openingSalesHeadersResult]=await Promise.all([
        db.from("sales").select("id,sale_date,bill_number,category,payment_mode").eq("user_id",user.id).gte("sale_date",from).lte("sale_date",to).order("sale_date",{ascending:false}),
        getInventorySaleRows(from,to,"all"),
        db.from("daily_expenses").select("expense_date,expense_name,amount,payment_type,category").eq("user_id",user.id).gte("expense_date",from).lte("expense_date",to),
@@ -3256,13 +3256,19 @@
        db.from("purchase_invoices").select("id,invoice_date,category").eq("user_id",user.id).gte("invoice_date",from).lte("invoice_date",to),
        db.from("inventory_register_entries").select("entry_date,product_id,purchase_qty,purchase_rate_snapshot,purchase_tcs_percent_snapshot,purchase_tcs_amount_snapshot,purchase_total_snapshot").eq("user_id",user.id).gte("entry_date",from).lte("entry_date",to).gt("purchase_qty",0),
        fetchAllInventoryRows(() => db.from("inventory_register_entries").select("id,entry_date,product_id,purchase_qty,sale_qty").eq("user_id",user.id).gte("entry_date",STOCK_START_DATE).lt("entry_date",to).order("entry_date",{ascending:true}).order("product_id",{ascending:true}).order("id",{ascending:true})),
-       db.from("night_cash_received").select("record_date,category,cash_received,online_received,rokad_received").eq("user_id",user.id).gte("record_date",from).lte("record_date",to)
+       db.from("night_cash_received").select("record_date,category,cash_received,online_received,rokad_received").eq("user_id",user.id).gte("record_date",from).lte("record_date",to),
+       // Opening stock must use the same historical invoice movements as Inventory's date selector.
+       fetchAllInventoryRows(() => db.from("purchase_invoices").select("id,invoice_date").eq("user_id",user.id).gte("invoice_date",STOCK_START_DATE).lt("invoice_date",to).order("invoice_date").order("id")),
+       fetchAllInventoryRows(() => db.from("sales").select("id,sale_date").eq("user_id",user.id).gte("sale_date",STOCK_START_DATE).lt("sale_date",to).order("sale_date").order("id"))
       ]);
-      for(const r of [salesResult,expenseResult,counterResult,dailyCashResult,purchaseResult,inventoryPurchaseResult,openingMovementResult,nightCashResult])if(r.error)throw r.error;
+      for(const r of [salesResult,expenseResult,counterResult,dailyCashResult,purchaseResult,inventoryPurchaseResult,openingMovementResult,nightCashResult,openingPurchaseHeadersResult,openingSalesHeadersResult])if(r.error)throw r.error;
       const bills=salesResult.data||[],billIds=bills.map(x=>x.id).filter(id=>uuidPattern.test(String(id||""))),purchaseHeaders=purchaseResult.data||[],purchaseIds=purchaseHeaders.map(x=>x.id).filter(id=>uuidPattern.test(String(id||"")));
-      const [billItemsResult,purchaseItemsResult]=await Promise.all([
+      const openingPurchaseHeaders=openingPurchaseHeadersResult.data||[],openingSalesHeaders=openingSalesHeadersResult.data||[];
+      const [billItemsResult,purchaseItemsResult,openingPurchaseItems,openingSaleItems]=await Promise.all([
        billIds.length?db.from("sale_items").select("sale_id,product_id,quantity,sale_rate").eq("user_id",user.id).in("sale_id",billIds):Promise.resolve({data:[],error:null}),
-       purchaseIds.length?db.from("purchase_items").select("invoice_id,product_id,quantity,purchase_rate").eq("user_id",user.id).in("invoice_id",purchaseIds):Promise.resolve({data:[],error:null})
+       purchaseIds.length?db.from("purchase_items").select("invoice_id,product_id,quantity,purchase_rate").eq("user_id",user.id).in("invoice_id",purchaseIds):Promise.resolve({data:[],error:null}),
+       fetchInventoryItems("purchase_items","invoice_id,product_id,quantity","invoice_id",openingPurchaseHeaders.map(x=>x.id)),
+       fetchInventoryItems("sale_items","sale_id,product_id,quantity","sale_id",openingSalesHeaders.map(x=>x.id))
       ]);
       if(billItemsResult.error||purchaseItemsResult.error)throw(billItemsResult.error||purchaseItemsResult.error);
       const items=billItemsResult.data||[],purchaseItems=purchaseItemsResult.data||[],productMap=new Map(products.map(p=>[String(p.id),p]));
@@ -3346,11 +3352,20 @@
       // Stable id ordering prevents duplicate-date pagination from skipping register rows.
       // The report reads every historical movement before the report date; no stock is written or altered.
       const movementByProductDate=new Map();
-      for(const m of openingMoves){
-       const key=String(m.product_id),arr=movementByProductDate.get(key)||[];
-       arr.push({date:String(m.entry_date),net:num(m.purchase_qty)-num(m.sale_qty)});
+      const addOpeningMovement=(productId,date,net)=>{
+       const key=String(productId),arr=movementByProductDate.get(key)||[];
+       arr.push({date:String(date),net:num(net)});
        movementByProductDate.set(key,arr);
-      }
+      };
+      // Inventory's date selector calculates opening as base opening_stock + prior
+      // purchase_invoices/purchase_items - prior sales/sale_items + prior manual
+      // inventory_register_entries. Mirror that exact source-of-truth here so PDF
+      // department totals cannot drift from the visible Inventory opening totals.
+      for(const m of openingMoves)addOpeningMovement(m.product_id,m.entry_date,num(m.purchase_qty)-num(m.sale_qty));
+      const openingPurchaseDateById=new Map(openingPurchaseHeaders.map(x=>[String(x.id),String(x.invoice_date)]));
+      const openingSaleDateById=new Map(openingSalesHeaders.map(x=>[String(x.id),String(x.sale_date)]));
+      for(const row of openingPurchaseItems){const d=openingPurchaseDateById.get(String(row.invoice_id));if(d)addOpeningMovement(row.product_id,d,num(row.quantity));}
+      for(const row of openingSaleItems){const d=openingSaleDateById.get(String(row.sale_id));if(d)addOpeningMovement(row.product_id,d,-num(row.quantity));}
       for(const arr of movementByProductDate.values())arr.sort((a,b)=>a.date.localeCompare(b.date));
       const openingBalanceByProduct=new Map();
       for(const p of products){
