@@ -382,14 +382,6 @@
     #fl2WholesalePanel .table-wrap input{min-width:82px;padding:6px 8px;height:34px;}
     #fl2WholesalePanel .table-wrap tbody tr{height:auto;}
     </style>
-    <style id="inline-inventory-purchase-entry">
-      #appView #inventoryWork .purchase-entry-cell{min-width:94px!important;padding:6px 4px!important;background:#eaf8ee!important;vertical-align:middle!important}
-      #appView #inventoryWork .purchase-entry-cell .inventory-purchase-input{display:block;width:68px!important;min-width:68px!important;max-width:68px!important;height:38px!important;margin:0 auto 4px!important;padding:5px 4px!important;text-align:center!important;background:#fff!important;color:#14532d!important;border:2px solid #75bd8b!important;border-radius:8px!important;font-weight:900!important}
-      #appView #inventoryWork .purchase-entry-cell .inventory-purchase-input:focus{border-color:#15803d!important;outline:2px solid #86efac!important}
-      #appView #inventoryWork .purchase-auto-detail,#appView #inventoryWork .purchase-rate-detail{display:block;max-width:100%;white-space:normal;line-height:1.25;font-size:9px;color:#14532d;font-weight:800;text-align:center}
-      #appView #inventoryWork .purchase-rate-detail{color:#123c68;font-size:8px;margin-top:2px}
-      @media(max-width:760px){#appView #inventoryWork .purchase-entry-cell .inventory-purchase-input{width:58px!important;min-width:58px!important;max-width:58px!important;height:36px!important}#appView #inventoryWork .purchase-auto-detail{font-size:8px}}
-    </style>
     <style id="dashboard-mrp-additions">.kpi-sub{margin-top:7px;color:#a9bfd4;font-size:12px;font-weight:700;letter-spacing:.2px}</style>
     <style id="fl2-workspace-additions">#fl2ReconciliationPanel .kpis{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}#fl2ReconciliationPanel .table-wrap{overflow-x:auto}#fl2ReconciliationPanel table{min-width:1050px}#fl2ReconciliationPanel .status{white-space:normal}</style>
     <style id="fl2-workspace-additions">#fl2 .table-wrap{overflow-x:auto}#fl2 table input{min-width:88px;width:100%;max-width:130px}#fl2 .section-head{gap:12px;flex-wrap:wrap}#fl2 .status{margin:12px 0}</style>
@@ -718,7 +710,7 @@
      </section>
 
      <section id="inventoryWork" class="page">
-      <div class="panel glass"><div class="section-head" style="margin-top:0"><div><h3>Brand wholesale rates</h3><p>Saved brand rates drive automatic wholesale, TCS, MRP and margin calculations for inline purchase quantities</p></div></div>
+      <div class="panel glass"><div class="section-head" style="margin-top:0"><div><h3>Brand wholesale rates</h3><p>Update each product's purchase cost once; sale margin uses this rate</p></div></div>
       <div class="section-head"><div><h3 id="inventoryWorkTitle">Inventory Register</h3><p id="inventoryWorkSubtitle">Manage stock by date</p></div><button class="btn secondary" onclick="showPage('inventory')">← Back to Liquor / Beer</button></div>
        <div class="section-head" style="align-items:center;gap:12px;flex-wrap:wrap"><div><span class="tag" id="inventoryCount">0 BRANDS</span></div><label style="min-width:220px;margin:0">Brand visibility for selected date<select id="inventoryVisibilityMode" onchange="changeInventoryVisibilityMode()"><option value="active">Active brands only</option><option value="full">Full brand list</option></select></label></div>
       <div class="panel glass"><div class="form-grid">
@@ -728,7 +720,7 @@
        <div style="display:flex;align-items:end"><button class="btn" type="button" onclick="applyInventoryFilters()">Apply filters</button></div>
       </div></div>
       <div class="toolbar" style="margin:12px 0"><span class="muted" id="stockSummary">Select a date to view stock.</span><button class="btn secondary" type="button" onclick="downloadActiveInventoryReport()">↓ Download Active Stock PDF</button><button class="btn" type="button" onclick="saveFinalInventory(this)">Final Save — Save All Inventory</button></div>
-      <div class="status">Purchase column mein isi row par bottle Qty enter karein. Wholesale cost, TCS, MRP sale value aur stock value saved Brand Wholesale Rates se automatically calculate honge. FL2 received stock alag count hoga. Purchase aur Sale entry ke baad Final Save karein.</div>
+      <div class="status">Important: Inventory ke Sale column ko ek baar Final Save karein. Ye entry Sales History, Overview aur Daybook mein automatically dikhegi.</div>
       <div class="status" id="inventoryDateStatus">02 Nov 2026 ka original opening stock base hai. Har agle din ka Opening Qty pichhle din ke closing balance se automatically carry forward hota hai; selected date ki purchase aur sale alag dikhte hain.</div>
       <div id="liquorInventoryWrap" class="table-wrap"><table class="inventory-register liquor-register"><colgroup><col style="width:230px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"></colgroup><thead>
        <tr><th rowspan="2">S.No. / Brand</th><th colspan="4" id="inventoryOpeningHeader">Opening Stock</th><th colspan="4">Purchase</th><th colspan="4">Total Stock</th><th colspan="4">Sale</th><th colspan="4" style="background:#fff0d8;color:#8a4b08">Sale MRP Total (₹)</th><th colspan="4">Balance Stock</th><th colspan="4">Balance Stock Value (₹)</th></tr>
@@ -1720,11 +1712,10 @@
         const inputs=(arr,prefix,label)=>map.map((x,k)=>{
           if(!x)return "<td>—</td>";
           if(prefix==="reg_purchase"){
-            const id=String(x.id);
-            const received=num(inventoryPurchased[id]);
-            const manualQty=num(inventoryManualCurrent[id]?.purchase);
-            const invoiceQty=num(inventoryInvoicePurchased[id]);
-            return `<td class="calc purchase-entry-cell" data-product-id="${safe(id)}"><input class="inventory-purchase-input" aria-label="${safe(g.name)} ${sizes[k]} purchase quantity" id="reg_purchase_${safe(id)}" type="number" min="0" step="1" inputmode="numeric" value="${manualQty}" oninput="recalculateInventoryLive()" onkeydown="inventoryEnterNext(event)" title="Yahin purchase bottle quantity enter karein; wholesale aur MRP values saved rate master se auto calculate hongi."><small class="purchase-auto-detail" data-purchase-detail="${safe(id)}">FL2: ${invoiceQty.toLocaleString("en-IN")} · Total: ${received.toLocaleString("en-IN")}</small><small class="purchase-rate-detail" data-purchase-rate="${safe(id)}"></small></td>`;
+            const received=num(inventoryPurchased[String(x.id)]);
+            const invoiceQty=num(inventoryInvoicePurchased[String(x.id)]);
+            const source=invoiceQty>0?`<small style="display:block;color:#075985;font-weight:800">FL2 Auto Received: ${invoiceQty.toLocaleString("en-IN")}</small>`:"<small style='display:block;color:#64748b'>No invoice received</small>";
+            return `<td class="calc" title="Purchase is read-only. Add invoices in FL2 to Shop."><strong>${received.toLocaleString("en-IN")}</strong>${source}</td>`;
           }
           return `<td><input aria-label="${safe(g.name)} ${sizes[k]} ${label}" id="${prefix}_${safe(x.id)}" type="number" min="0" step=".01" value="${arr[k]}" ${prefix==="opening"&&($("inventoryDate").value||STOCK_START_DATE)!==STOCK_START_DATE?"readonly title='Auto carried forward from previous day'":"oninput='recalculateInventoryLive()' onkeydown='inventoryEnterNext(event)'"}></td>`;
         }).join("");
@@ -1740,8 +1731,7 @@
         for(const [k,n] of Object.entries({opening,purchase,sale,available,closing,openingValue,saleValue,stockValue,profit}))grand[k]=(grand[k]||0)+n;
         const entry=inventoryManualCurrent[String(x.id)]||{};
         const autoPurchaseQty=num(inventoryInvoicePurchased[String(x.id)]);
-        const manualPurchaseQty=num(inventoryManualCurrent[String(x.id)]?.purchase);
-        const purchaseCell=`<td class="calc purchase-entry-cell" data-product-id="${safe(String(x.id))}"><input class="inventory-purchase-input" aria-label="${safe(x.brand_name)} ${safe(x.size||"")} purchase quantity" id="reg_purchase_${safe(x.id)}" type="number" min="0" step="1" inputmode="numeric" value="${manualPurchaseQty}" oninput="recalculateInventoryLive()" onkeydown="inventoryEnterNext(event)" title="Yahin purchase bottle quantity enter karein; wholesale aur MRP values saved rate master se auto calculate hongi."><small class="purchase-auto-detail" data-purchase-detail="${safe(String(x.id))}">FL2: ${autoPurchaseQty.toLocaleString("en-IN")} · Total: ${purchase.toLocaleString("en-IN")}</small><small class="purchase-rate-detail" data-purchase-rate="${safe(String(x.id))}"></small></td>`;
+        const purchaseCell=`<td class="calc" title="Purchase is read-only. Add invoices in FL2 to Shop."><strong>${purchase.toLocaleString("en-IN")}</strong>${autoPurchaseQty>0?`<small style="display:block;color:#075985;font-weight:800">FL2 Auto Received: ${autoPurchaseQty.toLocaleString("en-IN")}</small>`:"<small style='display:block;color:#64748b'>No invoice received</small>"}</td>`;
         B.push(`<tr data-order-key="${safe(String(x.id))}"><td><span class="inventory-drag-handle" title="Drag to reorder">⠿</span> ${idx+1}</td><td class="beer-brand">${safe(cleanBeerBrandName(x.brand_name))}${x.size?" - "+safe(x.size):""} <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='editInventoryBrand([${JSON.stringify(String(x.id))}])'>Edit name/rates</button> <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='hideInventoryBrand(getInventoryBrandProductIds("beer",${JSON.stringify(x.brand_name)}),${JSON.stringify(x.brand_name)})'>Hide</button></td><td><input id="opening_${safe(x.id)}" type="number" min="0" step=".01" value="${opening}" ${($("inventoryDate").value||STOCK_START_DATE)!==STOCK_START_DATE?"readonly title='Auto carried forward from previous day'":"oninput='recalculateInventoryLive()' onkeydown='inventoryEnterNext(event)'"}></td><td class="calc">${money(openingValue)}</td>${purchaseCell}<td><input id="reg_sale_${safe(x.id)}" type="number" min="0" step=".01" value="${num(entry.sale)}" oninput="recalculateInventoryLive()" onkeydown="inventoryEnterNext(event)"></td><td class="calc">${money(saleValue)}</td><td class="calc">${closing}</td><td class="value">${money(stockValue)}</td><td class="value">${money(profit)}</td></tr>`);
       });
       if(beer.length)B.push(`<tr class="inventory-subtotal-row"><td colspan="2">TOTAL BEER</td><td>${bt.o}</td><td>${money(bt.ov)}</td><td>${bt.p}</td><td>${bt.s}</td><td>${money(bt.sv)}</td><td>${bt.c}</td><td>${money(bt.cv)}</td><td>${money(bt.profit)}</td></tr>`);
@@ -1964,10 +1954,6 @@
         const sale=Math.max(0,(inventorySold[id]||0)-num(manual.sale))+currentSale;
         const total=opening+purchase,balance=total-sale;
         current[id]={opening,purchase,sale,total,balance,openingValue:opening*inventoryRate(p).mrp,saleValue:sale*inventoryRate(p).mrp,stockValue:balance*inventoryRate(p).wholesale_price,profit:sale*(inventoryRate(p).mrp-inventoryRate(p).wholesale_base)};
-        const purchaseDetail=document.querySelector(`[data-purchase-detail="${CSS.escape(id)}"]`);
-        if(purchaseDetail){const invoiceQty=num(inventoryInvoicePurchased[id]);purchaseDetail.textContent=`FL2: ${invoiceQty.toLocaleString("en-IN")} · Total: ${purchase.toLocaleString("en-IN")}`;}
-        const rateDetail=document.querySelector(`[data-purchase-rate="${CSS.escape(id)}"]`);
-        if(rateDetail){const rate=inventoryRate(p);rateDetail.textContent=`WS ₹${money(rate.wholesale_base)} · TCS ₹${money(rate.tcs_amount)} · MRP ₹${money(rate.mrp)} · Cost ₹${money(purchase*rate.wholesale_base)}`;}
       }
       const allGroups=orderedBrandGroups(products.filter(x=>String(x.category).toLowerCase()==="liquor"));
       const renderedLiquorKeys=new Set([...document.querySelectorAll("#liquorInventoryRows tr[data-order-key]")].map(tr=>tr.dataset.orderKey));
@@ -3247,7 +3233,7 @@
      if(from>to){setMsg("saleHistoryStatus","Start date cannot be later than end date.");return}
      setMsg("saleHistoryStatus",`Loading ${from} to ${to}…`);
      try{
-      const [salesResult,manualRows,expenseResult,counterResult,purchaseResult,dailyCashResult,inventoryPurchaseResult,openingMovementResult,nightCashResult,openingPurchaseHeadersResult,openingSalesHeadersResult]=await Promise.all([
+      const [salesResult,manualRows,expenseResult,counterResult,purchaseResult,dailyCashResult,inventoryPurchaseResult,openingMovementResult,nightCashResult,allPurchaseHeadersResult,allSalesHeadersResult]=await Promise.all([
        db.from("sales").select("id,sale_date,bill_number,category,payment_mode").eq("user_id",user.id).gte("sale_date",from).lte("sale_date",to).order("sale_date",{ascending:false}),
        getInventorySaleRows(from,to,"all"),
        db.from("daily_expenses").select("expense_date,expense_name,amount,payment_type,category").eq("user_id",user.id).gte("expense_date",from).lte("expense_date",to),
@@ -3257,18 +3243,14 @@
        db.from("inventory_register_entries").select("entry_date,product_id,purchase_qty,purchase_rate_snapshot,purchase_tcs_percent_snapshot,purchase_tcs_amount_snapshot,purchase_total_snapshot").eq("user_id",user.id).gte("entry_date",from).lte("entry_date",to).gt("purchase_qty",0),
        fetchAllInventoryRows(() => db.from("inventory_register_entries").select("id,entry_date,product_id,purchase_qty,sale_qty").eq("user_id",user.id).gte("entry_date",STOCK_START_DATE).lt("entry_date",to).order("entry_date",{ascending:true}).order("product_id",{ascending:true}).order("id",{ascending:true})),
        db.from("night_cash_received").select("record_date,category,cash_received,online_received,rokad_received").eq("user_id",user.id).gte("record_date",from).lte("record_date",to),
-       // Opening stock must use the same historical invoice movements as Inventory's date selector.
-       fetchAllInventoryRows(() => db.from("purchase_invoices").select("id,invoice_date").eq("user_id",user.id).gte("invoice_date",STOCK_START_DATE).lt("invoice_date",to).order("invoice_date").order("id")),
-       fetchAllInventoryRows(() => db.from("sales").select("id,sale_date").eq("user_id",user.id).gte("sale_date",STOCK_START_DATE).lt("sale_date",to).order("sale_date").order("id"))
+       fetchAllInventoryRows(() => db.from("purchase_invoices").select("id,invoice_date").eq("user_id",user.id).gte("invoice_date",STOCK_START_DATE).lte("invoice_date",to).order("invoice_date").order("id")),
+       fetchAllInventoryRows(() => db.from("sales").select("id,sale_date").eq("user_id",user.id).gte("sale_date",STOCK_START_DATE).lte("sale_date",to).order("sale_date").order("id"))
       ]);
-      for(const r of [salesResult,expenseResult,counterResult,dailyCashResult,purchaseResult,inventoryPurchaseResult,openingMovementResult,nightCashResult,openingPurchaseHeadersResult,openingSalesHeadersResult])if(r.error)throw r.error;
+      for(const r of [salesResult,expenseResult,counterResult,dailyCashResult,purchaseResult,inventoryPurchaseResult,openingMovementResult,nightCashResult])if(r.error)throw r.error;
       const bills=salesResult.data||[],billIds=bills.map(x=>x.id).filter(id=>uuidPattern.test(String(id||""))),purchaseHeaders=purchaseResult.data||[],purchaseIds=purchaseHeaders.map(x=>x.id).filter(id=>uuidPattern.test(String(id||"")));
-      const openingPurchaseHeaders=openingPurchaseHeadersResult.data||[],openingSalesHeaders=openingSalesHeadersResult.data||[];
-      const [billItemsResult,purchaseItemsResult,openingPurchaseItems,openingSaleItems]=await Promise.all([
+      const [billItemsResult,purchaseItemsResult]=await Promise.all([
        billIds.length?db.from("sale_items").select("sale_id,product_id,quantity,sale_rate").eq("user_id",user.id).in("sale_id",billIds):Promise.resolve({data:[],error:null}),
-       purchaseIds.length?db.from("purchase_items").select("invoice_id,product_id,quantity,purchase_rate").eq("user_id",user.id).in("invoice_id",purchaseIds):Promise.resolve({data:[],error:null}),
-       fetchInventoryItems("purchase_items","invoice_id,product_id,quantity","invoice_id",openingPurchaseHeaders.map(x=>x.id)),
-       fetchInventoryItems("sale_items","sale_id,product_id,quantity","sale_id",openingSalesHeaders.map(x=>x.id))
+       purchaseIds.length?db.from("purchase_items").select("invoice_id,product_id,quantity,purchase_rate").eq("user_id",user.id).in("invoice_id",purchaseIds):Promise.resolve({data:[],error:null})
       ]);
       if(billItemsResult.error||purchaseItemsResult.error)throw(billItemsResult.error||purchaseItemsResult.error);
       const items=billItemsResult.data||[],purchaseItems=purchaseItemsResult.data||[],productMap=new Map(products.map(p=>[String(p.id),p]));
@@ -3332,7 +3314,6 @@
        d.beerRokad=deptRokad.beer;d.liquorRokad=deptRokad.liquor;
        d.registerRokad=nightDatesWithRows.has(date)?(nightRokadByDate.get(date)||0):d.closingRokad;
       }
-      const registerPurchaseDates=new Set((inventoryPurchaseResult.data||[]).map(x=>String(x.entry_date)));
       for(const x of inventoryPurchaseResult.data||[]){
        const p=productMap.get(String(x.product_id));if(!p)continue;
        const d=getDay(x.entry_date),cat=String(p.category||"").toLowerCase(),qty=num(x.purchase_qty),rate=inventoryRate(p);
@@ -3343,29 +3324,34 @@
        prev.qty+=qty;prev.wholesale+=row.wholesale;prev.tcs+=tcs;prev.mrp+=mrpValue;prev.total+=total;d.purchaseProducts.set(key,prev);
        if(cat==="beer"){d.purchaseBeer+=total;d.purchaseBeerQty+=qty}else if(cat==="liquor"){d.purchaseLiquor+=total;d.purchaseLiquorQty+=qty}
       }
-      // Legacy FL2 invoice records are used only for dates without Inventory Register purchase entries.
+      // Match Inventory: include invoice purchases and register purchases independently,
+      // because Inventory loadInventoryForDate() includes both sources.
       const purchaseById=new Map(purchaseHeaders.map(x=>[String(x.id),String(x.category||"").toLowerCase()]));
-      for(const x of purchaseItems){const h=purchaseHeaders.find(y=>String(y.id)===String(x.invoice_id));if(!h||registerPurchaseDates.has(String(h.invoice_date)))continue;const d=getDay(h.invoice_date),cat=purchaseById.get(String(x.invoice_id)),p=productMap.get(String(x.product_id));if(!p)continue;const qty=num(x.quantity),rate=inventoryRate(p),base=num(x.purchase_rate)||rate.wholesale_base,tcs=qty*base*rate.tcs_percent/100,total=qty*base+tcs,mrp=qty*rate.mrp,key=String(x.product_id),prev=d.purchaseProducts.get(key)||{category:cat,brand:p.brand_name||"Product",size:p.size||"",qty:0,wholesale:0,tcs:0,mrp:0,total:0};prev.qty+=qty;prev.wholesale+=qty*base;prev.tcs+=tcs;prev.mrp+=mrp;prev.total+=total;d.purchaseProducts.set(key,prev);if(cat==="beer"){d.purchaseBeer+=total;d.purchaseBeerQty+=qty}else if(cat==="liquor"){d.purchaseLiquor+=total;d.purchaseLiquorQty+=qty}}
+      for(const x of purchaseItems){const h=purchaseHeaders.find(y=>String(y.id)===String(x.invoice_id));if(!h)continue;const d=getDay(h.invoice_date),cat=purchaseById.get(String(x.invoice_id)),p=productMap.get(String(x.product_id));if(!p)continue;const qty=num(x.quantity),rate=inventoryRate(p),base=num(x.purchase_rate)||rate.wholesale_base,tcs=qty*base*rate.tcs_percent/100,total=qty*base+tcs,mrp=qty*rate.mrp,key=String(x.product_id),prev=d.purchaseProducts.get(key)||{category:cat,brand:p.brand_name||"Product",size:p.size||"",qty:0,wholesale:0,tcs:0,mrp:0,total:0};prev.qty+=qty;prev.wholesale+=qty*base;prev.tcs+=tcs;prev.mrp+=mrp;prev.total+=total;d.purchaseProducts.set(key,prev);if(cat==="beer"){d.purchaseBeer+=total;d.purchaseBeerQty+=qty}else if(cat==="liquor"){d.purchaseLiquor+=total;d.purchaseLiquorQty+=qty}}
       // Opening stock is the previous closing balance: configured base opening stock + movements strictly BEFORE this report date. Same-day purchases are deliberately excluded and shown separately in STOCK PURCHASE.
-      const openingMoves=openingMovementResult||[];
-      // REPORT-ONLY opening-stock reconstruction. Inventory tables and stock values are read-only here.
-      // Stable id ordering prevents duplicate-date pagination from skipping register rows.
-      // The report reads every historical movement before the report date; no stock is written or altered.
+      // Rebuild report opening stock from THE SAME THREE MOVEMENT SOURCES as Inventory:
+      // purchase_invoices/purchase_items, sales/sale_items, and inventory_register_entries.
+      // The earlier report used only inventory_register_entries here, which omitted historical
+      // invoice purchases and POS sales and caused the report balance to diverge from Inventory.
+      // Read-only reconstruction; no stock rows are inserted, updated or deleted.
+      const historicalPurchaseHeaders=allPurchaseHeadersResult||[],historicalSaleHeaders=allSalesHeadersResult||[];
+      const historicalPurchaseIds=historicalPurchaseHeaders.map(x=>x.id).filter(Boolean);
+      const historicalSaleIds=historicalSaleHeaders.map(x=>x.id).filter(Boolean);
+      const [historicalPurchaseItems,historicalSaleItems]=await Promise.all([
+       fetchInventoryItems("purchase_items","invoice_id,product_id,quantity","invoice_id",historicalPurchaseIds),
+       fetchInventoryItems("sale_items","sale_id,product_id,quantity","sale_id",historicalSaleIds)
+      ]);
+      const purchaseDateById=new Map(historicalPurchaseHeaders.map(x=>[String(x.id),String(x.invoice_date)]));
+      const saleDateById=new Map(historicalSaleHeaders.map(x=>[String(x.id),String(x.sale_date)]));
       const movementByProductDate=new Map();
-      const addOpeningMovement=(productId,date,net)=>{
+      const addHistoricalMovement=(productId,date,delta)=>{
+       if(!productId||!date)return;
        const key=String(productId),arr=movementByProductDate.get(key)||[];
-       arr.push({date:String(date),net:num(net)});
-       movementByProductDate.set(key,arr);
+       arr.push({date:String(date),net:num(delta)});movementByProductDate.set(key,arr);
       };
-      // Inventory's date selector calculates opening as base opening_stock + prior
-      // purchase_invoices/purchase_items - prior sales/sale_items + prior manual
-      // inventory_register_entries. Mirror that exact source-of-truth here so PDF
-      // department totals cannot drift from the visible Inventory opening totals.
-      for(const m of openingMoves)addOpeningMovement(m.product_id,m.entry_date,num(m.purchase_qty)-num(m.sale_qty));
-      const openingPurchaseDateById=new Map(openingPurchaseHeaders.map(x=>[String(x.id),String(x.invoice_date)]));
-      const openingSaleDateById=new Map(openingSalesHeaders.map(x=>[String(x.id),String(x.sale_date)]));
-      for(const row of openingPurchaseItems){const d=openingPurchaseDateById.get(String(row.invoice_id));if(d)addOpeningMovement(row.product_id,d,num(row.quantity));}
-      for(const row of openingSaleItems){const d=openingSaleDateById.get(String(row.sale_id));if(d)addOpeningMovement(row.product_id,d,-num(row.quantity));}
+      for(const x of historicalPurchaseItems)addHistoricalMovement(x.product_id,purchaseDateById.get(String(x.invoice_id)),num(x.quantity));
+      for(const x of historicalSaleItems)addHistoricalMovement(x.product_id,saleDateById.get(String(x.sale_id)),-num(x.quantity));
+      for(const m of (openingMovementResult||[]))addHistoricalMovement(m.product_id,m.entry_date,num(m.purchase_qty)-num(m.sale_qty));
       for(const arr of movementByProductDate.values())arr.sort((a,b)=>a.date.localeCompare(b.date));
       const openingBalanceByProduct=new Map();
       for(const p of products){
@@ -4283,7 +4269,8 @@
       return yy;
      };
      const expenseRegisterBottomY=drawGroupedExpenseRegister();
-     // Closing balance stock = morning opening + same-day purchases - same-day sales.
+     // Closing balance stock = same report-date opening + all same-day invoice/register purchases
+     // minus all same-day POS/register sales. These inputs now mirror Inventory's source aggregation.
      // Display only; this calculation does not update the inventory ledger.
      const closingByProduct=new Map();
      for(const p of products){
@@ -4292,7 +4279,7 @@
       const opening=num(day.openingProducts.get(id)?.qty);
       const purchased=num(day.purchaseProducts.get(id)?.qty);
       const sold=num(day.products.get(id)?.qty);
-      const qty=Math.max(0,opening+purchased-sold);
+      const qty=opening+purchased-sold;
       if(qty<=0)continue;
       const rate=inventoryRate(p),mrp=qty*num(rate.mrp);
       closingByProduct.set(id,{category,size:String(p.size||"Other"),qty,mrp});
