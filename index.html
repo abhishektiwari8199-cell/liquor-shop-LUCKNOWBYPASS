@@ -4287,19 +4287,22 @@
       const rate=inventoryRate(p),mrp=qty*num(rate.mrp);
       closingByProduct.set(id,{category,size:String(p.size||"Other"),qty,mrp});
      }
-     const liquorClosing=new Map(),beerClosing={bottle:{qty:0,mrp:0},can:{qty:0,mrp:0}};
+     const liquorClosing=new Map(),beerClosing=new Map();
      for(const row of closingByProduct.values()){
       if(row.category==="liquor"){
        const size=String(row.size||"Other").trim()||"Other",v=liquorClosing.get(size)||{label:size,qty:0,mrp:0};
        v.qty+=row.qty;v.mrp+=row.mrp;liquorClosing.set(size,v);
       }else{
-       const type=/can/i.test(row.size)?"can":"bottle",v=beerClosing[type];v.qty+=row.qty;v.mrp+=row.mrp;
+       // Keep exact inventory sizes separate. Treating every non-can product as a
+       // bottle incorrectly grouped sizes such as RIO GOLD 300ML into bottle stock.
+       const size=String(row.size||"Other").trim()||"Other",v=beerClosing.get(size)||{label:size,qty:0,mrp:0};
+       v.qty+=row.qty;v.mrp+=row.mrp;beerClosing.set(size,v);
       }
      }
      const stockBalanceRows=[];
-     // Beer rows followed by a green BEER TOTAL line.
-     for(const type of ["bottle","can"]){const v=beerClosing[type];stockBalanceRows.push({dept:"BEER",pack:type.toUpperCase(),qty:v.qty,mrp:v.mrp})}
-     const beerTotal={qty:beerClosing.bottle.qty+beerClosing.can.qty,mrp:beerClosing.bottle.mrp+beerClosing.can.mrp};
+     // Beer size rows followed by a green BEER TOTAL line.
+     for(const [size,v] of [...beerClosing.entries()].sort((a,b)=>a[0].localeCompare(b[0],undefined,{numeric:true})))stockBalanceRows.push({dept:"BEER",pack:size,qty:v.qty,mrp:v.mrp});
+     const beerTotal=[...beerClosing.values()].reduce((a,x)=>({qty:a.qty+x.qty,mrp:a.mrp+x.mrp}),{qty:0,mrp:0});
      stockBalanceRows.push({kind:"subtotal",dept:"BEER TOTAL",pack:"TOTAL BEER STOCK",qty:beerTotal.qty,mrp:beerTotal.mrp});
      // Liquor sizes followed by a green LIQUOR TOTAL line.
      for(const [size,v] of [...liquorClosing.entries()].sort((a,b)=>a[0].localeCompare(b[0],undefined,{numeric:true})))stockBalanceRows.push({dept:"LIQUOR",pack:size,qty:v.qty,mrp:v.mrp});
