@@ -382,6 +382,14 @@
     #fl2WholesalePanel .table-wrap input{min-width:82px;padding:6px 8px;height:34px;}
     #fl2WholesalePanel .table-wrap tbody tr{height:auto;}
     </style>
+    <style id="inline-inventory-purchase-entry">
+      #appView #inventoryWork .purchase-entry-cell{min-width:94px!important;padding:6px 4px!important;background:#eaf8ee!important;vertical-align:middle!important}
+      #appView #inventoryWork .purchase-entry-cell .inventory-purchase-input{display:block;width:68px!important;min-width:68px!important;max-width:68px!important;height:38px!important;margin:0 auto 4px!important;padding:5px 4px!important;text-align:center!important;background:#fff!important;color:#14532d!important;border:2px solid #75bd8b!important;border-radius:8px!important;font-weight:900!important}
+      #appView #inventoryWork .purchase-entry-cell .inventory-purchase-input:focus{border-color:#15803d!important;outline:2px solid #86efac!important}
+      #appView #inventoryWork .purchase-auto-detail,#appView #inventoryWork .purchase-rate-detail{display:block;max-width:100%;white-space:normal;line-height:1.25;font-size:9px;color:#14532d;font-weight:800;text-align:center}
+      #appView #inventoryWork .purchase-rate-detail{color:#123c68;font-size:8px;margin-top:2px}
+      @media(max-width:760px){#appView #inventoryWork .purchase-entry-cell .inventory-purchase-input{width:58px!important;min-width:58px!important;max-width:58px!important;height:36px!important}#appView #inventoryWork .purchase-auto-detail{font-size:8px}}
+    </style>
     <style id="dashboard-mrp-additions">.kpi-sub{margin-top:7px;color:#a9bfd4;font-size:12px;font-weight:700;letter-spacing:.2px}</style>
     <style id="fl2-workspace-additions">#fl2ReconciliationPanel .kpis{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}#fl2ReconciliationPanel .table-wrap{overflow-x:auto}#fl2ReconciliationPanel table{min-width:1050px}#fl2ReconciliationPanel .status{white-space:normal}</style>
     <style id="fl2-workspace-additions">#fl2 .table-wrap{overflow-x:auto}#fl2 table input{min-width:88px;width:100%;max-width:130px}#fl2 .section-head{gap:12px;flex-wrap:wrap}#fl2 .status{margin:12px 0}</style>
@@ -710,7 +718,7 @@
      </section>
 
      <section id="inventoryWork" class="page">
-      <div class="panel glass"><div class="section-head" style="margin-top:0"><div><h3>Brand wholesale rates</h3><p>Update each product's purchase cost once; sale margin uses this rate</p></div></div>
+      <div class="panel glass"><div class="section-head" style="margin-top:0"><div><h3>Brand wholesale rates</h3><p>Saved brand rates drive automatic wholesale, TCS, MRP and margin calculations for inline purchase quantities</p></div></div>
       <div class="section-head"><div><h3 id="inventoryWorkTitle">Inventory Register</h3><p id="inventoryWorkSubtitle">Manage stock by date</p></div><button class="btn secondary" onclick="showPage('inventory')">← Back to Liquor / Beer</button></div>
        <div class="section-head" style="align-items:center;gap:12px;flex-wrap:wrap"><div><span class="tag" id="inventoryCount">0 BRANDS</span></div><label style="min-width:220px;margin:0">Brand visibility for selected date<select id="inventoryVisibilityMode" onchange="changeInventoryVisibilityMode()"><option value="active">Active brands only</option><option value="full">Full brand list</option></select></label></div>
       <div class="panel glass"><div class="form-grid">
@@ -719,37 +727,8 @@
        <label class="span2">Search brand<input id="search" oninput="drawProducts()" placeholder="Search brand name…"></label>
        <div style="display:flex;align-items:end"><button class="btn" type="button" onclick="applyInventoryFilters()">Apply filters</button></div>
       </div></div>
-
-      <div class="panel glass" id="manualPurchasePanel">
-       <div class="section-head" style="margin-top:0">
-        <div><h3>Manual Purchase Entry</h3><p>Supplier invoice ke hisaab se purchase add karein. Transport Pass / FL2 Stock In ka flow alag aur unchanged rahega.</p></div>
-        <span class="tag">INVENTORY PURCHASE</span>
-       </div>
-       <div class="form-grid">
-        <label>Purchase Date<input id="manualPurchaseDate" type="date" min="2026-11-02"></label>
-        <label>Invoice / Reference No.<input id="manualPurchaseInvoiceNo" type="text" maxlength="80" placeholder="Enter supplier invoice number"></label>
-        <label class="span2">Supplier Name<input id="manualPurchaseSupplier" type="text" maxlength="160" placeholder="Supplier / party name"></label>
-       </div>
-       <div class="toolbar" style="margin:16px 0 8px">
-        <b>Purchase Products</b>
-        <button class="btn secondary" type="button" onclick="manualPurchaseAddRow()">＋ Add Product</button>
-       </div>
-       <div class="table-wrap">
-        <table style="min-width:850px">
-         <thead><tr><th style="min-width:280px">Product / Brand</th><th>Qty (Bottles)</th><th>Purchase Rate / Bottle (₹)</th><th>Line Total (₹)</th><th>Action</th></tr></thead>
-         <tbody id="manualPurchaseRows"><tr><td colspan="5" class="empty">Add a product to begin.</td></tr></tbody>
-        </table>
-       </div>
-       <div class="total-line"><span>Total Bottles: <strong id="manualPurchaseBottleTotal">0</strong></span><span>Purchase Total: <strong id="manualPurchaseValueTotal">₹0.00</strong></span></div>
-       <div class="row" style="align-items:center">
-        <button class="btn" id="manualPurchaseSaveBtn" type="button" onclick="manualPurchaseSave()">Save Manual Purchase</button>
-        <span class="muted" style="font-size:11px">Saved purchase automatically reflects in Inventory purchase and stock calculations.</span>
-       </div>
-       <div class="status" id="manualPurchaseMsg" role="status" aria-live="polite">Manual purchase entries are saved as purchase invoices. Existing opening stock and historical records are not overwritten.</div>
-      </div>
-
       <div class="toolbar" style="margin:12px 0"><span class="muted" id="stockSummary">Select a date to view stock.</span><button class="btn secondary" type="button" onclick="downloadActiveInventoryReport()">↓ Download Active Stock PDF</button><button class="btn" type="button" onclick="saveFinalInventory(this)">Final Save — Save All Inventory</button></div>
-      <div class="status">Important: Inventory ke Sale column ko ek baar Final Save karein. Ye entry Sales History, Overview aur Daybook mein automatically dikhegi.</div>
+      <div class="status">Purchase column mein isi row par bottle Qty enter karein. Wholesale cost, TCS, MRP sale value aur stock value saved Brand Wholesale Rates se automatically calculate honge. FL2 received stock alag count hoga. Purchase aur Sale entry ke baad Final Save karein.</div>
       <div class="status" id="inventoryDateStatus">02 Nov 2026 ka original opening stock base hai. Har agle din ka Opening Qty pichhle din ke closing balance se automatically carry forward hota hai; selected date ki purchase aur sale alag dikhte hain.</div>
       <div id="liquorInventoryWrap" class="table-wrap"><table class="inventory-register liquor-register"><colgroup><col style="width:230px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"><col style="width:94px"></colgroup><thead>
        <tr><th rowspan="2">S.No. / Brand</th><th colspan="4" id="inventoryOpeningHeader">Opening Stock</th><th colspan="4">Purchase</th><th colspan="4">Total Stock</th><th colspan="4">Sale</th><th colspan="4" style="background:#fff0d8;color:#8a4b08">Sale MRP Total (₹)</th><th colspan="4">Balance Stock</th><th colspan="4">Balance Stock Value (₹)</th></tr>
@@ -1291,7 +1270,7 @@
      if(id==="cashSalePos"){posPopulateBarcodeProducts();posLoadRecent();posLoadSaleSummary();posLoadDailySaleEntry();setTimeout(()=>$("posBarcodeInput")?.focus(),80)}
      if(id==="purchaseRequirements"){stockShopProductOptions();stockShopRefresh();loadPurchaseRequirements()}if(id==="history"){if(!$("saleFrom").value)$("saleFrom").value=dateBack(29);if(!$("saleTo").value)$("saleTo").value=today();loadSalesHistoryFast()}if(id==="fl2"){fl2Tab("home");fl2FillBrands();fl2FillFilterBrands()}if(id==="profit"){setProfitPeriod();loadProfitReport()}if(id==="cash"){if($("daybookDate"))$("daybookDate").value=$("inventoryDate")?.value||today();loadDaybook()}
     }
-    function setCategory(cat){$("cat").value=cat;if($("addLiquorProductPanel"))$("addLiquorProductPanel").style.display=cat==="liquor"?"block":"none";if($("addBeerProductPanel"))$("addBeerProductPanel").style.display=cat==="beer"?"block":"none";if($("whCategory"))$("whCategory").value=cat;$("search").value="";$("inventoryWorkTitle").textContent=cat==="liquor"?"Liquor Inventory":"Beer Inventory";$("inventoryWorkSubtitle").textContent=cat==="liquor"?"Manage all liquor brands and bottle sizes":"Manage beer brands and quantities";showPage("inventoryWork");drawProducts();if($("manualPurchaseDate")&&!$("manualPurchaseDate").value)$("manualPurchaseDate").value=$("inventoryDate").value||today();if($("manualPurchaseRows")&&!$("manualPurchaseRows").querySelector(".mp-product"))manualPurchaseAddRow();if($("dayCounterDate")){$("dayCounterDate").value=$("inventoryDate").value||dateBack(0);loadInventoryDayCounter()}loadInventoryExpenses()}
+    function setCategory(cat){$("cat").value=cat;if($("addLiquorProductPanel"))$("addLiquorProductPanel").style.display=cat==="liquor"?"block":"none";if($("addBeerProductPanel"))$("addBeerProductPanel").style.display=cat==="beer"?"block":"none";if($("whCategory"))$("whCategory").value=cat;$("search").value="";$("inventoryWorkTitle").textContent=cat==="liquor"?"Liquor Inventory":"Beer Inventory";$("inventoryWorkSubtitle").textContent=cat==="liquor"?"Manage all liquor brands and bottle sizes":"Manage beer brands and quantities";showPage("inventoryWork");drawProducts();if($("dayCounterDate")){$("dayCounterDate").value=$("inventoryDate").value||dateBack(0);loadInventoryDayCounter()}loadInventoryExpenses()}
     async function loadProducts(){
       setMsg("dashMsg","Loading inventory from cloud…");
       const {data,error}=await db.from("inventory_products")
@@ -1741,10 +1720,11 @@
         const inputs=(arr,prefix,label)=>map.map((x,k)=>{
           if(!x)return "<td>—</td>";
           if(prefix==="reg_purchase"){
-            const received=num(inventoryPurchased[String(x.id)]);
-            const invoiceQty=num(inventoryInvoicePurchased[String(x.id)]);
-            const source=invoiceQty>0?`<small style="display:block;color:#075985;font-weight:800">FL2 Auto Received: ${invoiceQty.toLocaleString("en-IN")}</small>`:"<small style='display:block;color:#64748b'>No invoice received</small>";
-            return `<td class="calc" title="Purchase is read-only. Add invoices in FL2 to Shop."><strong>${received.toLocaleString("en-IN")}</strong>${source}</td>`;
+            const id=String(x.id);
+            const received=num(inventoryPurchased[id]);
+            const manualQty=num(inventoryManualCurrent[id]?.purchase);
+            const invoiceQty=num(inventoryInvoicePurchased[id]);
+            return `<td class="calc purchase-entry-cell" data-product-id="${safe(id)}"><input class="inventory-purchase-input" aria-label="${safe(g.name)} ${sizes[k]} purchase quantity" id="reg_purchase_${safe(id)}" type="number" min="0" step="1" inputmode="numeric" value="${manualQty}" oninput="recalculateInventoryLive()" onkeydown="inventoryEnterNext(event)" title="Yahin purchase bottle quantity enter karein; wholesale aur MRP values saved rate master se auto calculate hongi."><small class="purchase-auto-detail" data-purchase-detail="${safe(id)}">FL2: ${invoiceQty.toLocaleString("en-IN")} · Total: ${received.toLocaleString("en-IN")}</small><small class="purchase-rate-detail" data-purchase-rate="${safe(id)}"></small></td>`;
           }
           return `<td><input aria-label="${safe(g.name)} ${sizes[k]} ${label}" id="${prefix}_${safe(x.id)}" type="number" min="0" step=".01" value="${arr[k]}" ${prefix==="opening"&&($("inventoryDate").value||STOCK_START_DATE)!==STOCK_START_DATE?"readonly title='Auto carried forward from previous day'":"oninput='recalculateInventoryLive()' onkeydown='inventoryEnterNext(event)'"}></td>`;
         }).join("");
@@ -1760,7 +1740,8 @@
         for(const [k,n] of Object.entries({opening,purchase,sale,available,closing,openingValue,saleValue,stockValue,profit}))grand[k]=(grand[k]||0)+n;
         const entry=inventoryManualCurrent[String(x.id)]||{};
         const autoPurchaseQty=num(inventoryInvoicePurchased[String(x.id)]);
-        const purchaseCell=`<td class="calc" title="Purchase is read-only. Add invoices in FL2 to Shop."><strong>${purchase.toLocaleString("en-IN")}</strong>${autoPurchaseQty>0?`<small style="display:block;color:#075985;font-weight:800">FL2 Auto Received: ${autoPurchaseQty.toLocaleString("en-IN")}</small>`:"<small style='display:block;color:#64748b'>No invoice received</small>"}</td>`;
+        const manualPurchaseQty=num(inventoryManualCurrent[String(x.id)]?.purchase);
+        const purchaseCell=`<td class="calc purchase-entry-cell" data-product-id="${safe(String(x.id))}"><input class="inventory-purchase-input" aria-label="${safe(x.brand_name)} ${safe(x.size||"")} purchase quantity" id="reg_purchase_${safe(x.id)}" type="number" min="0" step="1" inputmode="numeric" value="${manualPurchaseQty}" oninput="recalculateInventoryLive()" onkeydown="inventoryEnterNext(event)" title="Yahin purchase bottle quantity enter karein; wholesale aur MRP values saved rate master se auto calculate hongi."><small class="purchase-auto-detail" data-purchase-detail="${safe(String(x.id))}">FL2: ${autoPurchaseQty.toLocaleString("en-IN")} · Total: ${purchase.toLocaleString("en-IN")}</small><small class="purchase-rate-detail" data-purchase-rate="${safe(String(x.id))}"></small></td>`;
         B.push(`<tr data-order-key="${safe(String(x.id))}"><td><span class="inventory-drag-handle" title="Drag to reorder">⠿</span> ${idx+1}</td><td class="beer-brand">${safe(cleanBeerBrandName(x.brand_name))}${x.size?" - "+safe(x.size):""} <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='editInventoryBrand([${JSON.stringify(String(x.id))}])'>Edit name/rates</button> <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='hideInventoryBrand(getInventoryBrandProductIds("beer",${JSON.stringify(x.brand_name)}),${JSON.stringify(x.brand_name)})'>Hide</button></td><td><input id="opening_${safe(x.id)}" type="number" min="0" step=".01" value="${opening}" ${($("inventoryDate").value||STOCK_START_DATE)!==STOCK_START_DATE?"readonly title='Auto carried forward from previous day'":"oninput='recalculateInventoryLive()' onkeydown='inventoryEnterNext(event)'"}></td><td class="calc">${money(openingValue)}</td>${purchaseCell}<td><input id="reg_sale_${safe(x.id)}" type="number" min="0" step=".01" value="${num(entry.sale)}" oninput="recalculateInventoryLive()" onkeydown="inventoryEnterNext(event)"></td><td class="calc">${money(saleValue)}</td><td class="calc">${closing}</td><td class="value">${money(stockValue)}</td><td class="value">${money(profit)}</td></tr>`);
       });
       if(beer.length)B.push(`<tr class="inventory-subtotal-row"><td colspan="2">TOTAL BEER</td><td>${bt.o}</td><td>${money(bt.ov)}</td><td>${bt.p}</td><td>${bt.s}</td><td>${money(bt.sv)}</td><td>${bt.c}</td><td>${money(bt.cv)}</td><td>${money(bt.profit)}</td></tr>`);
@@ -1983,6 +1964,10 @@
         const sale=Math.max(0,(inventorySold[id]||0)-num(manual.sale))+currentSale;
         const total=opening+purchase,balance=total-sale;
         current[id]={opening,purchase,sale,total,balance,openingValue:opening*inventoryRate(p).mrp,saleValue:sale*inventoryRate(p).mrp,stockValue:balance*inventoryRate(p).wholesale_price,profit:sale*(inventoryRate(p).mrp-inventoryRate(p).wholesale_base)};
+        const purchaseDetail=document.querySelector(`[data-purchase-detail="${CSS.escape(id)}"]`);
+        if(purchaseDetail){const invoiceQty=num(inventoryInvoicePurchased[id]);purchaseDetail.textContent=`FL2: ${invoiceQty.toLocaleString("en-IN")} · Total: ${purchase.toLocaleString("en-IN")}`;}
+        const rateDetail=document.querySelector(`[data-purchase-rate="${CSS.escape(id)}"]`);
+        if(rateDetail){const rate=inventoryRate(p);rateDetail.textContent=`WS ₹${money(rate.wholesale_base)} · TCS ₹${money(rate.tcs_amount)} · MRP ₹${money(rate.mrp)} · Cost ₹${money(purchase*rate.wholesale_base)}`;}
       }
       const allGroups=orderedBrandGroups(products.filter(x=>String(x.category).toLowerCase()==="liquor"));
       const renderedLiquorKeys=new Set([...document.querySelectorAll("#liquorInventoryRows tr[data-order-key]")].map(tr=>tr.dataset.orderKey));
@@ -4810,82 +4795,6 @@
      });
      const el=$("stockInTotals");if(el)el.textContent=`${count} products · ${qty} bottles · ${money(value)}`;
     }
-
-    // Manual inventory purchase: uses the existing purchase_invoices / purchase_items
-    // pathway through the authenticated RPC. It does not touch opening stock or FL2 passes.
-    function manualPurchaseProductOptions(selectedId=""){
-     const category=$("cat")?.value||"all";
-     const rows=(products||[]).filter(p=>category==="all"||String(p.category||"").toLowerCase()===category);
-     return '<option value="">Select product…</option>'+rows.map(p=>{
-      const label=`${p.brand_name||"Unnamed"}${p.size?" · "+p.size:""} · ${String(p.category||"").toUpperCase()}`;
-      return `<option value="${safe(p.id)}"${String(p.id)===String(selectedId)?" selected":""}>${safe(label)}</option>`;
-     }).join("");
-    }
-    function manualPurchaseAddRow(){
-     const body=$("manualPurchaseRows");if(!body)return;
-     if(body.querySelector(".empty"))body.innerHTML="";
-     const tr=document.createElement("tr");
-     tr.innerHTML=`<td><select class="mp-product" aria-label="Purchase product">${manualPurchaseProductOptions()}</select></td>
-      <td><input class="mp-qty" type="number" min="1" step="1" inputmode="numeric" placeholder="0" oninput="manualPurchaseUpdateTotals()"></td>
-      <td><input class="mp-rate" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0.00" oninput="manualPurchaseUpdateTotals()"></td>
-      <td class="mp-line-total">₹0.00</td>
-      <td><button class="btn danger" type="button" onclick="manualPurchaseRemoveRow(this)">Remove</button></td>`;
-     body.appendChild(tr);
-     manualPurchaseUpdateTotals();
-    }
-    function manualPurchaseRemoveRow(button){
-     const body=$("manualPurchaseRows");button?.closest("tr")?.remove();
-     if(body&&!body.querySelector("tr"))body.innerHTML='<tr><td colspan="5" class="empty">Add a product to begin.</td></tr>';
-     manualPurchaseUpdateTotals();
-    }
-    function manualPurchaseUpdateTotals(){
-     let bottles=0,value=0;
-     document.querySelectorAll("#manualPurchaseRows tr").forEach(row=>{
-      const qty=Number(row.querySelector(".mp-qty")?.value||0);
-      const rate=Number(row.querySelector(".mp-rate")?.value||0);
-      const line=qty*rate;bottles+=qty;value+=line;
-      const cell=row.querySelector(".mp-line-total");if(cell)cell.textContent=money(line);
-     });
-     if($("manualPurchaseBottleTotal"))$("manualPurchaseBottleTotal").textContent=String(bottles);
-     if($("manualPurchaseValueTotal"))$("manualPurchaseValueTotal").textContent=money(value);
-    }
-    async function manualPurchaseSave(){
-     const btn=$("manualPurchaseSaveBtn");if(!btn||btn.disabled)return;
-     const invoiceNo=$("manualPurchaseInvoiceNo").value.trim();
-     const invoiceDate=$("manualPurchaseDate").value;
-     const supplier=$("manualPurchaseSupplier").value.trim();
-     const rows=[...document.querySelectorAll("#manualPurchaseRows tr")].filter(r=>r.querySelector(".mp-product")).map(row=>({
-      product_id:row.querySelector(".mp-product").value,
-      quantity:Number(row.querySelector(".mp-qty").value||0),
-      purchase_rate:Number(row.querySelector(".mp-rate").value||0)
-     }));
-     if(!invoiceDate||invoiceDate<STOCK_START_DATE){setMsg("manualPurchaseMsg","Purchase date 02 November 2026 ya uske baad ki honi chahiye.");return;}
-     if(!invoiceNo){setMsg("manualPurchaseMsg","Invoice / Reference Number bharna zaroori hai.");return;}
-     if(!supplier){setMsg("manualPurchaseMsg","Supplier Name bharna zaroori hai.");return;}
-     if(!rows.length||rows.some(x=>!x.product_id||!Number.isInteger(x.quantity)||x.quantity<1||!Number.isFinite(x.purchase_rate)||x.purchase_rate<=0)){
-      setMsg("manualPurchaseMsg","Har product row mein product, whole bottle quantity aur purchase rate per bottle bharna zaroori hai.");return;
-     }
-     const payload={invoice_number:invoiceNo,invoice_date:invoiceDate,supplier_name:supplier};
-     try{
-      btn.disabled=true;btn.classList.add("saving");btn.textContent="Saving Purchase…";
-      setMsg("manualPurchaseMsg","Manual purchase securely save ho rahi hai…");
-      const {data,error}=await db.rpc("inventory_manual_purchase_save",{p_invoice:payload,p_items:rows});
-      if(error)throw error;
-      if(!data?.success)throw new Error(data?.message||"Purchase save confirmation missing.");
-      setMsg("manualPurchaseMsg",`Purchase saved ✓ Invoice ${data.invoice_number||invoiceNo} · ${data.total_bottles??rows.reduce((a,x)=>a+x.quantity,0)} bottles · ${money(data.total_purchase_value??rows.reduce((a,x)=>a+x.quantity*x.purchase_rate,0))}. Inventory refresh ho rahi hai.`);
-      $("manualPurchaseRows").innerHTML='<tr><td colspan="5" class="empty">Add a product to begin.</td></tr>';
-      $("manualPurchaseInvoiceNo").value="";$("manualPurchaseSupplier").value="";
-      manualPurchaseUpdateTotals();
-      await loadProducts();
-      await refresh();
-     }catch(e){
-      setMsg("manualPurchaseMsg","Manual purchase save failed: "+(e.message||String(e)));
-      console.error("Manual purchase:",e);
-     }finally{
-      btn.disabled=false;btn.classList.remove("saving");btn.textContent="Save Manual Purchase";
-     }
-    }
-
     async function stockInSave(){
      const btn=$("stockInSaveBtn");if(btn?.disabled)return;
      const passNo=$("stockInPassNumber").value.trim(),passDate=$("stockInDate").value,supplier=$("stockInSupplier").value.trim();
