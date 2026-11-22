@@ -3366,7 +3366,9 @@
         while(state.cursor<state.arr.length && state.arr[state.cursor].date<reportDate){
          state.balance+=state.arr[state.cursor].net;state.cursor++;
         }
-        const qty=Math.max(0,state.balance);if(qty<=0)continue;
+        // Preserve negative opening balances so report totals reconcile with Inventory.
+        const qty=state.balance;
+        if(Math.abs(qty)<0.000001)continue;
         const rate=inventoryRate(p),category=String(p.category||"").toLowerCase();
         const row={category,brand:p.brand_name||"Product",size:p.size||"Other",qty,mrp:qty*rate.mrp};
         daily.get(reportDate).openingProducts.set(key,row);
@@ -4279,8 +4281,9 @@
       const opening=num(day.openingProducts.get(id)?.qty);
       const purchased=num(day.purchaseProducts.get(id)?.qty);
       const sold=num(day.products.get(id)?.qty);
+      // Keep negative balances in the report calculation; do not silently discard them.
       const qty=opening+purchased-sold;
-      if(qty<=0)continue;
+      if(Math.abs(qty)<0.000001)continue;
       const rate=inventoryRate(p),mrp=qty*num(rate.mrp);
       closingByProduct.set(id,{category,size:String(p.size||"Other"),qty,mrp});
      }
