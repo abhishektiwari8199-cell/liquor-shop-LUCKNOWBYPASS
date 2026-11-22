@@ -719,6 +719,35 @@
        <label class="span2">Search brand<input id="search" oninput="drawProducts()" placeholder="Search brand name…"></label>
        <div style="display:flex;align-items:end"><button class="btn" type="button" onclick="applyInventoryFilters()">Apply filters</button></div>
       </div></div>
+
+      <div class="panel glass" id="manualPurchasePanel">
+       <div class="section-head" style="margin-top:0">
+        <div><h3>Manual Purchase Entry</h3><p>Supplier invoice ke hisaab se purchase add karein. Transport Pass / FL2 Stock In ka flow alag aur unchanged rahega.</p></div>
+        <span class="tag">INVENTORY PURCHASE</span>
+       </div>
+       <div class="form-grid">
+        <label>Purchase Date<input id="manualPurchaseDate" type="date" min="2026-11-02"></label>
+        <label>Invoice / Reference No.<input id="manualPurchaseInvoiceNo" type="text" maxlength="80" placeholder="Enter supplier invoice number"></label>
+        <label class="span2">Supplier Name<input id="manualPurchaseSupplier" type="text" maxlength="160" placeholder="Supplier / party name"></label>
+       </div>
+       <div class="toolbar" style="margin:16px 0 8px">
+        <b>Purchase Products</b>
+        <button class="btn secondary" type="button" onclick="manualPurchaseAddRow()">＋ Add Product</button>
+       </div>
+       <div class="table-wrap">
+        <table style="min-width:850px">
+         <thead><tr><th style="min-width:280px">Product / Brand</th><th>Qty (Bottles)</th><th>Purchase Rate / Bottle (₹)</th><th>Line Total (₹)</th><th>Action</th></tr></thead>
+         <tbody id="manualPurchaseRows"><tr><td colspan="5" class="empty">Add a product to begin.</td></tr></tbody>
+        </table>
+       </div>
+       <div class="total-line"><span>Total Bottles: <strong id="manualPurchaseBottleTotal">0</strong></span><span>Purchase Total: <strong id="manualPurchaseValueTotal">₹0.00</strong></span></div>
+       <div class="row" style="align-items:center">
+        <button class="btn" id="manualPurchaseSaveBtn" type="button" onclick="manualPurchaseSave()">Save Manual Purchase</button>
+        <span class="muted" style="font-size:11px">Saved purchase automatically reflects in Inventory purchase and stock calculations.</span>
+       </div>
+       <div class="status" id="manualPurchaseMsg" role="status" aria-live="polite">Manual purchase entries are saved as purchase invoices. Existing opening stock and historical records are not overwritten.</div>
+      </div>
+
       <div class="toolbar" style="margin:12px 0"><span class="muted" id="stockSummary">Select a date to view stock.</span><button class="btn secondary" type="button" onclick="downloadActiveInventoryReport()">↓ Download Active Stock PDF</button><button class="btn" type="button" onclick="saveFinalInventory(this)">Final Save — Save All Inventory</button></div>
       <div class="status">Important: Inventory ke Sale column ko ek baar Final Save karein. Ye entry Sales History, Overview aur Daybook mein automatically dikhegi.</div>
       <div class="status" id="inventoryDateStatus">02 Nov 2026 ka original opening stock base hai. Har agle din ka Opening Qty pichhle din ke closing balance se automatically carry forward hota hai; selected date ki purchase aur sale alag dikhte hain.</div>
@@ -1262,7 +1291,7 @@
      if(id==="cashSalePos"){posPopulateBarcodeProducts();posLoadRecent();posLoadSaleSummary();posLoadDailySaleEntry();setTimeout(()=>$("posBarcodeInput")?.focus(),80)}
      if(id==="purchaseRequirements"){stockShopProductOptions();stockShopRefresh();loadPurchaseRequirements()}if(id==="history"){if(!$("saleFrom").value)$("saleFrom").value=dateBack(29);if(!$("saleTo").value)$("saleTo").value=today();loadSalesHistoryFast()}if(id==="fl2"){fl2Tab("home");fl2FillBrands();fl2FillFilterBrands()}if(id==="profit"){setProfitPeriod();loadProfitReport()}if(id==="cash"){if($("daybookDate"))$("daybookDate").value=$("inventoryDate")?.value||today();loadDaybook()}
     }
-    function setCategory(cat){$("cat").value=cat;if($("addLiquorProductPanel"))$("addLiquorProductPanel").style.display=cat==="liquor"?"block":"none";if($("addBeerProductPanel"))$("addBeerProductPanel").style.display=cat==="beer"?"block":"none";if($("whCategory"))$("whCategory").value=cat;$("search").value="";$("inventoryWorkTitle").textContent=cat==="liquor"?"Liquor Inventory":"Beer Inventory";$("inventoryWorkSubtitle").textContent=cat==="liquor"?"Manage all liquor brands and bottle sizes":"Manage beer brands and quantities";showPage("inventoryWork");drawProducts();if($("dayCounterDate")){$("dayCounterDate").value=$("inventoryDate").value||dateBack(0);loadInventoryDayCounter()}loadInventoryExpenses()}
+    function setCategory(cat){$("cat").value=cat;if($("addLiquorProductPanel"))$("addLiquorProductPanel").style.display=cat==="liquor"?"block":"none";if($("addBeerProductPanel"))$("addBeerProductPanel").style.display=cat==="beer"?"block":"none";if($("whCategory"))$("whCategory").value=cat;$("search").value="";$("inventoryWorkTitle").textContent=cat==="liquor"?"Liquor Inventory":"Beer Inventory";$("inventoryWorkSubtitle").textContent=cat==="liquor"?"Manage all liquor brands and bottle sizes":"Manage beer brands and quantities";showPage("inventoryWork");drawProducts();if($("manualPurchaseDate")&&!$("manualPurchaseDate").value)$("manualPurchaseDate").value=$("inventoryDate").value||today();if($("manualPurchaseRows")&&!$("manualPurchaseRows").querySelector(".mp-product"))manualPurchaseAddRow();if($("dayCounterDate")){$("dayCounterDate").value=$("inventoryDate").value||dateBack(0);loadInventoryDayCounter()}loadInventoryExpenses()}
     async function loadProducts(){
       setMsg("dashMsg","Loading inventory from cloud…");
       const {data,error}=await db.from("inventory_products")
@@ -4781,6 +4810,82 @@
      });
      const el=$("stockInTotals");if(el)el.textContent=`${count} products · ${qty} bottles · ${money(value)}`;
     }
+
+    // Manual inventory purchase: uses the existing purchase_invoices / purchase_items
+    // pathway through the authenticated RPC. It does not touch opening stock or FL2 passes.
+    function manualPurchaseProductOptions(selectedId=""){
+     const category=$("cat")?.value||"all";
+     const rows=(products||[]).filter(p=>category==="all"||String(p.category||"").toLowerCase()===category);
+     return '<option value="">Select product…</option>'+rows.map(p=>{
+      const label=`${p.brand_name||"Unnamed"}${p.size?" · "+p.size:""} · ${String(p.category||"").toUpperCase()}`;
+      return `<option value="${safe(p.id)}"${String(p.id)===String(selectedId)?" selected":""}>${safe(label)}</option>`;
+     }).join("");
+    }
+    function manualPurchaseAddRow(){
+     const body=$("manualPurchaseRows");if(!body)return;
+     if(body.querySelector(".empty"))body.innerHTML="";
+     const tr=document.createElement("tr");
+     tr.innerHTML=`<td><select class="mp-product" aria-label="Purchase product">${manualPurchaseProductOptions()}</select></td>
+      <td><input class="mp-qty" type="number" min="1" step="1" inputmode="numeric" placeholder="0" oninput="manualPurchaseUpdateTotals()"></td>
+      <td><input class="mp-rate" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0.00" oninput="manualPurchaseUpdateTotals()"></td>
+      <td class="mp-line-total">₹0.00</td>
+      <td><button class="btn danger" type="button" onclick="manualPurchaseRemoveRow(this)">Remove</button></td>`;
+     body.appendChild(tr);
+     manualPurchaseUpdateTotals();
+    }
+    function manualPurchaseRemoveRow(button){
+     const body=$("manualPurchaseRows");button?.closest("tr")?.remove();
+     if(body&&!body.querySelector("tr"))body.innerHTML='<tr><td colspan="5" class="empty">Add a product to begin.</td></tr>';
+     manualPurchaseUpdateTotals();
+    }
+    function manualPurchaseUpdateTotals(){
+     let bottles=0,value=0;
+     document.querySelectorAll("#manualPurchaseRows tr").forEach(row=>{
+      const qty=Number(row.querySelector(".mp-qty")?.value||0);
+      const rate=Number(row.querySelector(".mp-rate")?.value||0);
+      const line=qty*rate;bottles+=qty;value+=line;
+      const cell=row.querySelector(".mp-line-total");if(cell)cell.textContent=money(line);
+     });
+     if($("manualPurchaseBottleTotal"))$("manualPurchaseBottleTotal").textContent=String(bottles);
+     if($("manualPurchaseValueTotal"))$("manualPurchaseValueTotal").textContent=money(value);
+    }
+    async function manualPurchaseSave(){
+     const btn=$("manualPurchaseSaveBtn");if(!btn||btn.disabled)return;
+     const invoiceNo=$("manualPurchaseInvoiceNo").value.trim();
+     const invoiceDate=$("manualPurchaseDate").value;
+     const supplier=$("manualPurchaseSupplier").value.trim();
+     const rows=[...document.querySelectorAll("#manualPurchaseRows tr")].filter(r=>r.querySelector(".mp-product")).map(row=>({
+      product_id:row.querySelector(".mp-product").value,
+      quantity:Number(row.querySelector(".mp-qty").value||0),
+      purchase_rate:Number(row.querySelector(".mp-rate").value||0)
+     }));
+     if(!invoiceDate||invoiceDate<STOCK_START_DATE){setMsg("manualPurchaseMsg","Purchase date 02 November 2026 ya uske baad ki honi chahiye.");return;}
+     if(!invoiceNo){setMsg("manualPurchaseMsg","Invoice / Reference Number bharna zaroori hai.");return;}
+     if(!supplier){setMsg("manualPurchaseMsg","Supplier Name bharna zaroori hai.");return;}
+     if(!rows.length||rows.some(x=>!x.product_id||!Number.isInteger(x.quantity)||x.quantity<1||!Number.isFinite(x.purchase_rate)||x.purchase_rate<=0)){
+      setMsg("manualPurchaseMsg","Har product row mein product, whole bottle quantity aur purchase rate per bottle bharna zaroori hai.");return;
+     }
+     const payload={invoice_number:invoiceNo,invoice_date:invoiceDate,supplier_name:supplier};
+     try{
+      btn.disabled=true;btn.classList.add("saving");btn.textContent="Saving Purchase…";
+      setMsg("manualPurchaseMsg","Manual purchase securely save ho rahi hai…");
+      const {data,error}=await db.rpc("inventory_manual_purchase_save",{p_invoice:payload,p_items:rows});
+      if(error)throw error;
+      if(!data?.success)throw new Error(data?.message||"Purchase save confirmation missing.");
+      setMsg("manualPurchaseMsg",`Purchase saved ✓ Invoice ${data.invoice_number||invoiceNo} · ${data.total_bottles??rows.reduce((a,x)=>a+x.quantity,0)} bottles · ${money(data.total_purchase_value??rows.reduce((a,x)=>a+x.quantity*x.purchase_rate,0))}. Inventory refresh ho rahi hai.`);
+      $("manualPurchaseRows").innerHTML='<tr><td colspan="5" class="empty">Add a product to begin.</td></tr>';
+      $("manualPurchaseInvoiceNo").value="";$("manualPurchaseSupplier").value="";
+      manualPurchaseUpdateTotals();
+      await loadProducts();
+      await refresh();
+     }catch(e){
+      setMsg("manualPurchaseMsg","Manual purchase save failed: "+(e.message||String(e)));
+      console.error("Manual purchase:",e);
+     }finally{
+      btn.disabled=false;btn.classList.remove("saving");btn.textContent="Save Manual Purchase";
+     }
+    }
+
     async function stockInSave(){
      const btn=$("stockInSaveBtn");if(btn?.disabled)return;
      const passNo=$("stockInPassNumber").value.trim(),passDate=$("stockInDate").value,supplier=$("stockInSupplier").value.trim();
