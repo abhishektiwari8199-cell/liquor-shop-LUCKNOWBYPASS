@@ -4171,10 +4171,15 @@
      if(purchaseHeadersResult.error)throw purchaseHeadersResult.error;
      const purchaseIds=(purchaseHeadersResult.data||[]).map(x=>x.id).filter(Boolean);
      const invoicePurchaseRows=purchaseIds.length?await fetchInventoryItems("purchase_items","invoice_id,product_id,quantity,purchase_rate","invoice_id",purchaseIds):[];
-     const purchaseByProduct=new Map();
-     const addPurchase=(pid,qty)=>{const key=String(pid);purchaseByProduct.set(key,(purchaseByProduct.get(key)||0)+num(qty));};
-     for(const row of invoicePurchaseRows)addPurchase(row.product_id,row.quantity);
-     for(const row of registerPurchaseRows)addPurchase(row.product_id,row.purchase_qty);
+     const purchaseByProduct=new Map(),purchaseDetailsByProduct=new Map(),productById=new Map(products.map(p=>[String(p.id),p]));
+     const addPurchase=(pid,qty,baseRate,tcsPct,tcsAmount,totalAmount)=>{
+      const key=String(pid),p=productById.get(key),rate=inventoryRate(p),q=num(qty),base=num(baseRate??rate.wholesale_base),pct=num(tcsPct??rate.tcs_percent??2),tcs=tcsAmount==null?q*base*pct/100:num(tcsAmount),total=totalAmount==null?q*base+tcs:num(totalAmount);
+      purchaseByProduct.set(key,(purchaseByProduct.get(key)||0)+q);
+      const d=purchaseDetailsByProduct.get(key)||{qty:0,wholesale:0,tcs:0,total:0};
+      d.qty+=q;d.wholesale+=q*base;d.tcs+=tcs;d.total+=total;purchaseDetailsByProduct.set(key,d);
+     };
+     for(const row of invoicePurchaseRows)addPurchase(row.product_id,row.quantity,row.purchase_rate);
+     for(const row of registerPurchaseRows)addPurchase(row.product_id,row.purchase_qty,row.purchase_rate_snapshot,row.purchase_tcs_percent_snapshot,row.purchase_tcs_amount_snapshot,row.purchase_total_snapshot);
      const openingByProduct=day.openingProducts||new Map(),salesByProduct=day.products||new Map();
      const closingProducts=new Map(),sizeTotals=new Map();
      for(const p of products){
@@ -4186,7 +4191,8 @@
       const closing=opening+purchase-sold;
       const rate=inventoryRate(p),size=String(p.size||"Other").trim()||"Other";
       if(Math.abs(opening)+Math.abs(purchase)+Math.abs(sold)+Math.abs(closing)<0.000001)continue;
-      const row={productId:id,category,brand:p.brand_name||"Product",size,opening,purchase,sold,closing,mrp:num(rate.mrp),openingMrp:opening*num(rate.mrp),purchaseMrp:purchase*num(rate.mrp),saleMrp:sold*num(rate.mrp),closingMrp:closing*num(rate.mrp)};
+      const purchaseDetail=purchaseDetailsByProduct.get(id)||{qty:0,wholesale:0,tcs:0,total:0};
+      const row={productId:id,category,brand:p.brand_name||"Product",size,opening,purchase,sold,closing,wholesale:purchaseDetail.wholesale,tcs:purchaseDetail.tcs,purchaseTotal:purchaseDetail.total,mrp:num(rate.mrp),openingMrp:opening*num(rate.mrp),purchaseMrp:purchase*num(rate.mrp),saleMrp:sold*num(rate.mrp),closingMrp:closing*num(rate.mrp)};
       closingProducts.set(id,row);
       const key=category+"|"+size,group=sizeTotals.get(key)||{category,size,opening:0,purchase:0,sold:0,closing:0,openingMrp:0,purchaseMrp:0,saleMrp:0,closingMrp:0};
       for(const field of ["opening","purchase","sold","closing","openingMrp","purchaseMrp","saleMrp","closingMrp"])group[field]+=num(row[field]);
@@ -4419,8 +4425,9 @@
      }
     }
 
-    function showSaleDaySummary(date){
+    async function showSaleDaySummary(date){
      const day=saleHistoryDailyData[date];if(!day)return;
+     let stockAudit;try{stockAudit=await buildDailyReportStock(date,day)}catch(e){alert("Report calculation failed: "+(e.message||String(e)));return;}
      $("saleDaySummaryTitle").textContent="Summary Report · "+date;
      $("sdsQty").textContent=day.totalQty.toLocaleString("en-IN",{maximumFractionDigits:2});
      $("sdsSale").textContent=money(day.saleAmount);
@@ -4436,7 +4443,7 @@
      const renderSizeRows=(cat)=>sizeTotals(cat).map(([size,x])=>`<tr><td>${safe(size)}</td><td>${x.qty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${money(x.sale)}</td></tr>`).join("")||'<tr><td colspan="3" class="empty">No sale recorded.</td></tr>';
      $("sdsLiquorSizeRows").innerHTML=renderSizeRows("liquor");$("sdsBeerSizeRows").innerHTML=renderSizeRows("beer");
      if($("sdsOpeningStockRows"))$("sdsOpeningStockRows").innerHTML=[...day.openingProducts.values()].sort((a,b)=>a.category.localeCompare(b.category)||a.size.localeCompare(b.size,undefined,{numeric:true})).map(x=>`<tr><td>${safe(x.category)}</td><td>${safe(x.brand)} ${safe(x.size)}</td><td>${x.qty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${money(x.mrp)}</td></tr>`).join("")||'<tr><td colspan="4" class="empty">No opening stock.</td></tr>';
-     $("sdsPurchaseRows").innerHTML=[...day.purchaseProducts.values()].sort((a,b)=>a.category.localeCompare(b.category)||a.brand.localeCompare(b.brand)).map(x=>`<tr><td>${safe(x.category)}</td><td>${safe(x.brand)} ${safe(x.size)}</td><td>${x.qty}</td><td>${money(x.wholesale)}</td><td>${money(x.tcs)}</td><td>${money(x.mrp)}</td><td>${money(x.total)}</td></tr>`).join("")||'<tr><td colspan="7" class="empty">No purchase record found for this date.</td></tr>';
+     $("sdsPurchaseRows").innerHTML=[...stockAudit.closingProducts.values()].filter(x=>x.purchase>0).sort((a,b)=>a.category.localeCompare(b.category)||a.brand.localeCompare(b.brand)).map(x=>`<tr><td>${safe(x.category)}</td><td>${safe(x.brand)} ${safe(x.size)}</td><td>${x.purchase}</td><td>${money(x.wholesale)}</td><td>${money(x.tcs)}</td><td>${money(x.purchaseMrp)}</td><td>${money(x.purchaseTotal)}</td></tr>`).join("")||'<tr><td colspan="7" class="empty">No purchase record found for this date.</td></tr>';
      $("sdsDepartmentRows").innerHTML=`<tr><td><b>Liquor</b></td><td>${money(day.liquorCash)}</td><td>${money(day.liquorOnline)}</td><td>${money(day.liquorExpense)}</td></tr><tr><td><b>Beer</b></td><td>${money(day.beerCash)}</td><td>${money(day.beerOnline)}</td><td>${money(day.beerExpense)}</td></tr>`;
      $("sdsDayTotals").textContent=`Cash ${money(day.registerCash||day.cashReceived)} · Online ${money(day.registerOnline||day.onlineReceived)} · Present Day Rokad ${money(day.registerRokad??day.closingRokad)} · Total Present Day Rokad ${money(day.registerRokad??day.closingRokad)}`;
      $("sdsExpenseRows").innerHTML=day.expenseRows.map(x=>`<tr><td>${safe(x.category||"—")} · ${safe(x.name)}</td><td>${safe(x.mode)}</td><td>${money(x.amount)}</td></tr>`).join("")||'<tr><td colspan="3" class="empty">No expenses recorded for this date.</td></tr>';
