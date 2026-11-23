@@ -4161,6 +4161,18 @@
     async function downloadCompleteSaleSummary(date,returnDocument=false){
      const day=saleHistoryDailyData[date];if(!day){alert("Pehle Sale Report mein date load karein.");return}
      if(!window.jspdf||!window.jspdf.jsPDF){alert("PDF library load nahi hui. Internet connection check karein.");return}
+     // Re-fetch same-day purchases directly for the PDF closing-stock calculation.
+     // This prevents a missing/stale day.purchaseProducts map from dropping invoice purchases.
+     const {data:pdfPurchaseHeaders,error:pdfPurchaseHeaderError}=await db.from("purchase_invoices").select("id").eq("user_id",user.id).eq("invoice_date",date);
+     if(pdfPurchaseHeaderError)throw pdfPurchaseHeaderError;
+     const pdfPurchaseIds=(pdfPurchaseHeaders||[]).map(x=>x.id).filter(Boolean);
+     const [pdfInvoicePurchaseItems,pdfRegisterPurchaseRows]=await Promise.all([
+      pdfPurchaseIds.length?fetchInventoryItems("purchase_items","invoice_id,product_id,quantity","invoice_id",pdfPurchaseIds):Promise.resolve([]),
+      fetchAllInventoryRows(()=>db.from("inventory_register_entries").select("product_id,purchase_qty").eq("user_id",user.id).eq("entry_date",date).gt("purchase_qty",0))
+     ]);
+     const pdfPurchaseByProduct=new Map();
+     for(const x of pdfInvoicePurchaseItems){const key=String(x.product_id);pdfPurchaseByProduct.set(key,(pdfPurchaseByProduct.get(key)||0)+num(x.quantity));}
+     for(const x of pdfRegisterPurchaseRows){const key=String(x.product_id);pdfPurchaseByProduct.set(key,(pdfPurchaseByProduct.get(key)||0)+num(x.purchase_qty));}
      const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4",compress:true});
      await applyOfficePdfStyle(doc,"Complete Daily Business Summary");
      const W=297,L=10,R=10,fmt=v=>"Rs. "+num(v).toLocaleString("en-IN",{maximumFractionDigits:0});
@@ -4304,7 +4316,7 @@
       const id=String(p.id),category=String(p.category||"").toLowerCase();
       if(category!=="liquor"&&category!=="beer")continue;
       const opening=num(day.openingProducts.get(id)?.qty);
-      const purchased=num(day.purchaseProducts.get(id)?.qty);
+      const purchased=num(pdfPurchaseByProduct.get(id));
       const sold=num(day.products.get(id)?.qty);
       // Keep negative balances in the report calculation; do not silently discard them.
       const qty=opening+purchased-sold;
