@@ -1965,8 +1965,14 @@
         map.forEach((x,k)=>{const z=x?current[String(x.id)]:null;vals.o[k]=z?.opening||0;vals.p[k]=z?.purchase||0;vals.t[k]=z?.total||0;vals.s[k]=z?.sale||0;vals.sc[k]=z?.saleValue||0;vals.b[k]=z?.balance||0;vals.v[k]=z?.stockValue||0;});
         ["o","p","t","s","sc","b","v"].forEach(key=>vals[key].forEach((n,k)=>totals[key][k]+=n));
       });
-      visibleGroups.forEach((g,idx)=>{
-        const tr=$("liquorInventoryRows")?.rows[idx];if(!tr)return;const cells=tr.cells;
+      // Match rendered liquor rows by stable brand key, never by row position.
+      // Filtering/reordering can make visibleGroups indexes differ from DOM row indexes.
+      const liquorRowByKey=new Map(
+        [...($("liquorInventoryRows")?.querySelectorAll("tr[data-order-key]")||[])]
+          .map(tr=>[String(tr.dataset.orderKey),tr])
+      );
+      visibleGroups.forEach(g=>{
+        const tr=liquorRowByKey.get(brandKey(g.name));if(!tr)return;const cells=tr.cells;
         const map=[null,null,null,null];g.products.forEach(x=>{const k=sizeIndex(x.size);if(k>=0)map[k]=x;});
         const vals={t:[],sc:[],b:[],v:[]};
         map.forEach((x,k)=>{const z=x?current[String(x.id)]:null;vals.t[k]=z?.total||0;vals.sc[k]=z?.saleValue||0;vals.b[k]=z?.balance||0;vals.v[k]=z?.stockValue||0;});
