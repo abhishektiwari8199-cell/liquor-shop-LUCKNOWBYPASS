@@ -4158,21 +4158,52 @@
     }
 
 
+    // Single stock-calculation engine used by every generated daily PDF.
+    // Inventory rule: opening = configured opening + all prior invoice/register purchases
+    // - all prior POS/register sales; closing = opening + today's invoice/register purchases
+    // - today's POS/register sales. No clamping: negative balances remain visible for audit.
+    async function buildDailyReportStock(date,day){
+     if(!db||!user)throw new Error("Login session missing; report cannot be generated.");
+     const [purchaseHeadersResult,registerPurchaseRows]=await Promise.all([
+      db.from("purchase_invoices").select("id").eq("user_id",user.id).eq("invoice_date",date),
+      fetchAllInventoryRows(()=>db.from("inventory_register_entries").select("product_id,purchase_qty,purchase_rate_snapshot,purchase_tcs_percent_snapshot,purchase_tcs_amount_snapshot,purchase_total_snapshot").eq("user_id",user.id).eq("entry_date",date).gt("purchase_qty",0))
+     ]);
+     if(purchaseHeadersResult.error)throw purchaseHeadersResult.error;
+     const purchaseIds=(purchaseHeadersResult.data||[]).map(x=>x.id).filter(Boolean);
+     const invoicePurchaseRows=purchaseIds.length?await fetchInventoryItems("purchase_items","invoice_id,product_id,quantity,purchase_rate","invoice_id",purchaseIds):[];
+     const purchaseByProduct=new Map();
+     const addPurchase=(pid,qty)=>{const key=String(pid);purchaseByProduct.set(key,(purchaseByProduct.get(key)||0)+num(qty));};
+     for(const row of invoicePurchaseRows)addPurchase(row.product_id,row.quantity);
+     for(const row of registerPurchaseRows)addPurchase(row.product_id,row.purchase_qty);
+     const openingByProduct=day.openingProducts||new Map(),salesByProduct=day.products||new Map();
+     const closingProducts=new Map(),sizeTotals=new Map();
+     for(const p of products){
+      const id=String(p.id),category=String(p.category||"").toLowerCase();
+      if(category!=="liquor"&&category!=="beer")continue;
+      const opening=num(openingByProduct.get(id)?.qty);
+      const purchase=num(purchaseByProduct.get(id));
+      const sold=num(salesByProduct.get(id)?.qty);
+      const closing=opening+purchase-sold;
+      const rate=inventoryRate(p),size=String(p.size||"Other").trim()||"Other";
+      if(Math.abs(opening)+Math.abs(purchase)+Math.abs(sold)+Math.abs(closing)<0.000001)continue;
+      const row={productId:id,category,brand:p.brand_name||"Product",size,opening,purchase,sold,closing,mrp:num(rate.mrp),openingMrp:opening*num(rate.mrp),purchaseMrp:purchase*num(rate.mrp),saleMrp:sold*num(rate.mrp),closingMrp:closing*num(rate.mrp)};
+      closingProducts.set(id,row);
+      const key=category+"|"+size,group=sizeTotals.get(key)||{category,size,opening:0,purchase:0,sold:0,closing:0,openingMrp:0,purchaseMrp:0,saleMrp:0,closingMrp:0};
+      for(const field of ["opening","purchase","sold","closing","openingMrp","purchaseMrp","saleMrp","closingMrp"])group[field]+=num(row[field]);
+      sizeTotals.set(key,group);
+     }
+     const rows=[...sizeTotals.values()].sort((a,b)=>a.category.localeCompare(b.category)||a.size.localeCompare(b.size,undefined,{numeric:true}));
+     const totals={liquor:{opening:0,purchase:0,sold:0,closing:0,openingMrp:0,purchaseMrp:0,saleMrp:0,closingMrp:0},beer:{opening:0,purchase:0,sold:0,closing:0,openingMrp:0,purchaseMrp:0,saleMrp:0,closingMrp:0}};
+     for(const row of rows)for(const field of Object.keys(totals[row.category]))totals[row.category][field]+=num(row[field]);
+     const audit={date,rows,totals,closingProducts,purchaseInvoiceCount:purchaseIds.length,purchaseInvoiceItemRows:invoicePurchaseRows.length,registerPurchaseRows:registerPurchaseRows.length};
+     day.reportStockAudit=audit;
+     return audit;
+    }
+
     async function downloadCompleteSaleSummary(date,returnDocument=false){
      const day=saleHistoryDailyData[date];if(!day){alert("Pehle Sale Report mein date load karein.");return}
      if(!window.jspdf||!window.jspdf.jsPDF){alert("PDF library load nahi hui. Internet connection check karein.");return}
-     // Re-fetch same-day purchases directly for the PDF closing-stock calculation.
-     // This prevents a missing/stale day.purchaseProducts map from dropping invoice purchases.
-     const {data:pdfPurchaseHeaders,error:pdfPurchaseHeaderError}=await db.from("purchase_invoices").select("id").eq("user_id",user.id).eq("invoice_date",date);
-     if(pdfPurchaseHeaderError)throw pdfPurchaseHeaderError;
-     const pdfPurchaseIds=(pdfPurchaseHeaders||[]).map(x=>x.id).filter(Boolean);
-     const [pdfInvoicePurchaseItems,pdfRegisterPurchaseRows]=await Promise.all([
-      pdfPurchaseIds.length?fetchInventoryItems("purchase_items","invoice_id,product_id,quantity","invoice_id",pdfPurchaseIds):Promise.resolve([]),
-      fetchAllInventoryRows(()=>db.from("inventory_register_entries").select("product_id,purchase_qty").eq("user_id",user.id).eq("entry_date",date).gt("purchase_qty",0))
-     ]);
-     const pdfPurchaseByProduct=new Map();
-     for(const x of pdfInvoicePurchaseItems){const key=String(x.product_id);pdfPurchaseByProduct.set(key,(pdfPurchaseByProduct.get(key)||0)+num(x.quantity));}
-     for(const x of pdfRegisterPurchaseRows){const key=String(x.product_id);pdfPurchaseByProduct.set(key,(pdfPurchaseByProduct.get(key)||0)+num(x.purchase_qty));}
+     const stockAudit=await buildDailyReportStock(date,day);
      const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4",compress:true});
      await applyOfficePdfStyle(doc,"Complete Daily Business Summary");
      const W=297,L=10,R=10,fmt=v=>"Rs. "+num(v).toLocaleString("en-IN",{maximumFractionDigits:0});
@@ -4311,19 +4342,7 @@
      // Closing balance stock = same report-date opening + all same-day invoice/register purchases
      // minus all same-day POS/register sales. These inputs now mirror Inventory's source aggregation.
      // Display only; this calculation does not update the inventory ledger.
-     const closingByProduct=new Map();
-     for(const p of products){
-      const id=String(p.id),category=String(p.category||"").toLowerCase();
-      if(category!=="liquor"&&category!=="beer")continue;
-      const opening=num(day.openingProducts.get(id)?.qty);
-      const purchased=num(pdfPurchaseByProduct.get(id));
-      const sold=num(day.products.get(id)?.qty);
-      // Keep negative balances in the report calculation; do not silently discard them.
-      const qty=opening+purchased-sold;
-      if(Math.abs(qty)<0.000001)continue;
-      const rate=inventoryRate(p),mrp=qty*num(rate.mrp);
-      closingByProduct.set(id,{category,size:String(p.size||"Other"),qty,mrp});
-     }
+     const closingByProduct=new Map([...stockAudit.closingProducts.entries()].map(([id,row])=>[id,{category:row.category,size:row.size,qty:row.closing,mrp:row.closingMrp}]));
      const liquorClosing=new Map(),beerClosing={bottle:{qty:0,mrp:0},can:{qty:0,mrp:0}};
      for(const row of closingByProduct.values()){
       if(row.category==="liquor"){
