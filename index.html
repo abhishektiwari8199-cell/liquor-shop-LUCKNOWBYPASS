@@ -1214,21 +1214,45 @@
     function safe(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
     function initDb(){if(!window.supabase)throw new Error("Supabase library could not load. Check internet connection and refresh.");if(!db)db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);return db}
     async function login(){
-     const b=$("loginBtn");b.disabled=true;b.textContent="Signing in…";
+     const b=$("loginBtn");if(b){b.disabled=true;b.textContent="Signing in…";}
+     setMsg("loginMsg","Connecting securely to your account…");
      try{
-      setMsg("loginMsg","Connecting securely…");initDb();
-      const {data,error}=await db.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});
+      initDb();
+      const email=$("email").value.trim(),password=$("password").value;
+      if(!email||!password)throw new Error("Email aur password dono enter karein.");
+      const {data,error}=await db.auth.signInWithPassword({email,password});
       if(error)throw error;
-      user=data.user;await openApp();
-     }catch(e){setMsg("loginMsg","Login error: "+(e.message||String(e)));console.error(e)}
-     finally{b.disabled=false;b.textContent="Sign in to dashboard →"}
+      if(!data?.user)throw new Error("Authentication succeeded but user session was not returned. Please try again.");
+      user=data.user;
+      setMsg("loginMsg","Login successful. Opening your dashboard…");
+      await openApp();
+     }catch(e){
+      const message=e?.message||e?.error_description||String(e);
+      setMsg("loginMsg","Login error: "+message);
+      console.error("Authentication/login error:",{message,code:e?.code,status:e?.status,name:e?.name});
+     }finally{if(b){b.disabled=false;b.textContent="Sign in to dashboard →";}}
     }
     async function logout(){if(db)await db.auth.signOut();user=null;location.reload()}
-    async function openApp(){$("loginView").style.display="none";$("appView").style.display="block";
+    async function openApp(){
+     // Reveal the authenticated workspace before loading optional dashboard data.
+     // A report/inventory request failure must never send a valid user back to login.
+     $("loginView").style.display="none";$("appView").style.display="block";
      const shopScanInput=$("ssScanInput");if(shopScanInput&&!shopScanInput.dataset.bound){shopScanInput.dataset.bound="1";shopScanInput.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();stockShopProcessScan();}});}
-     const stockScanInput=$("stockInScanInput");
-     if(stockScanInput&&!stockScanInput.dataset.bound){stockScanInput.dataset.bound="1";stockScanInput.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();stockInProcessScan(stockScanInput.value);}});}
-     $("who").textContent=user?.email||"Signed in";["dayCounterDate","daybookDate"].forEach(id=>$(id).value=today()<STOCK_START_DATE?STOCK_START_DATE:today());$("inventoryDate").value=today()<STOCK_START_DATE?STOCK_START_DATE:today();await loadProducts();posPopulateBarcodeProducts();stockShopProductOptions();$("dayCounterDate").value=$("inventoryDate").value;$("daybookDate").value=$("inventoryDate").value;await refresh();fillBrandFilters();drawWholesaleRates();await loadInventoryDayCounter();await loadDaybook();if($("autoReportDate")){$("autoReportDate").value=$("inventoryDate").value||today();await loadDashboardAutoReport($("autoReportDate").value)}window.MadhushalaToolsAfterOpen?.()} 
+     const stockScanInput=$("stockInScanInput");if(stockScanInput&&!stockScanInput.dataset.bound){stockScanInput.dataset.bound="1";stockScanInput.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();stockInProcessScan(stockScanInput.value);}});}
+     $("who").textContent=user?.email||"Signed in";
+     const workDate=today()<STOCK_START_DATE?STOCK_START_DATE:today();
+     ["dayCounterDate","daybookDate","inventoryDate"].forEach(id=>{const el=$(id);if(el)el.value=workDate;});
+     const safeStep=async(label,fn)=>{try{await fn();return true;}catch(e){console.error("Dashboard startup step failed: "+label,e);const msg=label+" failed: "+(e?.message||String(e));if($("dashMsg"))setMsg("dashMsg",msg);else if($("loginMsg"))setMsg("loginMsg",msg);return false;}};
+     await safeStep("Inventory loading",loadProducts);
+     await safeStep("POS product setup",async()=>{posPopulateBarcodeProducts();stockShopProductOptions();const d=$("inventoryDate")?.value||workDate;if($("dayCounterDate"))$("dayCounterDate").value=d;if($("daybookDate"))$("daybookDate").value=d;});
+     await safeStep("Dashboard refresh",refresh);
+     await safeStep("Dashboard filters and wholesale rates",async()=>{fillBrandFilters();drawWholesaleRates();});
+     await safeStep("Daily inventory counter",loadInventoryDayCounter);
+     await safeStep("Daybook",loadDaybook);
+     if($("autoReportDate")){ $("autoReportDate").value=$("inventoryDate")?.value||workDate; await safeStep("Automatic daily report",()=>loadDashboardAutoReport($("autoReportDate").value));}
+     await safeStep("Additional workspace tools",async()=>{window.MadhushalaToolsAfterOpen?.();});
+    }
+
     function toggleWorkspaceMenu(forceOpen){
      const sidebar=document.querySelector("#appView .sidebar");
      const backdrop=$("workspaceBackdrop");
