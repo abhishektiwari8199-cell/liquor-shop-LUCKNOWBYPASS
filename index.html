@@ -3302,13 +3302,13 @@
        d.onlineReceived=num(d.liquorOnline)+num(d.beerOnline);
       }
       // Previous-day Rokad is the sum of both departments' prior-day night-cash entries.
-      const prevDates=[...daily.keys()].map(date=>{const dt=new Date(date+"T12:00:00");dt.setDate(dt.getDate()-1);return dt.toISOString().slice(0,10)});
+      const previousHistoryDate=date=>{const m=String(date||"").match(/^(\\d{4})-(\\d{2})-(\\d{2})/);if(!m)return "";const dt=new Date(Date.UTC(Number(m[1]),Number(m[2])-1,Number(m[3])-1));return [dt.getUTCFullYear(),String(dt.getUTCMonth()+1).padStart(2,"0"),String(dt.getUTCDate()).padStart(2,"0")].join("-")};\n      const prevDates=[...daily.keys()].map(previousHistoryDate).filter(Boolean);
       const earliestPrev=prevDates.length?prevDates.sort()[0]:from;
       const prevNightResult=await db.from("night_cash_received").select("record_date,category,rokad_received").eq("user_id",user.id).gte("record_date",earliestPrev).lt("record_date",from);
       if(prevNightResult.error)throw prevNightResult.error;
       const prevNightByDate=new Map();for(const x of prevNightResult.data||[])prevNightByDate.set(String(x.record_date),(prevNightByDate.get(String(x.record_date))||0)+num(x.rokad_received));
       for(const date of daily.keys()){
-       const dt=new Date(date+"T12:00:00");dt.setDate(dt.getDate()-1);const prev=dt.toISOString().slice(0,10),d=getDay(date);
+       const prev=previousHistoryDate(date),d=getDay(date);
        d.previousRokad=prevNightByDate.get(prev)||0;
        const deptRokad=nightRokadByDepartment.get(date)||{beer:0,liquor:0};
        d.beerRokad=deptRokad.beer;d.liquorRokad=deptRokad.liquor;
