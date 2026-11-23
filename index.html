@@ -1697,18 +1697,19 @@
       const fmt=a=>a.map(v=>`<td class="calc">${Number(v||0).toLocaleString("en-IN",{maximumFractionDigits:2})}</td>`).join("");
       const fmtM=a=>a.map(v=>`<td class="value">${money(v)}</td>`).join("");
       const liqTotals={o:[0,0,0,0],p:[0,0,0,0],t:[0,0,0,0],s:[0,0,0,0],sc:[0,0,0,0],b:[0,0,0,0],v:[0,0,0,0]};
-      // Subtotal columns are synchronized with the exact visible liquor rows.
-      // Hidden, filtered and inactive brands contribute nothing to the visible subtotal.
-      const allLiquorGroups=liquor;
+      // Stock totals include zero-activity brands too. Active-only mode hides their
+      // rows for convenience, but their physical stock remains part of inventory and
+      // must reconcile with the Daily PDF closing-stock report.
+      const allLiquorGroups=allVisibleLiquor;
       for(const g of allLiquorGroups){
         const map=[null,null,null,null];g.products.forEach(x=>{const k=sizeIndex(x.size);if(k>=0)map[k]=x;});
         const o=map.map(x=>x?num(inventoryOpeningForDate[String(x.id)]??x.opening_stock):0),p=map.map(x=>x?num(inventoryPurchased[String(x.id)]):0),sale=map.map(x=>x?num(inventorySold[String(x.id)]):0),t=o.map((v,k)=>v+p[k]),saleCalc=sale.map((qty,k)=>qty*num(map[k]?inventoryRate(map[k]).mrp:0)),b=t.map((v,k)=>v-sale[k]),v=b.map((x,k)=>x*num(map[k]?inventoryRate(map[k]).wholesale_price:0));
         [o,p,t,sale,saleCalc,b,v].forEach((a,ai)=>a.forEach((n,k)=>{[liqTotals.o,liqTotals.p,liqTotals.t,liqTotals.s,liqTotals.sc,liqTotals.b,liqTotals.v][ai][k]+=n;}));
+        for(let k=0;k<4;k++){grand.opening+=o[k];grand.purchase+=p[k];grand.total+=t[k];grand.sale+=sale[k];grand.balance+=b[k];grand.value+=v[k];}
       }
       liquor.forEach((g,idx)=>{
         const map=[null,null,null,null];g.products.forEach(p=>{const k=sizeIndex(p.size);if(k>=0)map[k]=p;});
         const o=map.map(p=>p?num(inventoryOpeningForDate[String(p.id)]??p.opening_stock):0),p=map.map(x=>x?num(inventoryPurchased[String(x.id)]):0),s=map.map(x=>x?num(inventorySold[String(x.id)]):0),t=o.map((v,k)=>v+p[k]),saleCalc=s.map((qty,k)=>qty*num(map[k]?inventoryRate(map[k]).mrp:0)),b=t.map((v,k)=>v-s[k]),v=b.map((x,k)=>x*num(map[k]?inventoryRate(map[k]).wholesale_price:0));
-        for(let k=0;k<4;k++){grand.opening+=o[k];grand.purchase+=p[k];grand.total+=t[k];grand.sale+=s[k];grand.balance+=b[k];grand.value+=v[k];}
         const inputs=(arr,prefix,label)=>map.map((x,k)=>{
           if(!x)return "<td>—</td>";
           if(prefix==="reg_purchase"){
@@ -1721,7 +1722,7 @@
         }).join("");
         L.push(`<tr data-order-key="${safe(brandKey(g.name))}"><td><span class="inventory-drag-handle" title="Drag to reorder">⠿</span> ${idx+1}. ${safe(g.name)} <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='editInventoryBrand(${JSON.stringify(g.products.map(x=>String(x.id)))})'>Edit name/rates</button> <button class="btn secondary" style="padding:3px 6px;font-size:10px" onclick='hideInventoryBrand(getInventoryBrandProductIds("liquor",${JSON.stringify(g.name)}),${JSON.stringify(g.name)})'>Hide</button></td>${inputs(o,"opening","opening stock")}${inputs(map.map(x=>x?num(inventoryPurchased[String(x.id)]):0),"reg_purchase","purchase")}${fmt(t)}${inputs(map.map(x=>x?(inventoryManualCurrent[String(x.id)]?.sale||0):0),"reg_sale","sale")}${fmtM(saleCalc)}${fmt(b)}${fmtM(v)}</tr>`);
       });
-      if(allLiquorGroups.length)L.push(`<tr class="inventory-subtotal-row liquor-total-row"><td>TOTAL VISIBLE LIQUOR BRANDS</td>${fmt(liqTotals.o)}${fmt(liqTotals.p)}${fmt(liqTotals.t)}${fmt(liqTotals.s)}${fmtM(liqTotals.sc)}${fmt(liqTotals.b)}${fmtM(liqTotals.v)}</tr>`);
+      if(allLiquorGroups.length)L.push(`<tr class="inventory-subtotal-row liquor-total-row"><td>TOTAL LIQUOR STOCK (ALL ACTIVE + ZERO-ACTIVITY BRANDS)</td>${fmt(liqTotals.o)}${fmt(liqTotals.p)}${fmt(liqTotals.t)}${fmt(liqTotals.s)}${fmtM(liqTotals.sc)}${fmt(liqTotals.b)}${fmtM(liqTotals.v)}</tr>`);
       $("liquorInventoryRows").innerHTML=L.join("")||'<tr><td colspan="29" class="empty">No liquor brands found.</td></tr>';
       const B=[];let bt={o:0,ov:0,p:0,s:0,sv:0,c:0,cv:0,profit:0};
       beer.forEach((x,idx)=>{
