@@ -4275,9 +4275,24 @@
       if(!rows.length){doc.setFontSize(5);doc.setTextColor(...MUTED);doc.text("No records",x+1,yy+3)}
       if(rows.length>shown.length){doc.setFontSize(4.4);doc.setTextColor(150,75,45);doc.text("Showing "+shown.length+" of "+rows.length+" rows",x,yy+2)}
      }
-     // STOCK PURCHASE is separate from opening stock. Group purchase rows by department and size (never by brand).
-     const purchaseBySize=cat=>{const m=new Map();for(const x of day.purchaseProducts.values()){if(String(x.category).toLowerCase()!==cat)continue;const key=String(x.size||"Other"),v=m.get(key)||{size:key,qty:0,mrp:0};v.qty+=num(x.qty);v.mrp+=num(x.mrp);m.set(key,v)}const rows=[...m.values()].sort((a,b)=>a.size.localeCompare(b.size,undefined,{numeric:true}));const total=rows.reduce((a,x)=>({size:"TOTAL",qty:a.qty+x.qty,mrp:a.mrp+x.mrp}),{qty:0,mrp:0});return [...rows,total]};
-     const purchaseDeptTotals=["beer","liquor"].map(cat=>{const rows=[...day.purchaseProducts.values()].filter(x=>String(x.category).toLowerCase()===cat);return {dept:cat.toUpperCase(),qty:rows.reduce((a,x)=>a+num(x.qty),0),wholesale:rows.reduce((a,x)=>a+num(x.wholesale),0),tcs:rows.reduce((a,x)=>a+num(x.tcs),0),mrp:rows.reduce((a,x)=>a+num(x.mrp),0)}});
+     // STOCK PURCHASE uses the same verified, date-scoped inventory ledger audit as the closing-stock report.
+     // Do not read day.purchaseProducts here: that legacy map can be empty even when Inventory has saved purchases.
+     // This is report-only and does not write to inventory, sales, or stock records.
+     const purchaseBySize=cat=>{
+      const m=new Map();
+      for(const x of stockAudit.rows){
+       if(x.category!==cat||num(x.purchase)<=0)continue;
+       const key=String(x.size||"Other"),v=m.get(key)||{size:key,qty:0,mrp:0};
+       v.qty+=num(x.purchase);v.mrp+=num(x.purchaseMrp);m.set(key,v);
+      }
+      const rows=[...m.values()].sort((a,b)=>a.size.localeCompare(b.size,undefined,{numeric:true}));
+      const total=rows.reduce((a,x)=>({size:"TOTAL",qty:a.qty+x.qty,mrp:a.mrp+x.mrp}),{qty:0,mrp:0});
+      return [...rows,total];
+     };
+     const purchaseDeptTotals=["beer","liquor"].map(cat=>{
+      const rows=stockAudit.rows.filter(x=>x.category===cat&&num(x.purchase)>0);
+      return {dept:cat.toUpperCase(),qty:rows.reduce((a,x)=>a+num(x.purchase),0),wholesale:rows.reduce((a,x)=>a+num(x.wholesale),0),tcs:rows.reduce((a,x)=>a+num(x.tcs),0),mrp:rows.reduce((a,x)=>a+num(x.purchaseMrp),0)};
+     });
      table("STOCK PURCHASE · BEER (SIZE-WISE)",purchaseBySize("beer"),[{h:"SIZE",w:27,v:x=>x.size,max:18},{h:"PURCHASE QTY",w:24,v:x=>num(x.qty).toLocaleString("en-IN"),max:13},{h:"MRP VALUE",w:28,v:x=>fmt(x.mrp),max:17}],L,69,65,7,2.65,4.45);
      table("STOCK PURCHASE · LIQUOR (SIZE-WISE)",purchaseBySize("liquor"),[{h:"SIZE",w:27,v:x=>x.size,max:18},{h:"PURCHASE QTY",w:24,v:x=>num(x.qty).toLocaleString("en-IN"),max:13},{h:"MRP VALUE",w:28,v:x=>fmt(x.mrp),max:17}],L+70,69,65,7,2.65,4.45);
      table("STOCK PURCHASE VALUE · WHOLESALE / TCS / MRP",purchaseDeptTotals,[{h:"DEPARTMENT",w:20,v:x=>x.dept,max:12},{h:"QTY",w:12,v:x=>num(x.qty).toLocaleString("en-IN"),max:10},{h:"WHOLESALE",w:23,v:x=>fmt(x.wholesale),max:15},{h:"TCS",w:15,v:x=>fmt(x.tcs),max:12},{h:"MRP SALE VALUE",w:25,v:x=>fmt(x.mrp),max:17}],L,99,135,2,3.1,4.55);
