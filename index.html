@@ -1167,19 +1167,6 @@
     const $=id=>document.getElementById(id),num=v=>Number(v)||0;
     const money=v=>"₹"+num(v).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
     const today=()=>{const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)};
-    // Normalize DATE and TIMESTAMPTZ values safely; never construct Date from a blank value.
-    function reportDateOnly(value){
-     if(value===null||value===undefined)return "";
-     const raw=String(value).trim();if(!raw)return "";
-     const m=raw.match(/^(\d{4}-\d{2}-\d{2})/);if(!m)return "";
-     const day=m[1],parts=day.split("-").map(Number),d=new Date(Date.UTC(parts[0],parts[1]-1,parts[2]));
-     return d.getUTCFullYear()===parts[0]&&d.getUTCMonth()===parts[1]-1&&d.getUTCDate()===parts[2]?day:"";
-    }
-    function reportPreviousDate(value){
-     const day=reportDateOnly(value);if(!day)return "";
-     const [y,m,d]=day.split("-").map(Number);
-     return new Date(Date.UTC(y,m-1,d-1)).toISOString().slice(0,10);
-    }
     const STOCK_START_DATE="2026-11-02";
     // Authoritative beer rate card supplied by the shop owner (07 Nov 2026).
     // MRP is used for opening/sale totals; wholesale is used for stock valuation;
@@ -3246,35 +3233,27 @@
      if(from>to){setMsg("saleHistoryStatus","Start date cannot be later than end date.");return}
      setMsg("saleHistoryStatus",`Loading ${from} to ${to}…`);
      try{
-      const [salesResult,manualRows,expenseResult,counterResult,purchaseResult,dailyCashResult,inventoryPurchaseResult,openingMovementResult,nightCashResult]=await Promise.all([
+      const [salesResult,manualRows,expenseResult,counterResult,purchaseResult,dailyCashResult,inventoryPurchaseResult,openingMovementResult,nightCashResult,allSalesHeadersResult]=await Promise.all([
        db.from("sales").select("id,sale_date,bill_number,category,payment_mode").eq("user_id",user.id).gte("sale_date",from).lte("sale_date",to).order("sale_date",{ascending:false}),
        getInventorySaleRows(from,to,"all"),
        db.from("daily_expenses").select("expense_date,expense_name,amount,payment_type,category").eq("user_id",user.id).gte("expense_date",from).lte("expense_date",to),
        db.from("inventory_day_summary").select("record_date,category,expense_amount,cash_received,online_received").eq("user_id",user.id).gte("record_date",from).lte("record_date",to),
        db.from("daily_cash").select("record_date,cash_received,online_received,credit_rokad,other_cash_in,expenses,notes").eq("user_id",user.id).gte("record_date",from).lte("record_date",to),
-       db.from("purchase_invoices").select("id,invoice_date,category").eq("user_id",user.id).gte("invoice_date",from).lte("invoice_date",to),
+       fetchAllInventoryRows(() => db.from("purchase_invoices").select("id,invoice_date,category").eq("user_id",user.id).gte("invoice_date",STOCK_START_DATE).lte("invoice_date",to).order("invoice_date").order("id")),
        db.from("inventory_register_entries").select("entry_date,product_id,purchase_qty,purchase_rate_snapshot,purchase_tcs_percent_snapshot,purchase_tcs_amount_snapshot,purchase_total_snapshot").eq("user_id",user.id).gte("entry_date",from).lte("entry_date",to).gt("purchase_qty",0),
        fetchAllInventoryRows(() => db.from("inventory_register_entries").select("id,entry_date,product_id,purchase_qty,sale_qty").eq("user_id",user.id).gte("entry_date",STOCK_START_DATE).lt("entry_date",to).order("entry_date",{ascending:true}).order("product_id",{ascending:true}).order("id",{ascending:true})),
-       db.from("night_cash_received").select("record_date,category,cash_received,online_received,rokad_received").eq("user_id",user.id).gte("record_date",from).lte("record_date",to)
+       db.from("night_cash_received").select("record_date,category,cash_received,online_received,rokad_received").eq("user_id",user.id).gte("record_date",from).lte("record_date",to),
+       fetchAllInventoryRows(() => db.from("sales").select("id,sale_date").eq("user_id",user.id).gte("sale_date",STOCK_START_DATE).lt("sale_date",to).order("sale_date").order("id"))
       ]);
-      for(const r of [salesResult,expenseResult,counterResult,dailyCashResult,purchaseResult,inventoryPurchaseResult,openingMovementResult,nightCashResult])if(r.error)throw r.error;
-      const invalidDateSources=[];
-      const normalizeRows=(rows,field,source)=>(rows||[]).flatMap(row=>{const date=reportDateOnly(row?.[field]);if(!date){invalidDateSources.push(source);return [];}return [{...row,[field]:date}];});
-      const bills=normalizeRows(salesResult.data,"sale_date","sales.sale_date"),billIds=bills.map(x=>x.id).filter(id=>uuidPattern.test(String(id||""))),
-       purchaseHeaders=normalizeRows(purchaseResult.data,"invoice_date","purchase_invoices.invoice_date"),purchaseIds=purchaseHeaders.map(x=>x.id).filter(id=>uuidPattern.test(String(id||""))),
-       safeManualRows=(manualRows||[]).flatMap(row=>{const date=reportDateOnly(row?.sale_date);if(!date){invalidDateSources.push("inventory_register_entries.entry_date (sales)");return [];}return [{...row,sale_date:date}];});
-      const [billItemsResult,purchaseItemsResult]=await Promise.all([
+      for(const r of [salesResult,expenseResult,counterResult,dailyCashResult,inventoryPurchaseResult,nightCashResult])if(r.error)throw r.error;
+      const bills=salesResult.data||[],billIds=bills.map(x=>x.id).filter(id=>uuidPattern.test(String(id||""))),purchaseHeaders=purchaseResult||[],purchaseIds=purchaseHeaders.map(x=>x.id).filter(id=>uuidPattern.test(String(id||""))),allSalesHeaders=allSalesHeadersResult||[],allSaleIds=allSalesHeaders.map(x=>x.id).filter(id=>uuidPattern.test(String(id||"")));
+      const [billItemsResult,purchaseItemsResult,allSaleItemsResult]=await Promise.all([
        billIds.length?db.from("sale_items").select("sale_id,product_id,quantity,sale_rate").eq("user_id",user.id).in("sale_id",billIds):Promise.resolve({data:[],error:null}),
-       purchaseIds.length?db.from("purchase_items").select("invoice_id,product_id,quantity,purchase_rate").eq("user_id",user.id).in("invoice_id",purchaseIds):Promise.resolve({data:[],error:null})
+       purchaseIds.length?fetchInventoryItems("purchase_items","invoice_id,product_id,quantity,purchase_rate","invoice_id",purchaseIds).then(data=>({data,error:null})):Promise.resolve({data:[],error:null}),
+       allSaleIds.length?fetchInventoryItems("sale_items","sale_id,product_id,quantity","sale_id",allSaleIds).then(data=>({data,error:null})):Promise.resolve({data:[],error:null})
       ]);
-      if(billItemsResult.error||purchaseItemsResult.error)throw(billItemsResult.error||purchaseItemsResult.error);
-      const items=billItemsResult.data||[],purchaseItems=purchaseItemsResult.data||[],productMap=new Map(products.map(p=>[String(p.id),p]));
-      const expenseRows=normalizeRows(expenseResult.data,"expense_date","daily_expenses.expense_date"),
-       counterRows=normalizeRows(counterResult.data,"record_date","inventory_day_summary.record_date"),
-       cashRows=normalizeRows(dailyCashResult.data,"record_date","daily_cash.record_date"),
-       invPurchaseRows=normalizeRows(inventoryPurchaseResult.data,"entry_date","inventory_register_entries.entry_date (purchase)"),
-       openingMoves=normalizeRows(openingMovementResult,"entry_date","inventory_register_entries.entry_date (opening movement)"),
-       nightRows=normalizeRows(nightCashResult.data,"record_date","night_cash_received.record_date");
+      if(billItemsResult.error||purchaseItemsResult.error||allSaleItemsResult.error)throw(billItemsResult.error||purchaseItemsResult.error||allSaleItemsResult.error);
+      const items=billItemsResult.data||[],purchaseItems=purchaseItemsResult.data||[],allSaleItems=allSaleItemsResult.data||[],productMap=new Map(products.map(p=>[String(p.id),p]));
       const daily=new Map(),getDay=date=>{if(!daily.has(date))daily.set(date,{date,beerQty:0,liquorQty:0,totalQty:0,saleAmount:0,profit:0,expenses:0,purchaseBeer:0,purchaseLiquor:0,purchaseBeerQty:0,purchaseLiquorQty:0,cashReceived:0,onlineReceived:0,previousRokad:0,closingRokad:0,registerCash:0,registerOnline:0,registerRokad:0,beerRokad:0,liquorRokad:0,registerOther:0,registerExpenses:0,registerNotes:"",liquorExpense:0,beerExpense:0,liquorCash:0,liquorOnline:0,beerCash:0,beerOnline:0,nightCashRowsFound:false,products:new Map(),bills:[],expenseRows:[],purchaseProducts:new Map(),openingProducts:new Map()});return daily.get(date)};
       const addSale=(date,pid,qty,amount,catHint)=>{
        const p=productMap.get(String(pid)),cat=String(p?.category||catHint||"").toLowerCase(),d=getDay(date),rate=inventoryRate(p),mrpAmount=num(qty)*rate.mrp,profit=num(qty)*(rate.mrp-rate.wholesale_base);amount=mrpAmount;
@@ -3286,10 +3265,10 @@
       const itemsBySale=new Map();
       for(const row of items){const key=String(row.sale_id);if(!itemsBySale.has(key))itemsBySale.set(key,[]);itemsBySale.get(key).push(row);const h=bills.find(x=>String(x.id)===key);if(h)addSale(h.sale_date,row.product_id,row.quantity,num(row.quantity)*num(row.sale_rate),h.category)}
       for(const b of bills){const rows=itemsBySale.get(String(b.id))||[];getDay(b.sale_date).bills.push({id:b.id,bill_number:b.bill_number||"—",category:b.category||"—",payment_mode:b.payment_mode||"—",qty:rows.reduce((a,x)=>a+num(x.quantity),0),amount:rows.reduce((a,x)=>a+num(x.quantity)*num(x.sale_rate),0)})}
-      for(const r of safeManualRows){const d=getDay(r.sale_date);addSale(r.sale_date,r.product_id,r.quantity,r.amount,r.category);d.bills.push({id:null,bill_number:"Inventory entry",category:r.category||"—",payment_mode:"Not specified",qty:num(r.quantity),amount:num(r.amount),manual:true})}
+      for(const r of manualRows||[]){const d=getDay(r.sale_date);addSale(r.sale_date,r.product_id,r.quantity,r.amount,r.category);d.bills.push({id:null,bill_number:"Inventory entry",category:r.category||"—",payment_mode:"Not specified",qty:num(r.quantity),amount:num(r.amount),manual:true})}
       // Expense Register rows are the sole source of report expenses.
       // Counter expense_amount is an operational counter figure, not a line added in the Expense Register.
-      for(const x of expenseRows){
+      for(const x of expenseResult.data||[]){
        const d=getDay(x.expense_date),cat=String(x.category||"").trim().toLowerCase(),amount=num(x.amount);
        d.expenses+=amount;
        if(cat==="liquor")d.liquorExpense+=amount;else if(cat==="beer")d.beerExpense+=amount;
@@ -3298,17 +3277,17 @@
       // Inventory Day Summary is a fallback only. Night Cash Received is the source of truth
       // for the actual department-wise Cash and Online amounts shown in the Inventory counter.
       const counterByDateDept=new Map();
-      for(const x of counterRows){
+      for(const x of counterResult.data||[]){
        const date=String(x.record_date),cat=String(x.category||"").trim().toLowerCase(),d=getDay(date);
        if(cat==="liquor"){d.liquorCash=num(x.cash_received);d.liquorOnline=num(x.online_received)}
        else if(cat==="beer"){d.beerCash=num(x.cash_received);d.beerOnline=num(x.online_received)}
        counterByDateDept.set(date+"|"+cat,true);
       }
-      for(const x of cashRows){const d=getDay(x.record_date);d.registerCash+=num(x.cash_received);d.registerOnline+=num(x.online_received);d.registerRokad+=num(x.credit_rokad);d.closingRokad+=num(x.credit_rokad);d.registerOther+=num(x.other_cash_in);d.registerExpenses+=num(x.expenses);if(x.notes)d.registerNotes=x.notes}
+      for(const x of dailyCashResult.data||[]){const d=getDay(x.record_date);d.registerCash+=num(x.cash_received);d.registerOnline+=num(x.online_received);d.registerRokad+=num(x.credit_rokad);d.closingRokad+=num(x.credit_rokad);d.registerOther+=num(x.other_cash_in);d.registerExpenses+=num(x.expenses);if(x.notes)d.registerNotes=x.notes}
       // Night Cash Received stores the saved department-wise Cash, Online and Rokad values.
       // Prefer it over Inventory Day Summary, while retaining the latter as a legacy fallback
       // only when a department has no Night Cash row for that date.
-      const nightDatesWithRows=new Set(nightRows.map(x=>String(x.record_date))),nightRokadByDate=new Map(),nightRokadByDepartment=new Map();
+      const nightRows=nightCashResult.data||[],nightDatesWithRows=new Set(nightRows.map(x=>String(x.record_date))),nightRokadByDate=new Map(),nightRokadByDepartment=new Map();
       for(const x of nightRows){
        const date=String(x.record_date),category=String(x.category||"").trim().toLowerCase(),amount=num(x.rokad_received),d=getDay(date);
        if(category==="beer"){d.beerCash=num(x.cash_received);d.beerOnline=num(x.online_received)}
@@ -3323,19 +3302,20 @@
        d.onlineReceived=num(d.liquorOnline)+num(d.beerOnline);
       }
       // Previous-day Rokad is the sum of both departments' prior-day night-cash entries.
-      const prevDates=[...daily.keys()].map(reportPreviousDate).filter(Boolean);
+      const prevDates=[...daily.keys()].map(date=>{const dt=new Date(date+"T12:00:00");dt.setDate(dt.getDate()-1);return dt.toISOString().slice(0,10)});
       const earliestPrev=prevDates.length?prevDates.sort()[0]:from;
       const prevNightResult=await db.from("night_cash_received").select("record_date,category,rokad_received").eq("user_id",user.id).gte("record_date",earliestPrev).lt("record_date",from);
       if(prevNightResult.error)throw prevNightResult.error;
       const prevNightByDate=new Map();for(const x of prevNightResult.data||[])prevNightByDate.set(String(x.record_date),(prevNightByDate.get(String(x.record_date))||0)+num(x.rokad_received));
       for(const date of daily.keys()){
-       const prev=reportPreviousDate(date),d=getDay(date);
+       const dt=new Date(date+"T12:00:00");dt.setDate(dt.getDate()-1);const prev=dt.toISOString().slice(0,10),d=getDay(date);
        d.previousRokad=prevNightByDate.get(prev)||0;
        const deptRokad=nightRokadByDepartment.get(date)||{beer:0,liquor:0};
        d.beerRokad=deptRokad.beer;d.liquorRokad=deptRokad.liquor;
        d.registerRokad=nightDatesWithRows.has(date)?(nightRokadByDate.get(date)||0):d.closingRokad;
       }
-      const registerPurchaseDates=new Set((inventoryPurchaseResult.data||[]).map(x=>String(x.entry_date)));
+      // Inventory screen adds invoice purchase_items AND register-entry purchase_qty.
+      // Keep the same source parity here: never suppress invoices just because a manual register row exists on that date.
       for(const x of inventoryPurchaseResult.data||[]){
        const p=productMap.get(String(x.product_id));if(!p)continue;
        const d=getDay(x.entry_date),cat=String(p.category||"").toLowerCase(),qty=num(x.purchase_qty),rate=inventoryRate(p);
@@ -3346,19 +3326,27 @@
        prev.qty+=qty;prev.wholesale+=row.wholesale;prev.tcs+=tcs;prev.mrp+=mrpValue;prev.total+=total;d.purchaseProducts.set(key,prev);
        if(cat==="beer"){d.purchaseBeer+=total;d.purchaseBeerQty+=qty}else if(cat==="liquor"){d.purchaseLiquor+=total;d.purchaseLiquorQty+=qty}
       }
-      // Legacy FL2 invoice records are used only for dates without Inventory Register purchase entries.
+      // Invoice purchase rows are counted alongside register purchases exactly as Inventory does.
       const purchaseById=new Map(purchaseHeaders.map(x=>[String(x.id),String(x.category||"").toLowerCase()]));
-      for(const x of purchaseItems){const h=purchaseHeaders.find(y=>String(y.id)===String(x.invoice_id));if(!h||registerPurchaseDates.has(String(h.invoice_date)))continue;const d=getDay(h.invoice_date),cat=purchaseById.get(String(x.invoice_id)),p=productMap.get(String(x.product_id));if(!p)continue;const qty=num(x.quantity),rate=inventoryRate(p),base=num(x.purchase_rate)||rate.wholesale_base,tcs=qty*base*rate.tcs_percent/100,total=qty*base+tcs,mrp=qty*rate.mrp,key=String(x.product_id),prev=d.purchaseProducts.get(key)||{category:cat,brand:p.brand_name||"Product",size:p.size||"",qty:0,wholesale:0,tcs:0,mrp:0,total:0};prev.qty+=qty;prev.wholesale+=qty*base;prev.tcs+=tcs;prev.mrp+=mrp;prev.total+=total;d.purchaseProducts.set(key,prev);if(cat==="beer"){d.purchaseBeer+=total;d.purchaseBeerQty+=qty}else if(cat==="liquor"){d.purchaseLiquor+=total;d.purchaseLiquorQty+=qty}}
-      // Opening stock is the previous closing balance: configured base opening stock + movements strictly BEFORE this report date. Same-day purchases are deliberately excluded and shown separately in STOCK PURCHASE.
-      // REPORT-ONLY opening-stock reconstruction. Inventory tables and stock values are read-only here.
-      // Stable id ordering prevents duplicate-date pagination from skipping register rows.
-      // The report reads every historical movement before the report date; no stock is written or altered.
-      const movementByProductDate=new Map();
-      for(const m of openingMoves){
-       const key=String(m.product_id),arr=movementByProductDate.get(key)||[];
-       arr.push({date:String(m.entry_date),net:num(m.purchase_qty)-num(m.sale_qty)});
-       movementByProductDate.set(key,arr);
+      const purchaseDateById=new Map(purchaseHeaders.map(x=>[String(x.id),String(x.invoice_date||"").slice(0,10)]));
+      for(const x of purchaseItems){
+       const date=purchaseDateById.get(String(x.invoice_id)),p=productMap.get(String(x.product_id));
+       if(!date||date<from||date>to||!p)continue;
+       const d=getDay(date),cat=String(p.category||purchaseById.get(String(x.invoice_id))||"").toLowerCase(),qty=num(x.quantity),rate=inventoryRate(p),base=num(x.purchase_rate)||rate.wholesale_base,tcs=qty*base*rate.tcs_percent/100,total=qty*base+tcs,mrp=qty*rate.mrp,key=String(x.product_id),prev=d.purchaseProducts.get(key)||{category:cat,brand:p.brand_name||"Product",size:p.size||"",qty:0,wholesale:0,tcs:0,mrp:0,total:0};
+       prev.qty+=qty;prev.wholesale+=qty*base;prev.tcs+=tcs;prev.mrp+=mrp;prev.total+=total;d.purchaseProducts.set(key,prev);
+       if(cat==="beer"){d.purchaseBeer+=total;d.purchaseBeerQty+=qty}else if(cat==="liquor"){d.purchaseLiquor+=total;d.purchaseLiquorQty+=qty}
       }
+      // Rebuild opening exactly like loadInventoryForDate(): base opening + all prior invoice purchases + prior register purchases - all prior invoice sales - prior register sales.
+      const openingMoves=openingMovementResult||[];
+      const saleDateById=new Map(allSalesHeaders.map(x=>[String(x.id),String(x.sale_date||"").slice(0,10)]));
+      const movementByProductDate=new Map();
+      const addHistoricalMovement=(pid,date,net)=>{
+       if(!pid||!date)return;const key=String(pid),arr=movementByProductDate.get(key)||[];
+       arr.push({date:String(date).slice(0,10),net:num(net)});movementByProductDate.set(key,arr);
+      };
+      for(const m of openingMoves)addHistoricalMovement(m.product_id,m.entry_date,num(m.purchase_qty)-num(m.sale_qty));
+      for(const x of purchaseItems)addHistoricalMovement(x.product_id,purchaseDateById.get(String(x.invoice_id)),num(x.quantity));
+      for(const x of allSaleItems)addHistoricalMovement(x.product_id,saleDateById.get(String(x.sale_id)),-num(x.quantity));
       for(const arr of movementByProductDate.values())arr.sort((a,b)=>a.date.localeCompare(b.date));
       const openingBalanceByProduct=new Map();
       for(const p of products){
@@ -3382,8 +3370,7 @@
       saleHistoryDailyData=Object.fromEntries([...daily.entries()]);
       const dates=[...daily.keys()].sort((a,b)=>b.localeCompare(a));
       $("hist").innerHTML=dates.map(date=>{const x=daily.get(date);return `<tr><td><b>${safe(date)}</b></td><td>${x.beerQty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${x.liquorQty.toLocaleString("en-IN",{maximumFractionDigits:2})}</td><td>${money(x.saleAmount)}</td><td><button class="btn" type="button" onclick="showSaleDaySummary('${safe(date)}')">View Summary Report</button></td><td><button class="btn secondary" type="button" onclick="downloadCompleteSaleSummary('${safe(date)}')">↓ Download PDF</button> <button class="btn" type="button" onclick="emailCompleteSaleSummary('${safe(date)}',this)">✉ Send to Mail</button></td></tr>`}).join("")||'<tr><td colspan="6" class="empty">No sales or cash entries recorded for this date range.</td></tr>';
-      const dateWarnings=[...new Set(invalidDateSources)];
-      $("saleHistoryStatus").textContent=`Loaded ${dates.length} date-wise records for ${from} to ${to}. Cash register and Daily Counter details are included in each summary.`+(dateWarnings.length?`\nWarning: kuch records mein date blank/invalid thi, unhe date-wise report se exclude kiya: ${dateWarnings.join(", ")}.`:"");
+      $("saleHistoryStatus").textContent=`Loaded ${dates.length} date-wise records for ${from} to ${to}. Cash register and Daily Counter details are included in each summary.`;
       if($("saleDaySummaryPanel"))$("saleDaySummaryPanel").style.display="none";
      }catch(e){const detail=e?.message||e?.details||e?.hint||String(e);setMsg("saleHistoryStatus","Sales history error: "+detail);console.error("Sales history query failed:",{message:e?.message,details:e?.details,hint:e?.hint,code:e?.code,error:e})}
     }
