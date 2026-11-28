@@ -923,6 +923,22 @@
        </div>
        <div class="section-head"><div></div><button class="btn" type="button" onclick="saveFl2Invoice()">Save FL2 Invoice Line</button></div>
        <div class="status" id="fl2InvoiceMsg">Invoice records are separate from Inventory and do not update stock.</div>
+       <div class="section-head" style="margin-top:24px">
+        <div><h3>Purchase History — Scanned Invoices</h3><p>QR scan karke confirm ki gayi sabhi Excise invoices, purchase total, TCS aur MRP yahan milenge.</p></div>
+        <button class="btn secondary" type="button" onclick="loadFl2PurchaseHistory(this)">↻ Refresh History</button>
+       </div>
+       <div class="form-grid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">
+        <label>From date<input type="date" id="fl2PurchaseFrom"></label>
+        <label>To date<input type="date" id="fl2PurchaseTo"></label>
+        <label>Category<select id="fl2PurchaseCategory"><option value="all">Liquor & Beer</option><option value="liquor">Liquor</option><option value="beer">Beer</option></select></label>
+        <div style="align-self:end"><button class="btn" type="button" onclick="loadFl2PurchaseHistory(this)">Apply Filter</button></div>
+       </div>
+       <div class="kpis" id="fl2PurchaseKpis" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin:12px 0">
+        <div class="kpi"><span>Invoices</span><b>—</b></div><div class="kpi"><span>Purchase Amount</span><b>—</b></div><div class="kpi"><span>Total TCS</span><b>—</b></div><div class="kpi"><span>Total MRP</span><b>—</b></div>
+       </div>
+       <div class="status" id="fl2PurchaseHistoryMsg">Loading scanned purchase history…</div>
+       <div class="table-wrap"><table style="min-width:1100px"><thead><tr><th>Date</th><th>Invoice / Pass No.</th><th>Supplier</th><th>Category</th><th>Bottles</th><th>Wholesale Amount</th><th>TCS</th><th>Total Payable</th><th>MRP Total</th><th>Items / Delete</th></tr></thead><tbody id="fl2PurchaseHistoryRows"><tr><td colspan="10" class="empty">Purchase history loading…</td></tr></tbody></table></div>
+       <div class="status">Safety: invoice delete tabhi hoga jab us invoice ke bottles/cases scan na hue hon aur uske product par us date ke baad sale record na ho. Isse stock aur sales history safe rahegi.</div>
       </div>
       <div id="fl2WholesalePanel" class="panel glass" style="display:none">
        <div class="section-head" style="margin-top:0"><div><h3>Wholesale Price</h3><p>Wholesale price aur MRP ek baar save karein; ye har date ki Inventory mein apply honge.</p></div><button class="btn secondary" type="button" onclick="fl2Tab('home')">← FL2 Home</button></div>
@@ -3635,7 +3651,7 @@
      ["fl2InvoicePanel","fl2WholesalePanel","fl2ReportPanel","fl2ReconciliationPanel"].forEach(id=>{
       const el=$(id);if(el){el.style.display=(panels[which]||[]).includes(id)?"block":"none";el.style.marginTop="0";}
      });
-     if(which==="invoice"){if(!$("fl2Date").value)$("fl2Date").value=today();fl2FillBrands()}
+     if(which==="invoice"){if(!$("fl2Date").value)$("fl2Date").value=today();if(!$("fl2PurchaseFrom").value)$("fl2PurchaseFrom").value=fl2SixMonthsAgo();if(!$("fl2PurchaseTo").value)$("fl2PurchaseTo").value=today();fl2FillBrands();loadFl2PurchaseHistory()}
      if(which==="wholesale")fl2OpenWholesale();
      if(which==="report"){if(!$("fl2From").value)$("fl2From").value=today().slice(0,7)+"-01";if(!$("fl2To").value)$("fl2To").value=today();fl2FillFilterBrands()}
      if(which==="reconciliation"){if(!$("fl2ReconTo").value)$("fl2ReconTo").value=today();if(!$("fl2ReconFrom").value)$("fl2ReconFrom").value=fl2SixMonthsAgo();loadFl2Reconciliation()}
@@ -3814,6 +3830,73 @@
       setMsg("fl2ReportMsg",`${(data||[]).length} invoice lines · Total wholesale amount ${money((data||[]).reduce((a,r)=>a+num(r.line_total),0))} · Inventory stock unchanged.`);
      }catch(e){setMsg("fl2ReportMsg","Report failed: "+e.message+". Create the FL2 table in Supabase using the supplied SQL file.")}
     }
+    async function loadFl2PurchaseHistory(button){
+     if(!db||!user)return;
+     const from=$( "fl2PurchaseFrom")?.value||"",to=$( "fl2PurchaseTo")?.value||"",category=$( "fl2PurchaseCategory")?.value||"all";
+     if(from&&to&&from>to){setMsg("fl2PurchaseHistoryMsg","Date range sahi select karein.");return;}
+     if(button){button.disabled=true;button.textContent="Loading…";}
+     setMsg("fl2PurchaseHistoryMsg","Scanned invoices load ho rahi hain…");
+     try{
+      const {data:passes,error:passError}=await fetchAllInventoryRows(()=>db.from("stock_in_passes").select("id,purchase_invoice_id,total_bottles,total_cases").eq("user_id",user.id).order("issue_date",{ascending:false}));
+      if(passError)throw passError;
+      const invoiceIds=(passes||[]).map(x=>x.purchase_invoice_id).filter(Boolean);
+      if(!invoiceIds.length){$("fl2PurchaseHistoryRows").innerHTML='<tr><td colspan="10" class="empty">Abhi koi QR-scanned invoice save nahi hui.</td></tr>';fl2RenderPurchaseKpis([]);setMsg("fl2PurchaseHistoryMsg","0 scanned invoices found.");return;}
+      const [invoiceResult,itemResult,lineResult]=await Promise.all([
+       fetchAllInventoryRows(()=>db.from("purchase_invoices").select("id,invoice_number,invoice_date,receiving_date,supplier_name,category,mrp_total,wholesale_amount,tcs_amount,total_amount_to_pay,indent_number").eq("user_id",user.id).in("id",invoiceIds).order("invoice_date",{ascending:false})),
+       fetchAllInventoryRows(()=>db.from("purchase_items").select("id,invoice_id,product_id,quantity,purchase_rate").eq("user_id",user.id).in("invoice_id",invoiceIds)),
+       fetchAllInventoryRows(()=>db.from("fl2_shop_invoice_lines").select("invoice_no,product_id,brand_name,size,quantity,wholesale_price,line_total,mrp").eq("user_id",user.id).in("invoice_no",(passes||[]).map(x=>x.transport_pass_no||"").filter(Boolean)))
+      ]);
+      if(invoiceResult.error)throw invoiceResult.error;if(itemResult.error)throw itemResult.error;if(lineResult.error)throw lineResult.error;
+      const passByInvoice=new Map((passes||[]).map(x=>[String(x.purchase_invoice_id),x]));
+      const itemRows=itemResult.data||[],lineRows=lineResult.data||[];
+      const records=(invoiceResult.data||[]).map(inv=>{
+       const pass=passByInvoice.get(String(inv.id))||{};
+       const items=itemRows.filter(x=>String(x.invoice_id)===String(inv.id));
+       const lines=lineRows.filter(x=>String(x.invoice_no)===String(inv.invoice_number));
+       const qty=Number(pass.total_bottles||items.reduce((a,x)=>a+num(x.quantity),0));
+       const wholesale=inv.wholesale_amount!=null?num(inv.wholesale_amount):items.reduce((a,x)=>a+num(x.quantity)*num(x.purchase_rate),0);
+       const tcs=inv.tcs_amount!=null?num(inv.tcs_amount):Number((wholesale*.02).toFixed(2));
+       const mrp=inv.mrp_total!=null?num(inv.mrp_total):lines.reduce((a,x)=>a+num(x.quantity)*num(x.mrp),0);
+       const payable=inv.total_amount_to_pay!=null?num(inv.total_amount_to_pay):wholesale+tcs;
+       const detail=items.map(x=>{
+        const p=products.find(z=>String(z.id)===String(x.product_id));
+        const line=lines.find(z=>String(z.product_id)===String(x.product_id));
+        return {brand:line?.brand_name||p?.brand_name||"Unknown",size:line?.size||p?.size||"",qty:num(x.quantity),rate:num(x.purchase_rate),mrp:num(line?.mrp??p?.mrp),amount:num(x.quantity)*num(x.purchase_rate)};
+       });
+       return {...inv,pass,qty,wholesale,tcs,mrp,payable,detail,tcsEstimated:inv.tcs_amount==null};
+      }).filter(x=>(!from||String(x.invoice_date)>=from)&&(!to||String(x.invoice_date)<=to)&&(category==="all"||String(x.category).toLowerCase()===category));
+      const html=records.map(inv=>{
+       const detailRows=inv.detail.map(d=>'<tr><td>'+safe(d.brand)+'</td><td>'+safe(d.size)+'</td><td>'+d.qty.toLocaleString("en-IN")+'</td><td>'+money(d.rate)+'</td><td>'+money(d.amount)+'</td><td>'+money(d.mrp)+'</td><td>'+money(d.qty*d.mrp)+'</td></tr>').join("");
+       const detailTable='<details><summary style="cursor:pointer;color:#d6a900;font-weight:700">View '+inv.detail.length+' items</summary><div class="table-wrap"><table style="min-width:700px"><thead><tr><th>Brand</th><th>Size</th><th>Bottles</th><th>Wholesale / Bottle</th><th>Purchase Value</th><th>MRP / Bottle</th><th>MRP Value</th></tr></thead><tbody>'+detailRows+'</tbody></table></div></details>';
+       return '<tr><td>'+safe(inv.receiving_date||inv.invoice_date)+'</td><td><b>'+safe(inv.invoice_number)+'</b>'+(inv.indent_number?'<div class="muted">Indent: '+safe(inv.indent_number)+'</div>':"")+'</td><td>'+safe(inv.supplier_name||"—")+'</td><td>'+safe(inv.category)+'</td><td>'+inv.qty.toLocaleString("en-IN")+'</td><td>'+money(inv.wholesale)+'</td><td>'+money(inv.tcs)+(inv.tcsEstimated?'<div class="muted">2% calculated</div>':"")+'</td><td>'+money(inv.payable)+'</td><td>'+money(inv.mrp)+'</td><td>'+detailTable+'<button class="btn danger" style="margin-top:8px" type="button" onclick="fl2DeletePurchaseInvoice(\''+safe(inv.id)+'\',this)">Delete Invoice</button></td></tr>';
+      }).join("");
+      $("fl2PurchaseHistoryRows").innerHTML=html||'<tr><td colspan="10" class="empty">Selected filter mein scanned invoices nahi mili.</td></tr>';
+      fl2RenderPurchaseKpis(records);
+      setMsg("fl2PurchaseHistoryMsg",records.length+" scanned invoices · "+records.reduce((a,x)=>a+x.qty,0).toLocaleString("en-IN")+" bottles. Null TCS/MRP records ke liye 2% / available line rates se estimate dikhaya gaya hai.");
+     }catch(e){setMsg("fl2PurchaseHistoryMsg","Purchase history load nahi hui: "+(e.message||String(e)));}
+     finally{if(button){button.disabled=false;button.textContent="↻ Refresh History";}}
+    }
+    function fl2RenderPurchaseKpis(records){
+     const invoices=records.length,wholesale=records.reduce((a,x)=>a+x.wholesale,0),tcs=records.reduce((a,x)=>a+x.tcs,0),mrp=records.reduce((a,x)=>a+x.mrp,0);
+     $("fl2PurchaseKpis").innerHTML=[["Invoices",invoices.toLocaleString("en-IN")],["Purchase Amount",money(wholesale)],["Total TCS",money(tcs)],["Total MRP",money(mrp)]].map(x=>'<div class="kpi"><span>'+x[0]+'</span><b>'+x[1]+'</b></div>').join("");
+    }
+    async function fl2DeletePurchaseInvoice(id,button){
+     if(!id||!db||!user)return;
+     const row=button?.closest("tr"),invoiceNo=row?.querySelector("td:nth-child(2) b")?.textContent||"this invoice";
+     if(!confirm("Invoice "+invoiceNo+" ko delete karna hai? Linked purchase and stock receipt remove honge. Sales/scan history hone par server delete rok dega."))return;
+     if(button){button.disabled=true;button.textContent="Deleting…";}
+     try{
+      const {data,error}=await db.rpc("fl2_delete_excise_invoice",{p_invoice_id:id});
+      if(error)throw error;
+      if(!data?.success)throw new Error("Delete confirmation missing");
+      setMsg("fl2PurchaseHistoryMsg","Invoice "+safe(data.invoice_number)+" delete ho gayi. Stock history refresh ho rahi hai…");
+      await loadProducts();await refresh();await loadFl2PurchaseHistory();
+     }catch(e){
+      setMsg("fl2PurchaseHistoryMsg","Delete nahi hui: "+(e.message||String(e))+". Safety ke liye record preserve kiya gaya.");
+      if(button){button.disabled=false;button.textContent="Delete Invoice";}
+     }
+    }
+
     async function fl2OpenWholesale(){
      const dateInput=$("fl2RateDate");
      if(dateInput&&!dateInput.value)dateInput.value=$("inventoryDate")?.value||today();
