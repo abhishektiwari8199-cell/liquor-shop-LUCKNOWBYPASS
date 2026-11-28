@@ -3837,19 +3837,16 @@
      if(button){button.disabled=true;button.textContent="Loading…";}
      setMsg("fl2PurchaseHistoryMsg","Scanned invoices load ho rahi hain…");
      try{
-      const {data:passes,error:passError}=await fetchAllInventoryRows(()=>db.from("stock_in_passes").select("id,purchase_invoice_id,total_bottles,total_cases").eq("user_id",user.id).order("issue_date",{ascending:false}));
-      if(passError)throw passError;
+      const passes=await fetchAllInventoryRows(()=>db.from("stock_in_passes").select("id,purchase_invoice_id,transport_pass_no,total_bottles,total_cases").eq("user_id",user.id).order("issue_date",{ascending:false}));
       const invoiceIds=(passes||[]).map(x=>x.purchase_invoice_id).filter(Boolean);
       if(!invoiceIds.length){$("fl2PurchaseHistoryRows").innerHTML='<tr><td colspan="10" class="empty">Abhi koi QR-scanned invoice save nahi hui.</td></tr>';fl2RenderPurchaseKpis([]);setMsg("fl2PurchaseHistoryMsg","0 scanned invoices found.");return;}
-      const [invoiceResult,itemResult,lineResult]=await Promise.all([
+      const [invoiceRows,itemRows,lineRows]=await Promise.all([
        fetchAllInventoryRows(()=>db.from("purchase_invoices").select("id,invoice_number,invoice_date,receiving_date,supplier_name,category,mrp_total,wholesale_amount,tcs_amount,total_amount_to_pay,indent_number").eq("user_id",user.id).in("id",invoiceIds).order("invoice_date",{ascending:false})),
        fetchAllInventoryRows(()=>db.from("purchase_items").select("id,invoice_id,product_id,quantity,purchase_rate").eq("user_id",user.id).in("invoice_id",invoiceIds)),
        fetchAllInventoryRows(()=>db.from("fl2_shop_invoice_lines").select("invoice_no,product_id,brand_name,size,quantity,wholesale_price,line_total,mrp").eq("user_id",user.id).in("invoice_no",(passes||[]).map(x=>x.transport_pass_no||"").filter(Boolean)))
       ]);
-      if(invoiceResult.error)throw invoiceResult.error;if(itemResult.error)throw itemResult.error;if(lineResult.error)throw lineResult.error;
       const passByInvoice=new Map((passes||[]).map(x=>[String(x.purchase_invoice_id),x]));
-      const itemRows=itemResult.data||[],lineRows=lineResult.data||[];
-      const records=(invoiceResult.data||[]).map(inv=>{
+      const records=(invoiceRows||[]).map(inv=>{
        const pass=passByInvoice.get(String(inv.id))||{};
        const items=itemRows.filter(x=>String(x.invoice_id)===String(inv.id));
        const lines=lineRows.filter(x=>String(x.invoice_no)===String(inv.invoice_number));
